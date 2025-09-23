@@ -1,52 +1,67 @@
-import { useState, useCallback } from 'react';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
-// A mock API function to simulate a network request
-const mockApiCall = (shouldSucceed) => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (shouldSucceed) {
-                resolve({ success: true });
-            } else {
-                reject(new Error('Failed to update like status.'));
-            }
-        }, 500); // 500ms delay
+const toggleLikeStatus = async (postId) => {
+    const res = await fetch(`/api/post/clap/${postId}`, {
+        method: 'PUT',
     });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update like status.');
+    }
+
+    return res.json();
 };
 
-export const useLike = (initialLikes, initialIsLiked = false) => {
-    const [likeCount, setLikeCount] = useState(initialLikes);
-    const [isLiked, setIsLiked] = useState(initialIsLiked);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+export const useLike = (initialLikes, initialIsLiked, postId) => {
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
+    const { currentUser } = useSelector((state) => state.user);
 
-    const handleLike = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
+    const { mutate, isLoading } = useMutation({
+        mutationFn: () => {
+            if (!currentUser) {
+                navigate('/sign-in');
+                return Promise.reject(new Error('You must be logged in to like a post.'));
+            }
+            return toggleLikeStatus(postId);
+        },
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: ['post', postId] });
+            const previousPost = queryClient.getQueryData(['post', postId]);
 
-        // Optimistic UI update: change state immediately
-        const originalIsLiked = isLiked;
-        const originalLikeCount = likeCount;
+            queryClient.setQueryData(['post', postId], (oldData) => {
+                if (!oldData) return;
+                const newIsLiked = !initialIsLiked;
+                const newLikeCount = newIsLiked ? (oldData.claps || 0) + 1 : (oldData.claps || 0) - 1;
 
-        setIsLiked(prev => !prev);
-        setLikeCount(prev => (isLiked ? prev - 1 : prev + 1));
+                return {
+                    ...oldData,
+                    claps: newLikeCount,
+                    clappedBy: newIsLiked
+                        ? [...(oldData.clappedBy || []), currentUser._id]
+                        : (oldData.clappedBy || []).filter(id => id !== currentUser._id),
+                };
+            });
 
-        try {
-            // Make the API call
-            // In a real app, you might pass a postId here.
-            await mockApiCall(true); // Change to 'false' to test error handling
+            return { previousPost };
+        },
+        onError: (err, newTodo, context) => {
+            queryClient.setQueryData(['post', postId], context.previousPost);
+            console.error(err);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['posts'] });
+            queryClient.invalidateQueries({ queryKey: ['post', postId] });
+        },
+    });
 
-            // If API call is successful, do nothing, our state is already updated.
-
-        } catch (err) {
-            // If it fails, revert the state and set an error message
-            setError(err.message);
-            setIsLiked(originalIsLiked);
-            setLikeCount(originalLikeCount);
-            console.error(error); // Log the error for debugging
-        } finally {
-            setIsLoading(false);
-        }
-    }, [isLiked, likeCount, error]);
-
-    return { likeCount, isLiked, isLoading, handleLike };
+    return {
+        likeCount: initialLikes,
+        isLiked: initialIsLiked,
+        isLoading,
+        handleLike: mutate
+    };
 };

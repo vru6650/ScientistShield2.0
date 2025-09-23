@@ -1,14 +1,63 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Editor from '@monaco-editor/react';
-import { Button, ToggleSwitch, Spinner, Alert, Tooltip } from 'flowbite-react';
+import { Button, ToggleSwitch, Spinner, Alert } from 'flowbite-react';
 import { useSelector } from 'react-redux';
 import {
-    FaPlay, FaRedo, FaChevronRight, FaChevronDown, FaTerminal, FaEye, FaCopy, FaExpand, FaTextHeight, FaPlus, FaMinus, FaCheck, FaCompress
+    FaPlay, FaRedo, FaTerminal, FaEye, FaCopy, FaExpand, FaPlus, FaMinus, FaCheck, FaCompress
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 import LanguageSelector from './LanguageSelector';
+import useCodeSnippet from '../hooks/useCodeSnippet';
+
+const supportedLanguages = ['html', 'css', 'javascript', 'cpp', 'python'];
+
+const languageAliases = {
+    js: 'javascript',
+    javascript: 'javascript',
+    py: 'python',
+    python: 'python',
+    'c++': 'cpp',
+    cpp: 'cpp',
+};
+
+const normalizeLanguage = (language) => {
+    if (!language) {
+        return 'html';
+    }
+
+    const normalizedInput = typeof language === 'string'
+        ? language.toLowerCase()
+        : String(language).toLowerCase();
+
+    const normalized = languageAliases[normalizedInput] || normalizedInput;
+
+    return supportedLanguages.includes(normalized) ? normalized : 'html';
+};
+
+const normalizeInitialCode = (initialCode, fallbackLanguage) => {
+    if (!initialCode) {
+        return {};
+    }
+
+    if (typeof initialCode === 'string') {
+        const normalizedLanguage = normalizeLanguage(fallbackLanguage);
+        return { [normalizedLanguage]: initialCode };
+    }
+
+    if (typeof initialCode === 'object') {
+        return Object.entries(initialCode).reduce((acc, [key, value]) => {
+            const normalizedKey = normalizeLanguage(key);
+            if (typeof value === 'string' && supportedLanguages.includes(normalizedKey)) {
+                acc[normalizedKey] = value;
+            }
+            return acc;
+        }, {});
+    }
+
+    return {};
+};
 
 const defaultCodes = {
     html: `<!DOCTYPE html>
@@ -60,23 +109,30 @@ hello_world()`
 
 const visualizerSupportedLanguages = new Set(['python', 'cpp', 'javascript']);
 
-export default function CodeEditor({ initialCode = {}, language = 'html' }) {
+export default function CodeEditor({ initialCode = {}, language = 'html', snippetId }) {
     const { theme } = useSelector((state) => state.theme);
     const navigate = useNavigate();
     const editorRef = useRef(null);
     const outputRef = useRef(null);
+    const { snippet, isLoading: isSnippetLoading, error: snippetError } = useCodeSnippet(snippetId);
+
+    const normalizedInitialLanguage = normalizeLanguage(language);
+    const normalizedInitialCode = useMemo(
+        () => normalizeInitialCode(initialCode, normalizedInitialLanguage),
+        [initialCode, normalizedInitialLanguage]
+    );
 
 
     // Consolidated state for all code snippets
     const [codes, setCodes] = useState({
-        html: initialCode.html || defaultCodes.html,
-        css: initialCode.css || defaultCodes.css,
-        javascript: initialCode.javascript || defaultCodes.javascript,
-        cpp: initialCode.cpp || defaultCodes.cpp,
-        python: initialCode.python || defaultCodes.python,
+        html: normalizedInitialCode.html || defaultCodes.html,
+        css: normalizedInitialCode.css || defaultCodes.css,
+        javascript: normalizedInitialCode.javascript || defaultCodes.javascript,
+        cpp: normalizedInitialCode.cpp || defaultCodes.cpp,
+        python: normalizedInitialCode.python || defaultCodes.python,
     });
 
-    const [selectedLanguage, setSelectedLanguage] = useState(language);
+    const [selectedLanguage, setSelectedLanguage] = useState(normalizedInitialLanguage);
     const [srcDoc, setSrcDoc] = useState('');
     const [consoleOutput, setConsoleOutput] = useState('');
     const [autoRun, setAutoRun] = useState(true);
@@ -87,6 +143,7 @@ export default function CodeEditor({ initialCode = {}, language = 'html' }) {
     const [fontSize, setFontSize] = useState(14);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
+    const [hasAppliedSnippet, setHasAppliedSnippet] = useState(false);
 
     const handleEditorDidMount = (editor) => {
         editorRef.current = editor;
@@ -163,6 +220,45 @@ export default function CodeEditor({ initialCode = {}, language = 'html' }) {
     const isLivePreviewLanguage = ['html', 'css', 'javascript'].includes(selectedLanguage);
 
     useEffect(() => {
+        setEditorTheme(theme === 'dark' ? 'vs-dark' : 'vs-light');
+    }, [theme]);
+
+    useEffect(() => {
+        setHasAppliedSnippet(false);
+    }, [snippetId]);
+
+    useEffect(() => {
+        if (!snippetId || !snippet || hasAppliedSnippet) {
+            return;
+        }
+
+        const preferredLanguage = (() => {
+            if (language && language !== 'html') {
+                return language;
+            }
+            if (snippet.html && snippet.html.trim()) {
+                return 'html';
+            }
+            if (snippet.js && snippet.js.trim()) {
+                return 'javascript';
+            }
+            if (snippet.css && snippet.css.trim()) {
+                return 'css';
+            }
+            return selectedLanguage;
+        })();
+
+        setCodes((prevCodes) => ({
+            ...prevCodes,
+            html: snippet.html || defaultCodes.html,
+            css: snippet.css || defaultCodes.css,
+            javascript: snippet.js || defaultCodes.javascript,
+        }));
+        setSelectedLanguage(normalizeLanguage(preferredLanguage));
+        setHasAppliedSnippet(true);
+    }, [snippetId, snippet, hasAppliedSnippet, language, selectedLanguage]);
+
+    useEffect(() => {
         if (!autoRun || !isLivePreviewLanguage) return;
         const timeout = setTimeout(() => runCode(), 1000);
         return () => clearTimeout(timeout);
@@ -182,11 +278,11 @@ export default function CodeEditor({ initialCode = {}, language = 'html' }) {
 
     const resetCode = () => {
         setCodes({
-            html: initialCode.html || defaultCodes.html,
-            css: initialCode.css || defaultCodes.css,
-            javascript: initialCode.javascript || defaultCodes.javascript,
-            cpp: initialCode.cpp || defaultCodes.cpp,
-            python: initialCode.python || defaultCodes.python,
+            html: (snippet?.html ?? normalizedInitialCode.html) || defaultCodes.html,
+            css: (snippet?.css ?? normalizedInitialCode.css) || defaultCodes.css,
+            javascript: (snippet?.js ?? normalizedInitialCode.javascript) || defaultCodes.javascript,
+            cpp: normalizedInitialCode.cpp || defaultCodes.cpp,
+            python: normalizedInitialCode.python || defaultCodes.python,
         });
         setSrcDoc('');
         setConsoleOutput('');
@@ -219,7 +315,10 @@ export default function CodeEditor({ initialCode = {}, language = 'html' }) {
         <FullScreenWrapper {...fullScreenProps}>
             <div className={`flex flex-col rounded-lg shadow-xl ${isFullScreen ? 'h-full' : 'h-[90vh] md:h-[800px] bg-gray-50 dark:bg-gray-900'}`}>
                 <div className="flex flex-col sm:flex-row justify-between items-center p-2 mb-2 gap-4 border-b border-gray-200 dark:border-gray-700">
-                    <LanguageSelector selectedLanguage={selectedLanguage} setSelectedLanguage={setSelectedLanguage} />
+                    <LanguageSelector
+                        selectedLanguage={selectedLanguage}
+                        setSelectedLanguage={(lang) => setSelectedLanguage(normalizeLanguage(lang))}
+                    />
                     <div className="flex items-center gap-4 flex-wrap justify-center">
                         {isLivePreviewLanguage && <ToggleSwitch checked={autoRun} onChange={() => setAutoRun(!autoRun)} label="Auto-Run" />}
                         <Button gradientDuoTone="purpleToBlue" onClick={runCode} isProcessing={isRunning} disabled={isRunning} size="sm">
@@ -242,6 +341,11 @@ export default function CodeEditor({ initialCode = {}, language = 'html' }) {
                         <Button color="gray" size="xs" onClick={() => setFontSize(fz => Math.min(24, fz + 1))}><FaPlus /></Button>
                     </Button.Group>
                     <div className="flex items-center gap-4">
+                        {snippetError && (
+                            <Alert color="failure" className="!bg-transparent text-xs">
+                                Failed to load saved snippet: {snippetError}
+                            </Alert>
+                        )}
                         <Button color="gray" size="xs" onClick={formatCode}>Format Code</Button>
                         <Button color="gray" size="xs" onClick={copyCode}>
                             {isCopied ? <FaCheck className="mr-2 text-green-500" /> : <FaCopy className="mr-2" />}
@@ -259,7 +363,7 @@ export default function CodeEditor({ initialCode = {}, language = 'html' }) {
                 </div>
                 <div className="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden">
                     <div className="flex-1 flex flex-col rounded-md shadow-inner bg-white dark:bg-gray-800 p-1">
-                        <div className="flex-1 rounded-md overflow-hidden">
+                        <div className="flex-1 rounded-md overflow-hidden relative">
                             <Editor
                                 height="100%"
                                 language={selectedLanguage}
@@ -276,6 +380,11 @@ export default function CodeEditor({ initialCode = {}, language = 'html' }) {
                                     padding: { top: 10, bottom: 10 },
                                 }}
                             />
+                            {isSnippetLoading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-gray-900/70">
+                                    <Spinner />
+                                </div>
+                            )}
                         </div>
                     </div>
                     <AnimatePresence>

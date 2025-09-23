@@ -1,6 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 import flowbite from 'flowbite/plugin';
 import tailwindScrollbar from 'tailwind-scrollbar';
+import typography from '@tailwindcss/typography'; // NEW: Import typography plugin
+import forms from '@tailwindcss/forms'; // NEW: Import forms plugin
 
 export default {
   content: [
@@ -10,6 +12,16 @@ export default {
   ],
   darkMode: 'class',
   theme: {
+    // NEW: Add a centered container with padding by default
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1rem',
+        sm: '2rem',
+        lg: '4rem',
+        xl: '5rem',
+      },
+    },
     extend: {
       colors: {
         'professional-blue': {
@@ -42,7 +54,10 @@ export default {
           light: '#E0EEFF', // professional-blue-100
           dark: '#143859',  // professional-blue-900
         },
-
+        // NEW: Add semantic colors for UI states
+        'success': '#22c55e', // Green 500
+        'warning': '#f97316', // Orange 500
+        'danger': '#ef4444',  // Red 500
       },
       fontFamily: {
         heading: ['Poppins', 'sans-serif'],
@@ -67,17 +82,36 @@ export default {
       },
       backgroundImage: {
         'professional-gradient': 'linear-gradient(to right, #1a5da2, #3a8adf, #1d72ce)',
+        // NEW: Add a conic gradient for background effects
+        'conic-glow': 'conic-gradient(from 180deg at 50% 50%, #1d72ce 0deg, #3a8adf 120deg, #1a5da2 240deg, #1d72ce 360deg)',
       },
+      // NEW: Add more keyframes for advanced animations
       keyframes: {
         'card-fade-in': {
           '0%': { opacity: 0, transform: 'translateY(20px)' },
           '100%': { opacity: 1, transform: 'translateY(0)' },
         },
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+        'shimmer': {
+          '100%': { transform: 'translateX(100%)' },
+        },
       },
+      // NEW: Add more animations using the keyframes
       animation: {
         'card-fade-in': 'card-fade-in 0.8s ease-out forwards',
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+        'shimmer': 'shimmer 1.5s infinite linear',
       },
     },
   },
-  plugins: [flowbite, tailwindScrollbar],
+  // NEW: Add the typography and forms plugins
+  plugins: [flowbite, tailwindScrollbar, typography, forms],
 };
