@@ -224,10 +224,15 @@ export default function PostCard({ post }) {
     const [shareTooltip, setShareTooltip] = useState('Share');
     const shareResetTimeoutRef = useRef(null);
 
+    const navigationTimeoutRef = useRef(null);
+
     useEffect(() => {
         return () => {
             if (shareResetTimeoutRef.current) {
                 clearTimeout(shareResetTimeoutRef.current);
+            }
+            if (navigationTimeoutRef.current) {
+                clearTimeout(navigationTimeoutRef.current);
             }
         };
     }, []);
@@ -284,8 +289,33 @@ export default function PostCard({ post }) {
         actionHandler();
     };
 
+    const handleCardClick = (event) => {
+        if (event?.defaultPrevented) return;
+
+        const interactiveElement = event?.target?.closest('button, a, input, textarea, select, label');
+        if (interactiveElement) return;
+
+        if (!post?.slug) return;
+
+        if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+        }
+
+        navigationTimeoutRef.current = setTimeout(() => {
+            navigationTimeoutRef.current = null;
+            navigate(`/post/${post.slug}`);
+        }, 180);
+    };
+
     const handleMediaDoubleClick = (e) => {
         e.preventDefault();
+        e.stopPropagation();
+
+        if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+            navigationTimeoutRef.current = null;
+        }
+
         if (!currentUser) { navigate('/sign-in'); return; }
         if (!isLiked) { // Only trigger like action, not unlike
             handleLike();
@@ -332,6 +362,7 @@ export default function PostCard({ post }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.1 }}
             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+            onClick={handleCardClick}
         >
             <CardHeader userId={post.userId} />
 
