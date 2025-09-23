@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PropTypes from 'prop-types';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -78,13 +78,17 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
 CardMedia.propTypes = { post: PropTypes.object.isRequired, onDoubleClick: PropTypes.func, showLikeHeart: PropTypes.bool };
 
 
-const CardActions = ({ post, likeProps, bookmarkProps, onActionClick, onShareClick }) => {
+const CardActions = ({ likeProps, bookmarkProps, onActionClick, onShareClick, shareTooltip }) => {
     // New state for share animation
     const [isSharing, setIsSharing] = useState(false);
 
-    const handleShare = (e) => {
-        onShareClick(e);
+    const handleShare = async (e) => {
         setIsSharing(true);
+        try {
+            await onShareClick(e);
+        } catch (error) {
+            console.error('Share handler failed:', error);
+        }
     };
 
     return (
@@ -136,7 +140,7 @@ const CardActions = ({ post, likeProps, bookmarkProps, onActionClick, onShareCli
                         }
                     </motion.button>
                 </Tooltip>
-                <Tooltip content="Share">
+                <Tooltip content={shareTooltip}>
                     <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -174,7 +178,7 @@ const CardActions = ({ post, likeProps, bookmarkProps, onActionClick, onShareCli
         </div>
     );
 };
-CardActions.propTypes = { post: PropTypes.object, likeProps: PropTypes.object, bookmarkProps: PropTypes.object, onActionClick: PropTypes.func, onShareClick: PropTypes.func };
+CardActions.propTypes = { likeProps: PropTypes.object, bookmarkProps: PropTypes.object, onActionClick: PropTypes.func, onShareClick: PropTypes.func, shareTooltip: PropTypes.string };
 
 
 const CardBody = ({ post, likeCount, authorUsername }) => {
@@ -217,6 +221,58 @@ export default function PostCard({ post }) {
     const { user: author } = useUser(post.userId);
 
     const [showLikeHeart, setShowLikeHeart] = useState(false);
+    const [shareTooltip, setShareTooltip] = useState('Share');
+    const shareResetTimeoutRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (shareResetTimeoutRef.current) {
+                clearTimeout(shareResetTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const scheduleShareTooltipReset = () => {
+        if (shareResetTimeoutRef.current) {
+            clearTimeout(shareResetTimeoutRef.current);
+        }
+        shareResetTimeoutRef.current = setTimeout(() => setShareTooltip('Share'), 2000);
+    };
+
+    const updateShareTooltip = (message) => {
+        setShareTooltip(message);
+        scheduleShareTooltipReset();
+    };
+
+    const copyToClipboard = async (text) => {
+        if (!text) return false;
+        try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (error) {
+            console.warn('Async clipboard copy failed, falling back to execCommand.', error);
+        }
+
+        if (typeof document === 'undefined') return false;
+
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.setAttribute('readonly', '');
+            textArea.style.position = 'absolute';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            return successful;
+        } catch (error) {
+            console.error('Clipboard copy via execCommand failed:', error);
+            return false;
+        }
+    };
 
     const { likeCount, isLiked, isLoading: isLikeLoading, handleLike } = useLike(post.claps || 0, post.clappedBy?.includes(currentUser?._id), post._id);
     const { isBookmarked, isLoading: isBookmarkLoading, handleBookmark } = useBookmark(post.bookmarkedBy?.includes(currentUser?._id), post._id);
@@ -238,14 +294,34 @@ export default function PostCard({ post }) {
         }
     };
 
-    const handleShareClick = (e) => {
+    const handleShareClick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (navigator.share) {
-            navigator.share({ title: post.title, text: post.title, url: `${window.location.origin}/post/${post.slug}` });
-        } else {
-            navigator.clipboard.writeText(`${window.location.origin}/post/${post.slug}`);
+
+        const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${post.slug}` : '';
+        const shareData = { title: post.title, text: post.title, url: shareUrl };
+
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share(shareData);
+                updateShareTooltip('Shared!');
+                return;
+            } catch (error) {
+                if (error?.name === 'AbortError') {
+                    // User cancelled the native share sheet; keep tooltip as-is.
+                    return;
+                }
+                console.warn('Native share failed; falling back to clipboard copy.', error);
+            }
         }
+
+        if (!shareData.url) {
+            updateShareTooltip('Link unavailable');
+            return;
+        }
+
+        const copied = await copyToClipboard(shareData.url);
+        updateShareTooltip(copied ? 'Link copied!' : 'Copy failed');
     };
 
     return (
@@ -262,11 +338,11 @@ export default function PostCard({ post }) {
             <CardMedia post={post} onDoubleClick={handleMediaDoubleClick} showLikeHeart={showLikeHeart} />
 
             <CardActions
-                post={post}
                 likeProps={{ isLiked, isLoading: isLikeLoading, handleLike }}
                 bookmarkProps={{ isBookmarked, isLoading: isBookmarkLoading, handleBookmark }}
                 onActionClick={handleActionClick}
                 onShareClick={handleShareClick}
+                shareTooltip={shareTooltip}
             />
 
             <CardBody

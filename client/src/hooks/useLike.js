@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +21,17 @@ export const useLike = (initialLikes, initialIsLiked, postId) => {
     const navigate = useNavigate();
     const { currentUser } = useSelector((state) => state.user);
 
+    const [likeCount, setLikeCount] = useState(initialLikes || 0);
+    const [isLiked, setIsLiked] = useState(!!initialIsLiked);
+
+    useEffect(() => {
+        setLikeCount(initialLikes || 0);
+    }, [initialLikes]);
+
+    useEffect(() => {
+        setIsLiked(!!initialIsLiked);
+    }, [initialIsLiked]);
+
     const { mutate, isLoading } = useMutation({
         mutationFn: () => {
             if (!currentUser) {
@@ -32,25 +44,38 @@ export const useLike = (initialLikes, initialIsLiked, postId) => {
             await queryClient.cancelQueries({ queryKey: ['post', postId] });
             const previousPost = queryClient.getQueryData(['post', postId]);
 
+            const previousLikeCount = likeCount;
+            const previousIsLiked = isLiked;
+
+            const optimisticIsLiked = !previousIsLiked;
+            const optimisticLikeCount = previousLikeCount + (optimisticIsLiked ? 1 : -1);
+
+            setIsLiked(optimisticIsLiked);
+            setLikeCount(optimisticLikeCount);
+
             queryClient.setQueryData(['post', postId], (oldData) => {
                 if (!oldData) return;
-                const newIsLiked = !initialIsLiked;
-                const newLikeCount = newIsLiked ? (oldData.claps || 0) + 1 : (oldData.claps || 0) - 1;
-
                 return {
                     ...oldData,
-                    claps: newLikeCount,
-                    clappedBy: newIsLiked
+                    claps: optimisticLikeCount,
+                    clappedBy: optimisticIsLiked
                         ? [...(oldData.clappedBy || []), currentUser._id]
                         : (oldData.clappedBy || []).filter(id => id !== currentUser._id),
                 };
             });
 
-            return { previousPost };
+            return { previousPost, previousLikeCount, previousIsLiked };
         },
-        onError: (err, newTodo, context) => {
+        onError: (err, _variables, context) => {
             queryClient.setQueryData(['post', postId], context.previousPost);
+            setLikeCount(context.previousLikeCount);
+            setIsLiked(context.previousIsLiked);
             console.error(err);
+        },
+        onSuccess: (data) => {
+            if (!data) return;
+            setLikeCount(data.claps || 0);
+            setIsLiked(data.clappedBy?.includes(currentUser?._id) || false);
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['posts'] });
@@ -59,8 +84,8 @@ export const useLike = (initialLikes, initialIsLiked, postId) => {
     });
 
     return {
-        likeCount: initialLikes,
-        isLiked: initialIsLiked,
+        likeCount,
+        isLiked,
         isLoading,
         handleLike: mutate
     };
