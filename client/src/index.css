@@ -578,3 +578,55 @@ html {
 .reading-theme-dusk .text-gray-800 {
   color: rgba(203, 213, 225, 0.85) !important;
 }
+
+/*
+ * ========================================
+ * NEW: Additional Reading Control Themes
+ * ========================================
+ */
+
+.reading-theme-mint {
+  background-color: #f0fdf4; /* green-50 */
+  color: #14532d; /* green-900 */
+  border-color: rgba(34, 197, 94, 0.25);
+  box-shadow: 0 28px 55px -28px rgba(22, 163, 74, 0.25);
+}
+
+.reading-theme-mint a {
+  color: #15803d; /* green-700 */
+}
+
+.reading-theme-mint pre,
+.reading-theme-mint code {
+  background-color: rgba(74, 222, 128, 0.12);
+}
+
+.reading-theme-mint .text-gray-500,
+.reading-theme-mint .text-gray-600,
+.reading-theme-mint .text-gray-700 {
+  color: rgba(20, 83, 45, 0.82) !important;
+}
+
+.reading-theme-dusk {
+  background-color: #1e293b; /* slate-800 */
+  color: #cbd5e1; /* slate-300 */
+  border-color: rgba(71, 85, 105, 0.5);
+  box-shadow: 0 30px 60px -32px rgba(8, 47, 73, 0.75);
+}
+
+.reading-theme-dusk a {
+  color: #60a5fa; /* blue-400 */
+}
+
+.reading-theme-dusk pre,
+.reading-theme-dusk code {
+  background-color: rgba(30, 41, 59, 0.75);
+  color: #e2e8f0;
+}
+
+.reading-theme-dusk .text-gray-500,
+.reading-theme-dusk .text-gray-600,
+.reading-theme-dusk .text-gray-700,
+.reading-theme-dusk .text-gray-800 {
+  color: rgba(203, 213, 225, 0.85) !important;
+}
