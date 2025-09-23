@@ -160,8 +160,8 @@ html {
 }
 
 .post-content p {
-  margin-bottom: 1.25rem;
-  line-height: 1.7;
+  margin-bottom: var(--paragraph-spacing, 1.25em);
+  line-height: inherit;
   word-wrap: break-word;
 }
 
