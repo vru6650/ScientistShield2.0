@@ -17,6 +17,8 @@ import ReadingProgressBar from '../components/ReadingProgressBar';
 import SocialShare from '../components/SocialShare';
 import ClapButton from '../components/ClapButton';
 import CodeEditor from '../components/CodeEditor';
+import ReadingControlCenter from '../components/ReadingControlCenter';
+import useReadingSettings from '../hooks/useReadingSettings';
 import '../Tiptap.css';
 
 // --- API fetching functions ---
@@ -110,6 +112,15 @@ export default function PostPage() {
         return imageSources;
     }, [sanitizedContent]);
 
+    const {
+        settings: readingSettings,
+        updateSetting: updateReadingSetting,
+        resetSettings: resetReadingSettings,
+        contentStyles,
+        contentMaxWidth,
+        surfaceClass,
+    } = useReadingSettings();
+
     const openImageViewer = (index) => {
         setCurrentImage(index);
         setIsViewerOpen(true);
@@ -198,34 +209,65 @@ export default function PostPage() {
                 <meta property="og:type" content="article" />
             </Helmet>
 
+            <ReadingControlCenter
+                settings={readingSettings}
+                onChange={updateReadingSetting}
+                onReset={resetReadingSettings}
+            />
+
             <ReadingProgressBar />
             <main className='p-3 flex flex-col max-w-6xl mx-auto min-h-screen'>
-                <h1 className='text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-4xl'>{post.title}</h1>
+                <h1
+                    className='text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-4xl'
+                    style={{ maxWidth: contentMaxWidth }}
+                >
+                    {post.title}
+                </h1>
                 <Link to={`/search?category=${post.category}`} className='self-center mt-5'>
                     <Button color='gray' pill size='xs'>{post.category}</Button>
                 </Link>
-                <div className='mt-10 p-3 max-h-[600px] w-full flex justify-center'>
+                <div
+                    className='mt-10 p-3 max-h-[600px] w-full flex justify-center'
+                    style={{ maxWidth: contentMaxWidth }}
+                >
                     {post.mediaType === 'video' ? <video src={post.mediaUrl} controls className='w-full object-contain rounded-lg shadow-lg' /> : <img src={post.mediaUrl || post.image} alt={post.title} className='w-full object-contain rounded-lg shadow-lg' />}
                 </div>
-                <div className='flex justify-between p-3 border-b border-slate-500 mx-auto w-full max-w-2xl text-xs'>
+                <div
+                    className='flex justify-between p-3 border-b border-slate-500 mx-auto w-full max-w-2xl text-xs'
+                    style={{ maxWidth: contentMaxWidth }}
+                >
                     <span>{new Date(post.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                     <span className='italic'>{post.content ? `${Math.ceil(post.content.split(' ').length / 200)} min read` : '0 min read'}</span>
                 </div>
 
-                <div className="max-w-2xl mx-auto w-full">
+                <div
+                    className='max-w-2xl mx-auto w-full'
+                    style={{ maxWidth: contentMaxWidth }}
+                >
                     <TableOfContents headings={headings} />
                 </div>
 
-                <div className='p-3 max-w-2xl mx-auto w-full post-content tiptap'>
+                <div
+                    className={`p-3 max-w-2xl mx-auto w-full post-content tiptap reading-surface transition-all duration-300 ${surfaceClass}`.trim()}
+                    style={{ ...contentStyles, maxWidth: contentMaxWidth }}
+                >
                     {parse(sanitizedContent, parserOptions)}
                 </div>
 
-                <div className="max-w-2xl mx-auto w-full px-3 my-8 flex justify-between items-center">
+                <div
+                    className='max-w-2xl mx-auto w-full px-3 my-8 flex justify-between items-center'
+                    style={{ maxWidth: contentMaxWidth }}
+                >
                     <ClapButton post={post} />
                     <SocialShare post={post} />
                 </div>
 
-                <CommentSection postId={post._id} />
+                <div
+                    className='max-w-2xl mx-auto w-full'
+                    style={{ maxWidth: contentMaxWidth }}
+                >
+                    <CommentSection postId={post._id} />
+                </div>
 
                 <div className='flex flex-col justify-center items-center mb-5'>
                     <h1 className='text-xl mt-5'>Related articles</h1>

@@ -19,6 +19,8 @@ import CommentSection from '../components/CommentSection';
 import CodeEditor from '../components/CodeEditor';
 import QuizComponent from '../components/QuizComponent';
 import InteractiveCodeBlock from '../components/InteractiveCodeBlock.jsx';
+import ReadingControlCenter from '../components/ReadingControlCenter';
+import useReadingSettings from '../hooks/useReadingSettings';
 
 import '../Tiptap.css';
 import '../pages/Scrollbar.css';
@@ -73,7 +75,10 @@ const categoryToLanguageMap = {
 
 // New sub-component for rendering dynamic chapter content.
 // This greatly simplifies the main component and keeps the rendering logic self-contained.
-const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions }) => {
+const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, contentStyles, contentMaxWidth, surfaceClass }) => {
+    const readingClassName = `post-content tiptap reading-surface transition-all duration-300 ${surfaceClass}`.trim();
+    const readingStyle = { ...contentStyles, maxWidth: contentMaxWidth };
+
     switch (activeChapter.contentType) {
         case 'code-interactive':
             // Renders a code editor, often with a description from the Tiptap editor.
@@ -87,7 +92,11 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions }) => {
                     className='bg-gray-800 p-4 rounded-md text-white my-4 shadow-lg'
                 >
                     <h3 className='text-xl font-semibold mb-3 flex items-center gap-2'><FaCode /> Try it yourself!</h3>
-                    <div className='post-content tiptap mb-4' dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
+                    <div
+                        className={`${readingClassName} mb-4 bg-white/5 p-4 text-base text-slate-100`}
+                        style={readingStyle}
+                        dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+                    />
                     <CodeEditor
                         initialCode={activeChapter.initialCode || ''}
                         language={activeChapter.codeLanguage || 'html'}
@@ -106,7 +115,11 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions }) => {
                     className='my-8 p-4 border border-blue-500 rounded-lg bg-blue-50 dark:bg-blue-900/20'
                 >
                     <h3 className='text-xl font-semibold mb-3 flex items-center gap-2 text-blue-800 dark:text-blue-300'><FaQuestionCircle /> Test Your Knowledge!</h3>
-                    <div className='post-content tiptap mb-4' dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
+                    <div
+                        className={`${readingClassName} mb-4 bg-white/40 p-4 text-base text-blue-900/80 dark:bg-slate-900/60 dark:text-slate-100`}
+                        style={readingStyle}
+                        dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+                    />
                     <QuizComponent quizId={activeChapter.quizId} />
                 </motion.div>
             );
@@ -120,7 +133,8 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions }) => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.4 }}
-                    className='post-content tiptap p-3 max-w-full mx-auto leading-relaxed text-lg text-gray-700 dark:text-gray-300'
+                    className={`${readingClassName} p-3 mx-auto leading-relaxed text-lg text-gray-700 dark:text-gray-300`}
+                    style={readingStyle}
                 >
                     {parse(sanitizedContent, parserOptions)}
                 </motion.div>
@@ -231,6 +245,15 @@ export default function SingleTutorialPage() {
     const { currentUser } = useSelector((state) => state.user);
     const [isCompleted, setIsCompleted] = useState(false);
     const [completionPercentage, setCompletionPercentage] = useState(0);
+
+    const {
+        settings: readingSettings,
+        updateSetting: updateReadingSetting,
+        resetSettings: resetReadingSettings,
+        contentStyles,
+        contentMaxWidth,
+        surfaceClass,
+    } = useReadingSettings();
 
     const findChapterBySlug = (chapters, slug) => {
         for (const chapter of chapters) {
@@ -415,6 +438,12 @@ export default function SingleTutorialPage() {
                 <meta property="og:type" content="article" />
             </Helmet>
 
+            <ReadingControlCenter
+                settings={readingSettings}
+                onChange={updateReadingSetting}
+                onReset={resetReadingSettings}
+            />
+
             <ReadingProgressBar />
             <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
 
@@ -425,10 +454,23 @@ export default function SingleTutorialPage() {
                 />
 
                 <main className="flex-1 p-8 overflow-x-hidden">
-                    <h1 className='text-4xl lg:text-5xl font-extrabold text-center my-8 leading-tight text-gray-900 dark:text-white'>{tutorial.title}</h1>
-                    <p className='text-xl text-gray-600 dark:text-gray-400 text-center max-w-4xl mx-auto mb-12 font-light'>{tutorial.description}</p>
+                    <h1
+                        className='text-4xl lg:text-5xl font-extrabold text-center my-8 leading-tight text-gray-900 dark:text-white'
+                        style={{ maxWidth: contentMaxWidth, marginLeft: 'auto', marginRight: 'auto' }}
+                    >
+                        {tutorial.title}
+                    </h1>
+                    <p
+                        className='text-xl text-gray-600 dark:text-gray-400 text-center max-w-4xl mx-auto mb-12 font-light'
+                        style={{ maxWidth: contentMaxWidth }}
+                    >
+                        {tutorial.description}
+                    </p>
 
-                    <div className='flex justify-center items-center text-sm text-gray-500 dark:text-gray-400 max-w-3xl mx-auto border-b border-t py-4 mb-10 transition-all duration-300 ease-in-out'>
+                    <div
+                        className='flex justify-center items-center text-sm text-gray-500 dark:text-gray-400 max-w-3xl mx-auto border-b border-t py-4 mb-10 transition-all duration-300 ease-in-out'
+                        style={{ maxWidth: contentMaxWidth }}
+                    >
                         <div className="flex items-center mx-4">
                             <img src={author?.profilePicture || 'https://via.placeholder.com/40'} alt={author?.username} className='w-10 h-10 rounded-full object-cover mr-3 border-2 border-blue-400' />
                             <span>By <span className="font-semibold text-gray-700 dark:text-gray-200">{author?.username || 'Loading Author...'}</span></span>
@@ -447,12 +489,15 @@ export default function SingleTutorialPage() {
                     )}
 
                     <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto">
-                        <div className="lg:w-3/4 w-full">
+                        <div className="lg:w-3/4 w-full" style={{ maxWidth: contentMaxWidth }}>
                             <h2 className='text-3xl lg:text-4xl font-bold my-6 text-gray-900 dark:text-white leading-tight'>{activeChapter.chapterTitle}</h2>
                             <ChapterContent
                                 activeChapter={activeChapter}
                                 sanitizedContent={sanitizedContent}
                                 parserOptions={parserOptions}
+                                contentStyles={contentStyles}
+                                contentMaxWidth={contentMaxWidth}
+                                surfaceClass={surfaceClass}
                             />
                         </div>
 
