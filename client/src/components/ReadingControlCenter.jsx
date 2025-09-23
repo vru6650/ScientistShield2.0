@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { HiOutlineAdjustmentsHorizontal, HiOutlineXMark } from 'react-icons/hi2';
 
 const themeOptions = [
@@ -25,10 +25,46 @@ const alignmentOptions = [
     { id: 'justify', label: 'Justify' },
 ];
 
+const themePreviewClassMap = {
+    auto: 'bg-white/90 text-slate-800 border-slate-200/70 dark:bg-slate-900/80 dark:text-slate-100 dark:border-slate-700/70',
+    day: 'bg-white text-slate-900 border-slate-200',
+    sepia: 'bg-[#f7f2e7] text-[#5b4636] border-[#d6c5aa]',
+    night: 'bg-slate-900 text-slate-100 border-slate-700',
+};
+
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 export default function ReadingControlCenter({ settings, onChange, onReset }) {
     const [isOpen, setIsOpen] = useState(false);
+    const panelRef = useRef(null);
+    const triggerRef = useRef(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleClickAway = (event) => {
+            const panelEl = panelRef.current;
+            const triggerEl = triggerRef.current;
+            if (!panelEl) return;
+            if (panelEl.contains(event.target)) return;
+            if (triggerEl && triggerEl.contains(event.target)) return;
+            setIsOpen(false);
+        };
+
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                setIsOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickAway);
+        document.addEventListener('keydown', handleEscape);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickAway);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [isOpen]);
 
     const fontPreviewText = useMemo(() => {
         switch (settings.fontFamily) {
@@ -41,6 +77,36 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                 return 'Merriweather';
         }
     }, [settings.fontFamily]);
+
+    const previewStyles = useMemo(() => ({
+        fontSize: `${settings.fontSize}px`,
+        lineHeight: settings.lineHeight,
+        letterSpacing: `${settings.letterSpacing}em`,
+        wordSpacing: `${settings.wordSpacing}em`,
+        textAlign: settings.textAlign,
+        '--paragraph-spacing': `${settings.paragraphSpacing}em`,
+        fontFamily:
+            settings.fontFamily === 'mono'
+                ? "'Fira Code', monospace"
+                : settings.fontFamily === 'sans'
+                    ? "'Inter', sans-serif"
+                    : "'Merriweather', serif",
+    }), [
+        settings.fontSize,
+        settings.lineHeight,
+        settings.letterSpacing,
+        settings.wordSpacing,
+        settings.textAlign,
+        settings.paragraphSpacing,
+        settings.fontFamily,
+    ]);
+
+    const previewThemeClass = useMemo(() => {
+        if (settings.theme === 'auto') {
+            return themePreviewClassMap.auto;
+        }
+        return themePreviewClassMap[settings.theme] || themePreviewClassMap.auto;
+    }, [settings.theme]);
 
     const handleFontSizeChange = (direction) => {
         const next = direction === 'increase' ? settings.fontSize + 1 : settings.fontSize - 1;
@@ -57,10 +123,23 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
         onChange('letterSpacing', clamp(Number(value.toFixed(2)), -0.05, 0.1));
     };
 
+    const handleWordSpacingChange = (event) => {
+        const value = Number(event.target.value);
+        onChange('wordSpacing', clamp(Number(value.toFixed(2)), 0, 0.5));
+    };
+
+    const handleParagraphSpacingChange = (event) => {
+        const value = Number(event.target.value);
+        onChange('paragraphSpacing', clamp(Number(value.toFixed(2)), 0.5, 2));
+    };
+
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
             <button
                 type="button"
+                ref={triggerRef}
+                aria-expanded={isOpen}
+                aria-controls="reading-control-panel"
                 onClick={() => setIsOpen(prev => !prev)}
                 className="flex items-center gap-2 rounded-full bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2 shadow-lg shadow-slate-900/20 dark:shadow-slate-900/40 focus:outline-none focus:ring-2 focus:ring-sky-400"
             >
@@ -69,7 +148,13 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
             </button>
 
             {isOpen && (
-                <div className="w-80 max-w-sm rounded-3xl border border-slate-200 bg-white/90 p-5 text-slate-800 shadow-2xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
+                <div
+                    id="reading-control-panel"
+                    ref={panelRef}
+                    role="dialog"
+                    aria-label="Reading Control Center"
+                    className="w-80 max-w-sm rounded-3xl border border-slate-200 bg-white/90 p-5 text-slate-800 shadow-2xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100"
+                >
                     <div className="mb-4 flex items-start justify-between">
                         <div>
                             <h3 className="text-lg font-semibold">Reading Control Center</h3>
@@ -82,6 +167,19 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                         >
                             <HiOutlineXMark className="h-5 w-5" />
                         </button>
+                    </div>
+
+                    <div
+                        className={`mb-6 rounded-2xl border p-4 text-xs shadow-inner transition-colors ${previewThemeClass}`}
+                        style={previewStyles}
+                    >
+                        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500/70 dark:text-slate-400/80">Live preview</p>
+                        <p className="mt-2 text-sm leading-relaxed">
+                            The quick brown fox jumps over the lazy dog. Adjust controls to see typography updates instantly.
+                        </p>
+                        <p className="mt-2 text-[0.8rem] text-slate-500 dark:text-slate-300">
+                            {settings.lineHeight.toFixed(1)}× line height · {settings.paragraphSpacing.toFixed(2)}em spacing · {settings.fontSize}px type
+                        </p>
                     </div>
 
                     <section className="space-y-3">
@@ -183,6 +281,40 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                 className="w-full accent-sky-500"
                             />
                             <p className="mt-1 text-right text-xs text-slate-500">{settings.letterSpacing.toFixed(2)}em</p>
+                        </div>
+                    </section>
+
+                    <section className="mt-6 space-y-4">
+                        <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Spacing</h4>
+                        <div>
+                            <div className="mb-1 flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400">
+                                <span>Paragraph</span>
+                                <span>{settings.paragraphSpacing.toFixed(2)}em</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0.5"
+                                max="2"
+                                step="0.05"
+                                value={settings.paragraphSpacing}
+                                onChange={handleParagraphSpacingChange}
+                                className="w-full accent-sky-500"
+                            />
+                        </div>
+                        <div>
+                            <div className="mb-1 flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400">
+                                <span>Word</span>
+                                <span>{settings.wordSpacing.toFixed(2)}em</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0"
+                                max="0.5"
+                                step="0.01"
+                                value={settings.wordSpacing}
+                                onChange={handleWordSpacingChange}
+                                className="w-full accent-sky-500"
+                            />
                         </div>
                     </section>
 

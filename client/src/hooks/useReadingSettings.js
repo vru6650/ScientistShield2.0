@@ -7,6 +7,8 @@ const defaultSettings = {
     fontFamily: 'serif',
     lineHeight: 1.8,
     letterSpacing: 0,
+    wordSpacing: 0,
+    paragraphSpacing: 1.25,
     pageWidth: 'comfortable',
     theme: 'auto',
     textAlign: 'left',
@@ -74,9 +76,19 @@ export default function useReadingSettings() {
         fontSize: `${settings.fontSize}px`,
         lineHeight: settings.lineHeight,
         letterSpacing: `${settings.letterSpacing}em`,
+        wordSpacing: `${settings.wordSpacing}em`,
+        '--paragraph-spacing': `${settings.paragraphSpacing}em`,
         fontFamily: fontFamilyMap[settings.fontFamily] || fontFamilyMap.serif,
         textAlign: settings.textAlign,
-    }), [settings.fontSize, settings.lineHeight, settings.letterSpacing, settings.fontFamily, settings.textAlign]);
+    }), [
+        settings.fontSize,
+        settings.lineHeight,
+        settings.letterSpacing,
+        settings.wordSpacing,
+        settings.paragraphSpacing,
+        settings.fontFamily,
+        settings.textAlign,
+    ]);
 
     const contentMaxWidth = useMemo(() => widthStyleMap[settings.pageWidth] || widthStyleMap.comfortable, [settings.pageWidth]);
 
