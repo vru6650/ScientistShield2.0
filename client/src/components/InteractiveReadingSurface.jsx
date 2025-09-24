@@ -336,21 +336,21 @@ const InteractiveReadingSurface = ({
 
     const handleAddHighlight = (color) => {
         if (!selectionMenu) return;
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) return;
-        const range = selection.getRangeAt(0);
-        if (!range || range.toString().trim().length === 0) return;
+        const { start, end, text, highlightId } = selectionMenu;
+        if (!text || start === end) return;
 
-        const { start, end } = selectionMenu;
-        const text = range.toString();
-        const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `hl-${Date.now()}`;
+        const id = highlightId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `hl-${Date.now()}`);
 
         setHighlights((prev) => {
-            const filtered = prev.filter((item) => item.id !== selectionMenu.highlightId);
+            const filtered = prev.filter((item) => item.id !== highlightId);
             return [...filtered, { id, start, end, color, text }];
         });
         setSelectionMenu(null);
-        selection.removeAllRanges();
+
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            selection.removeAllRanges();
+        }
     };
 
     const handleRemoveHighlight = (id) => {
