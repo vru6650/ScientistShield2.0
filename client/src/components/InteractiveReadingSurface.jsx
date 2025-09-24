@@ -11,13 +11,10 @@ import {
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
     HiOutlineTrash,
-    HiOutlineChevronDoubleLeft,
-    HiOutlineChevronDoubleRight,
     HiOutlineClipboardCopy,
     HiOutlineShare,
     HiOutlineVolumeUp,
-    HiOutlineSelector,
-    HiOutlineCollection,
+    HiOutlineColorSwatch,
 } from 'react-icons/hi';
 import { FaHighlighter } from 'react-icons/fa';
 
@@ -133,134 +130,6 @@ const getRangePosition = (range) => {
         x: rect.left + window.scrollX + rect.width / 2,
         y: rect.top + window.scrollY - 12,
     };
-};
-
-const expandStartOffset = (text, start) => {
-    if (start <= 0) return 0;
-    let cursor = Math.min(Math.max(start, 0), text.length);
-    cursor = Math.max(0, cursor - 1);
-
-    while (cursor > 0 && isWhitespace(text[cursor])) {
-        cursor -= 1;
-    }
-
-    while (cursor > 0 && !isWhitespace(text[cursor - 1])) {
-        cursor -= 1;
-    }
-
-    return cursor;
-};
-
-const expandEndOffset = (text, end) => {
-    const length = text.length;
-    let cursor = Math.min(Math.max(end, 0), length);
-
-    while (cursor < length && isWhitespace(text[cursor])) {
-        cursor += 1;
-    }
-
-    while (cursor < length && !isWhitespace(text[cursor])) {
-        cursor += 1;
-    }
-
-    return cursor;
-};
-
-const shrinkStartOffset = (text, start, end) => {
-    const snippet = text.slice(start, end);
-    if (!snippet.trim()) return start;
-
-    const remainder = snippet.replace(/^\s*\S+\s*/, '');
-    if (!remainder.trim()) return start;
-
-    return start + (snippet.length - remainder.length);
-};
-
-const shrinkEndOffset = (text, start, end) => {
-    const snippet = text.slice(start, end);
-    if (!snippet.trim()) return end;
-
-    const remainder = snippet.replace(/\s*\S+\s*$/, '');
-    if (!remainder.trim()) return end;
-
-    return end - (snippet.length - remainder.length);
-};
-
-const expandToSentenceBoundaries = (text, start, end) => {
-    const length = text.length;
-    let sentenceStart = Math.min(Math.max(start, 0), length);
-    let sentenceEnd = Math.min(Math.max(end, 0), length);
-
-    while (sentenceStart > 0) {
-        const prev = text[sentenceStart - 1];
-        if (prev === '\n' || '.!?'.includes(prev)) {
-            break;
-        }
-        sentenceStart -= 1;
-    }
-
-    while (sentenceStart < length && isWhitespace(text[sentenceStart])) {
-        sentenceStart += 1;
-    }
-
-    while (sentenceEnd < length) {
-        const current = text[sentenceEnd];
-        if (!current) {
-            break;
-        }
-        if (current === '\n' || '.!?'.includes(current)) {
-            sentenceEnd += 1;
-            break;
-        }
-        sentenceEnd += 1;
-    }
-
-    while (sentenceEnd < length && isWhitespace(text[sentenceEnd])) {
-        sentenceEnd += 1;
-    }
-
-    if (sentenceEnd <= sentenceStart) {
-        sentenceEnd = Math.min(length, sentenceStart + 1);
-    }
-
-    return { start: sentenceStart, end: sentenceEnd };
-};
-
-const expandToParagraphBoundaries = (text, start, end) => {
-    const length = text.length;
-    const delimiter = /\n\s*\n/g;
-    let paragraphStart = 0;
-    let paragraphEnd = length;
-    let match;
-
-    while ((match = delimiter.exec(text)) !== null) {
-        const breakStart = match.index;
-        const breakEnd = match.index + match[0].length;
-
-        if (breakEnd <= start) {
-            paragraphStart = breakEnd;
-            continue;
-        }
-
-        if (breakStart >= end) {
-            paragraphEnd = breakStart;
-            break;
-        }
-    }
-
-    while (paragraphStart < length && isWhitespace(text[paragraphStart])) {
-        paragraphStart += 1;
-    }
-
-    while (paragraphEnd > paragraphStart && isWhitespace(text[paragraphEnd - 1])) {
-        paragraphEnd -= 1;
-    }
-
-    if (paragraphEnd <= paragraphStart) {
-        paragraphEnd = Math.min(length, paragraphStart + 1);
-    }
-
-    return { start: paragraphStart, end: paragraphEnd };
 };
 
 const applyHighlightRange = (container, highlight) => {
@@ -396,9 +265,10 @@ const InteractiveReadingSurface = ({
     const containerRef = useRef(null);
     const selectionMenuRef = useRef(null);
     const speechUtteranceRef = useRef(null);
-    const fullTextRef = useRef('');
     const [highlights, setHighlights] = useState([]);
     const [selectionMenu, setSelectionMenu] = useState(null);
+    const [isHighlightPaletteOpen, setIsHighlightPaletteOpen] = useState(false);
+    const [lastHighlightColor, setLastHighlightColor] = useState(() => highlightPalette[0]?.id || 'gold');
     const [searchTerm, setSearchTerm] = useState('');
     const [searchMatches, setSearchMatches] = useState([]);
     const [activeMatchIndex, setActiveMatchIndex] = useState(0);
@@ -476,6 +346,16 @@ const InteractiveReadingSurface = ({
         }
     }, [selectionMenu, isSpeaking]);
 
+    useEffect(() => {
+        if (!selectionMenu) {
+            setIsHighlightPaletteOpen(false);
+            return;
+        }
+        if (selectionMenu.color) {
+            setLastHighlightColor(selectionMenu.color);
+        }
+    }, [selectionMenu]);
+
     useLayoutEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -504,6 +384,7 @@ const InteractiveReadingSurface = ({
     }, [searchMatches, activeMatchIndex]);
 
     const closeSelectionMenu = useCallback(() => {
+        setIsHighlightPaletteOpen(false);
         setSelectionMenu(null);
     }, []);
 
@@ -523,7 +404,6 @@ const InteractiveReadingSurface = ({
         }
 
         const fullText = container.textContent || '';
-        fullTextRef.current = fullText;
 
         const rawSelection = selection.toString();
         const text = rawSelection.trim();
@@ -562,6 +442,7 @@ const InteractiveReadingSurface = ({
         }
 
         setSelectionFeedback('');
+        setIsHighlightPaletteOpen(false);
 
         setSelectionMenu({
             text: normalizedRange?.toString().trim() || text,
@@ -621,6 +502,8 @@ const InteractiveReadingSurface = ({
             const filtered = prev.filter((item) => item.id !== highlightId);
             return [...filtered, { id, start, end, color, text }];
         });
+        setLastHighlightColor(color);
+        setIsHighlightPaletteOpen(false);
         setSelectionMenu(null);
 
         const selection = window.getSelection();
@@ -631,7 +514,17 @@ const InteractiveReadingSurface = ({
 
     const handleRemoveHighlight = (id) => {
         setHighlights((prev) => prev.filter((item) => item.id !== id));
+        setIsHighlightPaletteOpen(false);
         setSelectionMenu(null);
+    };
+
+    const handlePrimaryHighlight = () => {
+        if (!selectionMenu) return;
+        if (selectionMenu.highlightId) {
+            handleRemoveHighlight(selectionMenu.highlightId);
+        } else {
+            handleAddHighlight(selectionMenu.color || lastHighlightColor);
+        }
     };
 
     const handleLookupWord = async (text) => {
@@ -654,143 +547,6 @@ const InteractiveReadingSurface = ({
                 open: true,
             });
         }
-    };
-
-    const adjustSelection = (edge, direction) => {
-        if (!selectionMenu) return;
-        const container = containerRef.current;
-        if (!container) return;
-
-        const fullText = fullTextRef.current || container.textContent || '';
-        if (!fullText) return;
-
-        let { start, end } = selectionMenu;
-
-        if (direction === 'expand') {
-            if (edge === 'start') {
-                const nextStart = expandStartOffset(fullText, start);
-                if (nextStart === start) {
-                    setSelectionFeedback('Reached the beginning of the text.');
-                    return;
-                }
-                start = nextStart;
-            } else {
-                const nextEnd = expandEndOffset(fullText, end);
-                if (nextEnd === end) {
-                    setSelectionFeedback('Reached the end of the text.');
-                    return;
-                }
-                end = nextEnd;
-            }
-        } else {
-            if (edge === 'start') {
-                const nextStart = shrinkStartOffset(fullText, start, end);
-                if (nextStart === start) {
-                    setSelectionFeedback('Cannot trim further from the left.');
-                    return;
-                }
-                start = nextStart;
-            } else {
-                const nextEnd = shrinkEndOffset(fullText, start, end);
-                if (nextEnd === end) {
-                    setSelectionFeedback('Cannot trim further from the right.');
-                    return;
-                }
-                end = nextEnd;
-            }
-        }
-
-        ({ start, end } = normalizeOffsets(fullText, start, end));
-
-        if (start >= end) {
-            setSelectionFeedback('Selection cannot be reduced further.');
-            return;
-        }
-
-        if (start === selectionMenu.start && end === selectionMenu.end) {
-            return;
-        }
-
-        const range = createRangeFromOffsets(container, start, end);
-        if (!range) return;
-
-        const selection = window.getSelection();
-        if (selection) {
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
-
-        setSelectionMenu((prev) => {
-            if (!prev) return prev;
-            return {
-                ...prev,
-                start,
-                end,
-                text: range.toString().trim(),
-                highlightId: null,
-                color: null,
-                position: getRangePosition(range),
-            };
-        });
-        setSelectionFeedback(direction === 'expand' ? 'Selection expanded.' : 'Selection trimmed.');
-    };
-
-    const expandSelectionToScope = (scope) => {
-        if (!selectionMenu) return;
-        const container = containerRef.current;
-        if (!container) return;
-
-        const fullText = fullTextRef.current || container.textContent || '';
-        if (!fullText) return;
-
-        let { start, end } = selectionMenu;
-        let boundaries = null;
-
-        if (scope === 'sentence') {
-            boundaries = expandToSentenceBoundaries(fullText, start, end);
-        } else if (scope === 'paragraph') {
-            boundaries = expandToParagraphBoundaries(fullText, start, end);
-        }
-
-        if (!boundaries) return;
-
-        ({ start, end } = normalizeOffsets(fullText, boundaries.start, boundaries.end));
-
-        if (start >= end) {
-            setSelectionFeedback('Unable to expand selection.');
-            return;
-        }
-
-        if (start === selectionMenu.start && end === selectionMenu.end) {
-            const label = scope === 'sentence' ? 'sentence' : 'paragraph';
-            setSelectionFeedback(`Already selecting the full ${label}.`);
-            return;
-        }
-
-        const range = createRangeFromOffsets(container, start, end);
-        if (!range) return;
-
-        const selection = window.getSelection();
-        if (selection) {
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
-
-        setSelectionMenu((prev) => {
-            if (!prev) return prev;
-            return {
-                ...prev,
-                start,
-                end,
-                text: range.toString().trim(),
-                highlightId: null,
-                color: null,
-                position: getRangePosition(range),
-            };
-        });
-
-        const label = scope === 'sentence' ? 'sentence' : 'paragraph';
-        setSelectionFeedback(`Expanded to the full ${label}.`);
     };
 
     const handleCopySelection = async () => {
@@ -1039,7 +795,6 @@ const InteractiveReadingSurface = ({
                 createPortal(
                     <AnimatePresence>
                         <motion.div
-                            ref={selectionMenuRef}
                             key="selection-menu"
                             className="reader-selection-menu"
                             initial={{ opacity: 0, scale: 0.95 }}
@@ -1047,119 +802,102 @@ const InteractiveReadingSurface = ({
                             exit={{ opacity: 0, scale: 0.95 }}
                             style={{ top: selectionMenu.position.y, left: selectionMenu.position.x }}
                         >
-                            <div className="reader-selection-card">
-                                <p className="reader-selection-text">{selectionMenu.text.slice(0, 80)}{selectionMenu.text.length > 80 ? '…' : ''}</p>
-                                <div className="reader-selection-section">
-                                    <span className="reader-selection-section-title">Adjust range</span>
-                                    <div className="reader-selection-range-controls">
-                                        <div className="reader-selection-handle-group">
+                            <motion.div
+                                ref={selectionMenuRef}
+                                className="reader-selection-popover"
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 6 }}
+                                transition={{ duration: 0.18 }}
+                            >
+                                <div className="reader-selection-top">
+                                    <button
+                                        type="button"
+                                        className={`reader-highlight-button ${selectionMenu.highlightId ? 'is-active' : ''}`}
+                                        onClick={handlePrimaryHighlight}
+                                        aria-pressed={Boolean(selectionMenu.highlightId)}
+                                    >
+                                        <FaHighlighter aria-hidden />
+                                        <span>{selectionMenu.highlightId ? 'Remove' : 'Highlight'}</span>
+                                    </button>
+                                    <div className="reader-selection-icons">
+                                        <Tooltip content="Highlight colors">
                                             <button
                                                 type="button"
-                                                className="reader-selection-handle"
-                                                onClick={() => adjustSelection('start', 'expand')}
-                                                aria-label="Expand selection to the left"
+                                                className={`reader-selection-icon ${isHighlightPaletteOpen ? 'active' : ''}`}
+                                                onClick={() => setIsHighlightPaletteOpen((prev) => !prev)}
+                                                aria-label="Choose highlight color"
                                             >
-                                                <HiOutlineChevronDoubleLeft />
+                                                <HiOutlineColorSwatch />
                                             </button>
+                                        </Tooltip>
+                                        <Tooltip content="Dictionary">
                                             <button
                                                 type="button"
-                                                className="reader-selection-handle"
-                                                onClick={() => adjustSelection('start', 'shrink')}
-                                                aria-label="Trim selection from the left"
+                                                className="reader-selection-icon"
+                                                onClick={() => handleLookupWord(selectionMenu.text)}
+                                                aria-label="Look up in dictionary"
                                             >
-                                                <HiOutlineChevronRight />
+                                                <HiOutlineBookOpen />
                                             </button>
-                                        </div>
-                                        <div className="reader-selection-handle-group">
+                                        </Tooltip>
+                                        <Tooltip content="Copy">
                                             <button
                                                 type="button"
-                                                className="reader-selection-handle"
-                                                onClick={() => adjustSelection('end', 'shrink')}
-                                                aria-label="Trim selection from the right"
+                                                className="reader-selection-icon"
+                                                onClick={handleCopySelection}
+                                                aria-label="Copy selection"
                                             >
-                                                <HiOutlineChevronLeft />
+                                                <HiOutlineClipboardCopy />
                                             </button>
+                                        </Tooltip>
+                                        <Tooltip content="Share">
                                             <button
                                                 type="button"
-                                                className="reader-selection-handle"
-                                                onClick={() => adjustSelection('end', 'expand')}
-                                                aria-label="Expand selection to the right"
+                                                className="reader-selection-icon"
+                                                onClick={handleShareSelection}
+                                                aria-label="Share selection"
                                             >
-                                                <HiOutlineChevronDoubleRight />
+                                                <HiOutlineShare />
                                             </button>
-                                        </div>
+                                        </Tooltip>
+                                        <Tooltip content={isSpeaking ? 'Stop listening' : 'Listen'}>
+                                            <button
+                                                type="button"
+                                                className={`reader-selection-icon ${isSpeaking ? 'active' : ''}`}
+                                                onClick={handleSpeakSelection}
+                                                aria-label={isSpeaking ? 'Stop reading selection' : 'Read selection aloud'}
+                                                aria-pressed={isSpeaking}
+                                            >
+                                                <HiOutlineVolumeUp />
+                                            </button>
+                                        </Tooltip>
                                     </div>
                                 </div>
-                                <div className="reader-selection-section">
-                                    <span className="reader-selection-section-title">Smart select</span>
-                                    <div className="reader-selection-scope">
-                                        <button type="button" onClick={() => expandSelectionToScope('sentence')}>
-                                            <HiOutlineSelector /> Sentence
-                                        </button>
-                                        <button type="button" onClick={() => expandSelectionToScope('paragraph')}>
-                                            <HiOutlineCollection /> Paragraph
-                                        </button>
+                                {isHighlightPaletteOpen && (
+                                    <div className="reader-highlight-palette" role="group" aria-label="Highlight colors">
+                                        {highlightPalette.map((item) => {
+                                            const isActive = (selectionMenu.color || lastHighlightColor) === item.id;
+                                            return (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    className={`reader-highlight-swatch ${isActive ? 'active' : ''}`}
+                                                    onClick={() => handleAddHighlight(item.id)}
+                                                    aria-label={`Highlight with ${item.label}`}
+                                                    style={{ '--highlight-swatch': item.swatch }}
+                                                />
+                                            );
+                                        })}
                                     </div>
-                                </div>
-                                <div className="reader-selection-section">
-                                    <span className="reader-selection-section-title">Highlight & tools</span>
-                                    <div className="reader-selection-actions">
-                                        {highlightPalette.map((item) => (
-                                            <button
-                                                key={item.id}
-                                                type="button"
-                                                className={`reader-highlight-option ${selectionMenu.color === item.id ? 'active' : ''}`}
-                                                onClick={() => handleAddHighlight(item.id)}
-                                                style={{ '--highlight-swatch': item.swatch }}
-                                            >
-                                                <FaHighlighter aria-hidden />
-                                            </button>
-                                        ))}
-                                        <button
-                                            type="button"
-                                            className="reader-selection-button"
-                                            onClick={() => handleLookupWord(selectionMenu.text)}
-                                            aria-label="Look up in dictionary"
-                                        >
-                                            <HiOutlineBookOpen />
-                                        </button>
-                                        {selectionMenu.highlightId && (
-                                            <button
-                                                type="button"
-                                                className="reader-selection-button"
-                                                onClick={() => handleRemoveHighlight(selectionMenu.highlightId)}
-                                                aria-label="Remove highlight"
-                                            >
-                                                <HiOutlineTrash />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="reader-selection-section">
-                                    <span className="reader-selection-section-title">Quick actions</span>
-                                    <div className="reader-selection-quick">
-                                        <button type="button" onClick={handleCopySelection} aria-label="Copy selection">
-                                            <HiOutlineClipboardCopy />
-                                            <span>Copy</span>
-                                        </button>
-                                        <button type="button" onClick={handleShareSelection} aria-label="Share selection">
-                                            <HiOutlineShare />
-                                            <span>Share</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleSpeakSelection}
-                                            aria-label={isSpeaking ? 'Stop reading selection' : 'Read selection aloud'}
-                                            aria-pressed={isSpeaking}
-                                            className={isSpeaking ? 'active' : ''}
-                                        >
-                                            <HiOutlineVolumeUp />
-                                            <span>{isSpeaking ? 'Stop' : 'Listen'}</span>
-                                        </button>
-                                    </div>
+                                )}
+                                <div className="reader-selection-snippet">
+                                    {selectionMenu.text.length > 140
+                                        ? `${selectionMenu.text.slice(0, 137)}…`
+                                        : selectionMenu.text}
                                 </div>
                                 {selectionFeedback && <p className="reader-selection-feedback">{selectionFeedback}</p>}
-                            </div>
+                            </motion.div>
                         </motion.div>
                     </AnimatePresence>,
                     document.body
