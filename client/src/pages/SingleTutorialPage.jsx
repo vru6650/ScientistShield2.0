@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { getTutorials } from '../services/tutorialService';
 import { Spinner, Alert, Button, Progress } from 'flowbite-react';
 import DOMPurify from 'dompurify';
-import parse from 'html-react-parser';
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSelector } from 'react-redux';
@@ -19,6 +18,7 @@ import CommentSection from '../components/CommentSection';
 import CodeEditor from '../components/CodeEditor';
 import QuizComponent from '../components/QuizComponent';
 import InteractiveCodeBlock from '../components/InteractiveCodeBlock.jsx';
+import InteractiveReadingSurface from '../components/InteractiveReadingSurface.jsx';
 import ReadingControlCenter from '../components/ReadingControlCenter';
 import useReadingSettings from '../hooks/useReadingSettings';
 
@@ -94,6 +94,7 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, conten
                     <h3 className='text-xl font-semibold mb-3 flex items-center gap-2'><FaCode /> Try it yourself!</h3>
                     <div
                         className={`${readingClassName} mb-4 bg-white/5 p-4 text-base text-slate-100`}
+                        data-reading-surface="true"
                         style={readingStyle}
                         dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                     />
@@ -117,6 +118,7 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, conten
                     <h3 className='text-xl font-semibold mb-3 flex items-center gap-2 text-blue-800 dark:text-blue-300'><FaQuestionCircle /> Test Your Knowledge!</h3>
                     <div
                         className={`${readingClassName} mb-4 bg-white/40 p-4 text-base text-blue-900/80 dark:bg-slate-900/60 dark:text-slate-100`}
+                        data-reading-surface="true"
                         style={readingStyle}
                         dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                     />
@@ -125,19 +127,16 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, conten
             );
         case 'text':
         default:
-            // Renders standard text content from the Tiptap editor.
             return (
-                <motion.div
-                    key="text-content"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.4 }}
-                    className={`${readingClassName} p-3 mx-auto leading-relaxed text-lg text-gray-700 dark:text-gray-300`}
-                    style={readingStyle}
-                >
-                    {parse(sanitizedContent, parserOptions)}
-                </motion.div>
+                <InteractiveReadingSurface
+                    content={sanitizedContent}
+                    parserOptions={parserOptions}
+                    contentStyles={contentStyles}
+                    contentMaxWidth={contentMaxWidth}
+                    surfaceClass={surfaceClass}
+                    className='post-content tiptap reading-surface transition-all duration-300 p-3 mx-auto leading-relaxed text-lg text-gray-700 dark:text-gray-300'
+                    chapterId={activeChapter?._id}
+                />
             );
     }
 };
@@ -253,7 +252,25 @@ export default function SingleTutorialPage() {
         contentStyles,
         contentMaxWidth,
         surfaceClass,
+        contentPadding,
     } = useReadingSettings();
+
+    const sharedContentStyle = useMemo(
+        () => ({
+            maxWidth: contentMaxWidth,
+            paddingInline: contentPadding,
+        }),
+        [contentMaxWidth, contentPadding]
+    );
+
+    const centeredContentStyle = useMemo(
+        () => ({
+            ...sharedContentStyle,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+        }),
+        [sharedContentStyle]
+    );
 
     const findChapterBySlug = (chapters, slug) => {
         for (const chapter of chapters) {
@@ -348,6 +365,35 @@ export default function SingleTutorialPage() {
             }
         }
     }, [tutorial, chapterSlug, navigate, activeChapter]);
+
+    useEffect(() => {
+        const { classList } = document.body;
+        const focusClass = 'reading-focus-active';
+        const guideClass = 'reading-guide-active';
+        const contrastClass = 'reading-contrast-active';
+
+        if (readingSettings.focusMode) {
+            classList.add(focusClass);
+        } else {
+            classList.remove(focusClass);
+        }
+
+        if (readingSettings.readingGuide) {
+            classList.add(guideClass);
+        } else {
+            classList.remove(guideClass);
+        }
+
+        if (readingSettings.highContrast) {
+            classList.add(contrastClass);
+        } else {
+            classList.remove(contrastClass);
+        }
+
+        return () => {
+            classList.remove(focusClass, guideClass, contrastClass);
+        };
+    }, [readingSettings.focusMode, readingSettings.readingGuide, readingSettings.highContrast]);
 
     const createMetaDescription = (htmlContent) => {
         if (!htmlContent) return '';
@@ -456,20 +502,20 @@ export default function SingleTutorialPage() {
                 <main className="flex-1 p-8 overflow-x-hidden">
                     <h1
                         className='text-4xl lg:text-5xl font-extrabold text-center my-8 leading-tight text-gray-900 dark:text-white'
-                        style={{ maxWidth: contentMaxWidth, marginLeft: 'auto', marginRight: 'auto' }}
+                        style={centeredContentStyle}
                     >
                         {tutorial.title}
                     </h1>
                     <p
                         className='text-xl text-gray-600 dark:text-gray-400 text-center max-w-4xl mx-auto mb-12 font-light'
-                        style={{ maxWidth: contentMaxWidth }}
+                        style={sharedContentStyle}
                     >
                         {tutorial.description}
                     </p>
 
                     <div
                         className='flex justify-center items-center text-sm text-gray-500 dark:text-gray-400 max-w-3xl mx-auto border-b border-t py-4 mb-10 transition-all duration-300 ease-in-out'
-                        style={{ maxWidth: contentMaxWidth }}
+                        style={sharedContentStyle}
                     >
                         <div className="flex items-center mx-4">
                             <img src={author?.profilePicture || 'https://via.placeholder.com/40'} alt={author?.username} className='w-10 h-10 rounded-full object-cover mr-3 border-2 border-blue-400' />
@@ -489,7 +535,7 @@ export default function SingleTutorialPage() {
                     )}
 
                     <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto">
-                        <div className="lg:w-3/4 w-full" style={{ maxWidth: contentMaxWidth }}>
+                        <div className="lg:w-3/4 w-full" style={sharedContentStyle}>
                             <h2 className='text-3xl lg:text-4xl font-bold my-6 text-gray-900 dark:text-white leading-tight'>{activeChapter.chapterTitle}</h2>
                             <ChapterContent
                                 activeChapter={activeChapter}

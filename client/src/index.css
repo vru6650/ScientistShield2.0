@@ -202,6 +202,533 @@ html {
   margin-bottom: 0.5rem;
 }
 
+/*
+ * ========================================
+ * Advanced Reading Experience Enhancements
+ * ========================================
+ */
+
+.reader-utility-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(56, 189, 248, 0.08));
+  border: 1px solid rgba(59, 130, 246, 0.12);
+}
+
+.dark .reader-utility-bar {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(14, 165, 233, 0.18));
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.reader-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 0.5rem;
+}
+
+.reader-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  font-size: 1rem;
+  color: rgba(71, 85, 105, 0.7);
+}
+
+.dark .reader-search-icon {
+  color: rgba(203, 213, 225, 0.7);
+}
+
+.reader-search-input {
+  width: 100%;
+  padding: 0.6rem 2.5rem 0.6rem 2.2rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background-color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.reader-search-input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.dark .reader-search-input {
+  background-color: rgba(15, 23, 42, 0.75);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+}
+
+.reader-search-clear {
+  position: absolute;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background: rgba(15, 118, 110, 0.1);
+  color: rgba(15, 118, 110, 0.9);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.reader-search-clear:hover {
+  background: rgba(15, 118, 110, 0.2);
+}
+
+.reader-search-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.1);
+  font-size: 0.85rem;
+  color: #1e3a8a;
+}
+
+.reader-search-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.reader-search-controls button:hover {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.dark .reader-search-controls {
+  background: rgba(96, 165, 250, 0.15);
+  color: #bfdbfe;
+}
+
+.reader-highlight {
+  border-radius: 0.35rem;
+  padding: 0.05rem 0.25rem;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.reader-highlight-gold {
+  background: rgba(252, 211, 77, 0.7);
+  color: #7c2d12;
+}
+
+.reader-highlight-mint {
+  background: rgba(110, 231, 183, 0.6);
+  color: #064e3b;
+}
+
+.reader-highlight-rose {
+  background: rgba(252, 165, 165, 0.6);
+  color: #9f1239;
+}
+
+.reader-highlight-violet {
+  background: rgba(196, 181, 253, 0.6);
+  color: #5b21b6;
+}
+
+.reader-highlight-pulse {
+  animation: readerHighlightPulse 1.2s ease;
+}
+
+@keyframes readerHighlightPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+  }
+}
+
+.reader-highlights-panel {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 0.9rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.dark .reader-highlights-panel {
+  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.reader-highlights-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.reader-highlight-clear {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  background: rgba(248, 113, 113, 0.15);
+  color: #b91c1c;
+  transition: background 0.2s ease;
+}
+
+.reader-highlight-clear:hover {
+  background: rgba(248, 113, 113, 0.25);
+}
+
+.reader-highlight-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.reader-highlight-chip {
+  flex: 1;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.reader-highlight-jump,
+.reader-highlight-delete {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  transition: all 0.2s ease;
+}
+
+.reader-highlight-jump:hover,
+.reader-highlight-delete:hover {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.reader-highlight-delete {
+  border-color: rgba(244, 63, 94, 0.35);
+  color: rgba(190, 18, 60, 0.9);
+}
+
+.reader-search-highlight {
+  background: rgba(59, 130, 246, 0.2);
+  border-bottom: 2px solid rgba(37, 99, 235, 0.4);
+}
+
+.reader-search-highlight-active {
+  background: rgba(191, 219, 254, 0.9);
+  border-bottom-color: rgba(29, 78, 216, 0.75);
+}
+
+.dark .reader-search-highlight {
+  background: rgba(96, 165, 250, 0.25);
+  border-bottom-color: rgba(59, 130, 246, 0.5);
+}
+
+.dark .reader-search-highlight-active {
+  background: rgba(37, 99, 235, 0.45);
+  border-bottom-color: rgba(29, 78, 216, 0.7);
+}
+
+.reader-dictionary-panel {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 10px 30px -15px rgba(15, 23, 42, 0.25);
+}
+
+.dark .reader-dictionary-panel {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.reader-dictionary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  color: #1e293b;
+}
+
+.dark .reader-dictionary-header {
+  color: #e2e8f0;
+}
+
+.reader-dictionary-header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.reader-dictionary-header button:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.reader-dictionary-body {
+  color: rgba(51, 65, 85, 0.9);
+}
+
+.dark .reader-dictionary-body {
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.reader-dictionary-meaning ul {
+  margin-top: 0.35rem;
+}
+
+.reader-selection-menu {
+  position: absolute;
+  transform: translate(-50%, -110%);
+  z-index: 60;
+}
+
+.reader-selection-card {
+  min-width: 240px;
+  max-width: 320px;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 32px -18px rgba(30, 64, 175, 0.35);
+  padding: 0.9rem 1rem;
+}
+
+.dark .reader-selection-card {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.reader-selection-text {
+  font-size: 0.8rem;
+  color: rgba(30, 64, 175, 0.9);
+  margin-bottom: 0.65rem;
+}
+
+.dark .reader-selection-text {
+  color: rgba(191, 219, 254, 0.85);
+}
+
+.reader-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reader-selection-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.reader-selection-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.reader-selection-section-title {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: rgba(71, 85, 105, 0.85);
+}
+
+.dark .reader-selection-section-title {
+  color: rgba(203, 213, 225, 0.8);
+}
+
+.reader-selection-range-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reader-selection-handle-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.reader-selection-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(248, 250, 252, 0.9);
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  color: rgba(30, 41, 59, 0.85);
+}
+
+.reader-selection-handle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(219, 234, 254, 0.6);
+}
+
+.dark .reader-selection-handle {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.reader-selection-scope {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reader-selection-scope button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(241, 245, 249, 0.85);
+  color: rgba(30, 41, 59, 0.85);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.reader-selection-scope button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(219, 234, 254, 0.7);
+}
+
+.dark .reader-selection-scope button {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(100, 116, 139, 0.5);
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.reader-selection-scope button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.reader-selection-quick {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reader-selection-quick button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(248, 250, 252, 0.9);
+  color: rgba(30, 41, 59, 0.9);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.reader-selection-quick button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(219, 234, 254, 0.7);
+}
+
+.reader-selection-quick button span {
+  font-weight: 600;
+}
+
+.reader-selection-quick button.active {
+  border-color: rgba(30, 144, 255, 0.65);
+  background: rgba(191, 219, 254, 0.65);
+  color: rgba(30, 64, 175, 0.95);
+}
+
+.dark .reader-selection-quick button {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(100, 116, 139, 0.5);
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.dark .reader-selection-quick button.active {
+  border-color: rgba(96, 165, 250, 0.6);
+  background: rgba(37, 99, 235, 0.45);
+  color: rgba(191, 219, 254, 0.95);
+}
+
+.reader-selection-feedback {
+  font-size: 0.7rem;
+  color: rgba(30, 64, 175, 0.85);
+  margin-top: 0.25rem;
+}
+
+.dark .reader-selection-feedback {
+  color: rgba(191, 219, 254, 0.85);
+}
+
+.reader-highlight-option,
+.reader-selection-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(248, 250, 252, 0.9);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.reader-highlight-option:hover,
+.reader-selection-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.55);
+}
+
+.reader-highlight-option {
+  position: relative;
+  color: rgba(30, 64, 175, 0.9);
+}
+
+.reader-highlight-option::after {
+  content: '';
+  position: absolute;
+  inset: 0.3rem;
+  border-radius: 9999px;
+  background: var(--highlight-swatch);
+  opacity: 0.75;
+  z-index: -1;
+}
+
+.reader-highlight-option.active {
+  border-color: rgba(59, 130, 246, 0.7);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.dark .reader-highlight-option,
+.dark .reader-selection-button {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: rgba(226, 232, 240, 0.9);
+}
+
 .post-content ol li {
   list-style-type: decimal;
   margin-bottom: 0.5rem;
@@ -218,7 +745,8 @@ html {
   background-color: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.25);
   box-shadow: 0 20px 45px -25px rgba(15, 23, 42, 0.4);
-  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, filter 0.3s ease, transform 0.3s ease;
   backdrop-filter: blur(8px);
 }
 
@@ -226,6 +754,64 @@ html {
   background-color: rgba(15, 23, 42, 0.75);
   border-color: rgba(71, 85, 105, 0.35);
   box-shadow: 0 24px 55px -30px rgba(15, 23, 42, 0.7);
+}
+
+body.reading-focus-active::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(148, 163, 184, 0.1) 0%, rgba(15, 23, 42, 0.55) 70%);
+  pointer-events: none;
+  z-index: 30;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+body.reading-focus-active .reading-surface {
+  z-index: 50;
+  box-shadow: 0 28px 70px -32px rgba(14, 116, 144, 0.45), 0 0 0 3px rgba(125, 211, 252, 0.35);
+  transform: translateY(-2px);
+}
+
+body.dark.reading-focus-active .reading-surface {
+  box-shadow: 0 32px 80px -28px rgba(8, 47, 73, 0.75), 0 0 0 3px rgba(56, 189, 248, 0.35);
+}
+
+body.reading-focus-active #reading-control-panel {
+  position: relative;
+  z-index: 60;
+}
+
+body.reading-guide-active .post-content p,
+body.reading-guide-active .post-content li {
+  position: relative;
+  z-index: 0;
+  transition: color 0.2s ease;
+}
+
+body.reading-guide-active .post-content p:hover::before,
+body.reading-guide-active .post-content li:hover::before {
+  content: '';
+  position: absolute;
+  inset: -0.35em -0.75em;
+  border-radius: 1rem;
+  background: rgba(56, 189, 248, 0.18);
+  box-shadow: 0 18px 45px -25px rgba(59, 130, 246, 0.45);
+  z-index: -1;
+}
+
+body.dark.reading-guide-active .post-content p:hover::before,
+body.dark.reading-guide-active .post-content li:hover::before {
+  background: rgba(56, 189, 248, 0.22);
+  box-shadow: 0 18px 45px -25px rgba(14, 165, 233, 0.55);
+}
+
+body.reading-contrast-active .post-content {
+  text-shadow: 0 0.65px 0 rgba(15, 23, 42, 0.2);
+}
+
+body.dark.reading-contrast-active .post-content {
+  text-shadow: 0 0.75px 0 rgba(148, 163, 184, 0.3);
 }
 
 .reading-surface a {

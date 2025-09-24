@@ -1,9 +1,8 @@
 // client/src/pages/PostPage.jsx
-import { Button, Spinner, Alert } from 'flowbite-react';
+import { Button, Alert } from 'flowbite-react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import parse from 'html-react-parser';
 import { useEffect, useState, useMemo } from 'react';
 import hljs from 'highlight.js';
 import ImageViewer from 'react-simple-image-viewer';
@@ -19,6 +18,7 @@ import ClapButton from '../components/ClapButton';
 import CodeEditor from '../components/CodeEditor';
 import ReadingControlCenter from '../components/ReadingControlCenter';
 import useReadingSettings from '../hooks/useReadingSettings';
+import InteractiveReadingSurface from '../components/InteractiveReadingSurface.jsx';
 import '../Tiptap.css';
 
 // --- API fetching functions ---
@@ -119,7 +119,16 @@ export default function PostPage() {
         contentStyles,
         contentMaxWidth,
         surfaceClass,
+        contentPadding,
     } = useReadingSettings();
+
+    const sharedContentStyle = useMemo(
+        () => ({
+            maxWidth: contentMaxWidth,
+            paddingInline: contentPadding,
+        }),
+        [contentMaxWidth, contentPadding]
+    );
 
     const openImageViewer = (index) => {
         setCurrentImage(index);
@@ -151,6 +160,35 @@ export default function PostPage() {
             });
         }
     }, [post]);
+
+    useEffect(() => {
+        const { classList } = document.body;
+        const focusClass = 'reading-focus-active';
+        const guideClass = 'reading-guide-active';
+        const contrastClass = 'reading-contrast-active';
+
+        if (readingSettings.focusMode) {
+            classList.add(focusClass);
+        } else {
+            classList.remove(focusClass);
+        }
+
+        if (readingSettings.readingGuide) {
+            classList.add(guideClass);
+        } else {
+            classList.remove(guideClass);
+        }
+
+        if (readingSettings.highContrast) {
+            classList.add(contrastClass);
+        } else {
+            classList.remove(contrastClass);
+        }
+
+        return () => {
+            classList.remove(focusClass, guideClass, contrastClass);
+        };
+    }, [readingSettings.focusMode, readingSettings.readingGuide, readingSettings.highContrast]);
 
     if (isLoadingPost) return <PostPageSkeleton />;
     if (postError) return (
@@ -219,7 +257,7 @@ export default function PostPage() {
             <main className='p-3 flex flex-col max-w-6xl mx-auto min-h-screen'>
                 <h1
                     className='text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-4xl'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     {post.title}
                 </h1>
@@ -228,13 +266,13 @@ export default function PostPage() {
                 </Link>
                 <div
                     className='mt-10 p-3 max-h-[600px] w-full flex justify-center'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     {post.mediaType === 'video' ? <video src={post.mediaUrl} controls className='w-full object-contain rounded-lg shadow-lg' /> : <img src={post.mediaUrl || post.image} alt={post.title} className='w-full object-contain rounded-lg shadow-lg' />}
                 </div>
                 <div
                     className='flex justify-between p-3 border-b border-slate-500 mx-auto w-full max-w-2xl text-xs'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     <span>{new Date(post.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                     <span className='italic'>{post.content ? `${Math.ceil(post.content.split(' ').length / 200)} min read` : '0 min read'}</span>
@@ -242,21 +280,24 @@ export default function PostPage() {
 
                 <div
                     className='max-w-2xl mx-auto w-full'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     <TableOfContents headings={headings} />
                 </div>
 
-                <div
-                    className={`p-3 max-w-2xl mx-auto w-full post-content tiptap reading-surface transition-all duration-300 ${surfaceClass}`.trim()}
-                    style={{ ...contentStyles, maxWidth: contentMaxWidth }}
-                >
-                    {parse(sanitizedContent, parserOptions)}
-                </div>
+                <InteractiveReadingSurface
+                    content={sanitizedContent}
+                    parserOptions={parserOptions}
+                    contentStyles={contentStyles}
+                    contentMaxWidth={contentMaxWidth}
+                    surfaceClass={surfaceClass}
+                    className='p-3 max-w-2xl mx-auto w-full post-content tiptap reading-surface transition-all duration-300'
+                    chapterId={post._id}
+                />
 
                 <div
                     className='max-w-2xl mx-auto w-full px-3 my-8 flex justify-between items-center'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     <ClapButton post={post} />
                     <SocialShare post={post} />
@@ -264,7 +305,7 @@ export default function PostPage() {
 
                 <div
                     className='max-w-2xl mx-auto w-full'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     <CommentSection postId={post._id} />
                 </div>

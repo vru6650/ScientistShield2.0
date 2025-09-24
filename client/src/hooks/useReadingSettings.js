@@ -3,16 +3,28 @@ import { useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'reading-preferences';
 
+export const marginStyleMap = {
+    narrow: '0.75rem',
+    medium: '1.5rem',
+    wide: '2.25rem',
+};
+
 const defaultSettings = {
     fontSize: 18,
     fontFamily: 'serif',
+    fontWeight: 400,
     lineHeight: 1.8,
     letterSpacing: 0,
     wordSpacing: 0, // New setting
     paragraphSpacing: 1.25, // New setting
     pageWidth: 'comfortable',
+    pageMargin: 'medium',
     theme: 'auto',
     textAlign: 'left',
+    brightness: 1,
+    focusMode: false,
+    readingGuide: false,
+    highContrast: false,
 };
 
 const fontFamilyMap = {
@@ -75,22 +87,41 @@ export default function useReadingSettings() {
 
     const resetSettings = () => setSettings(defaultSettings);
 
-    const contentStyles = useMemo(() => ({
-        fontSize: `${settings.fontSize}px`,
-        lineHeight: settings.lineHeight,
-        letterSpacing: `${settings.letterSpacing}em`,
-        wordSpacing: `${settings.wordSpacing}em`, // New style
-        textAlign: settings.textAlign,
-        '--paragraph-spacing': `${settings.paragraphSpacing}em`, // New CSS variable for paragraph spacing
-        fontFamily: fontFamilyMap[settings.fontFamily] || fontFamilyMap.serif,
-    }), [
+    const contentPadding = useMemo(
+        () => marginStyleMap[settings.pageMargin] || marginStyleMap.medium,
+        [settings.pageMargin]
+    );
+
+    const contentStyles = useMemo(() => {
+        const filterParts = [`brightness(${settings.brightness})`];
+        if (settings.highContrast) {
+            filterParts.push('contrast(1.15)');
+        }
+
+        return {
+            fontSize: `${settings.fontSize}px`,
+            lineHeight: settings.lineHeight,
+            letterSpacing: `${settings.letterSpacing}em`,
+            wordSpacing: `${settings.wordSpacing}em`, // New style
+            fontWeight: settings.fontWeight,
+            textAlign: settings.textAlign,
+            '--paragraph-spacing': `${settings.paragraphSpacing}em`, // New CSS variable for paragraph spacing
+            fontFamily: fontFamilyMap[settings.fontFamily] || fontFamilyMap.serif,
+            filter: filterParts.join(' '),
+            paddingInline: contentPadding,
+        };
+    }, [
         settings.fontSize,
         settings.lineHeight,
         settings.letterSpacing,
         settings.wordSpacing,
+        settings.fontWeight,
         settings.fontFamily,
         settings.textAlign,
-        settings.paragraphSpacing
+        settings.paragraphSpacing,
+        settings.brightness,
+        settings.highContrast,
+        contentPadding
     ]);
 
     const contentMaxWidth = useMemo(() => widthStyleMap[settings.pageWidth] || widthStyleMap.comfortable, [settings.pageWidth]);
@@ -109,5 +140,6 @@ export default function useReadingSettings() {
         contentStyles,
         contentMaxWidth,
         surfaceClass,
+        contentPadding,
     };
 }

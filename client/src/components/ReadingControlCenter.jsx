@@ -1,7 +1,19 @@
 // client/src/components/ReadingControlCenter.jsx
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { HiOutlineAdjustmentsHorizontal, HiOutlineXMark, HiOutlineArrowsPointingOut } from 'react-icons/hi2';
+import {
+    HiOutlineAdjustmentsHorizontal,
+    HiOutlineXMark,
+    HiOutlineArrowsPointingOut,
+    HiOutlineLightBulb,
+    HiOutlineSparkles,
+    HiOutlineEye,
+    HiOutlineSpeakerWave,
+    HiOutlineBookOpen,
+    HiOutlineClipboardDocument,
+} from 'react-icons/hi2';
+import { LuAlignLeft, LuAlignJustify } from 'react-icons/lu';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { marginStyleMap } from '../hooks/useReadingSettings';
 
 const themeOptions = [
     { id: 'auto', label: 'Auto', swatch: 'bg-gradient-to-r from-slate-200 via-white to-slate-200', description: 'Follow site theme' },
@@ -25,8 +37,35 @@ const widthOptions = [
 ];
 
 const alignmentOptions = [
-    { id: 'left', label: 'Left' },
-    { id: 'justify', label: 'Justify' },
+    { id: 'left', label: 'Left', description: 'Ragged right edge', Icon: LuAlignLeft },
+    { id: 'justify', label: 'Justify', description: 'Clean edges on both sides', Icon: LuAlignJustify },
+];
+
+const marginOptions = [
+    { id: 'narrow', label: 'Narrow', description: 'More words per line' },
+    { id: 'medium', label: 'Medium', description: 'Balanced reading comfort' },
+    { id: 'wide', label: 'Wide', description: 'Extra breathing room' },
+];
+
+const readingAidOptions = [
+    {
+        id: 'focusMode',
+        label: 'Focus Mode',
+        description: 'Dim the surrounding interface to stay immersed in the page.',
+        Icon: HiOutlineEye,
+    },
+    {
+        id: 'readingGuide',
+        label: 'Reading Guide',
+        description: 'Highlight lines as you hover to keep your place like a reading ruler.',
+        Icon: HiOutlineSparkles,
+    },
+    {
+        id: 'highContrast',
+        label: 'Enhanced Contrast',
+        description: 'Boost contrast for crisp, Kindle-style text clarity.',
+        Icon: HiOutlineLightBulb,
+    },
 ];
 
 const themePreviewClassMap = {
@@ -45,6 +84,9 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
     const dragControls = useDragControls(); // 1. Initialize drag controls
+    const speechRef = useRef(null);
+    const [feedbackMessage, setFeedbackMessage] = useState('');
+    const [isReadingAloud, setIsReadingAloud] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -69,14 +111,29 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
         };
     }, [isOpen]);
 
+    useEffect(() => () => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!feedbackMessage) return undefined;
+        const timeout = setTimeout(() => setFeedbackMessage(''), 4000);
+        return () => clearTimeout(timeout);
+    }, [feedbackMessage]);
+
     const previewStyles = useMemo(() => ({
         fontSize: `${settings.fontSize}px`,
         lineHeight: settings.lineHeight,
         letterSpacing: `${settings.letterSpacing}em`,
         wordSpacing: `${settings.wordSpacing}em`,
+        fontWeight: settings.fontWeight,
         textAlign: settings.textAlign,
         '--paragraph-spacing': `${settings.paragraphSpacing}em`,
         fontFamily: settings.fontFamily === 'mono' ? 'monospace' : settings.fontFamily === 'sans' ? 'sans-serif' : 'serif',
+        filter: `brightness(${settings.brightness})`,
+        paddingInline: marginStyleMap[settings.pageMargin] || marginStyleMap.medium,
     }), [settings]);
 
     const previewThemeClass = themePreviewClassMap[settings.theme] || themePreviewClassMap.auto;
@@ -102,9 +159,111 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
         onChange('wordSpacing', clamp(Number(value.toFixed(2)), 0, 0.5));
     };
 
+    const handleFontWeightChange = (event) => {
+        const value = Number(event.target.value);
+        onChange('fontWeight', clamp(Math.round(value), 300, 800));
+    };
+
     const handleParagraphSpacingChange = (event) => {
         const value = Number(event.target.value);
         onChange('paragraphSpacing', clamp(Number(value.toFixed(2)), 0.5, 2));
+    };
+
+    const handleBrightnessChange = (event) => {
+        const value = Number(event.target.value);
+        onChange('brightness', clamp(Number(value.toFixed(2)), 0.6, 1.4));
+    };
+
+    const handleMarginChange = (event) => {
+        const index = clamp(Number(event.target.value), 0, marginOptions.length - 1);
+        const option = marginOptions[index];
+        if (option) {
+            onChange('pageMargin', option.id);
+        }
+    };
+
+    const marginIndex = Math.max(0, marginOptions.findIndex(option => option.id === settings.pageMargin));
+
+    const handleAidToggle = (option) => {
+        const isActive = Boolean(settings[option.id]);
+        onChange(option.id, !isActive);
+        setFeedbackMessage(`${option.label} ${!isActive ? 'enabled' : 'disabled'}.`);
+    };
+
+    const handleDictionaryLookup = () => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        const selection = window.getSelection()?.toString().trim();
+        if (!selection) {
+            setFeedbackMessage('Select a word or phrase to look up in the dictionary.');
+            return;
+        }
+        const encoded = encodeURIComponent(selection);
+        window.open(`https://www.lexico.com/en/definition/${encoded}`, '_blank', 'noopener,noreferrer');
+        setFeedbackMessage(`Looking up “${selection}” in a new tab.`);
+    };
+
+    const handleSaveHighlight = async () => {
+        if (typeof window === 'undefined' || typeof navigator === 'undefined' || !navigator.clipboard) {
+            setFeedbackMessage('Clipboard access is not available in this environment.');
+            return;
+        }
+        const selection = window.getSelection()?.toString().trim();
+        if (!selection) {
+            setFeedbackMessage('Select text to copy it as a highlight.');
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(selection);
+            setFeedbackMessage('Highlight copied to your clipboard.');
+        } catch (error) {
+            setFeedbackMessage('Unable to copy the selected text.');
+        }
+    };
+
+    const handleReadAloud = () => {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            setFeedbackMessage('Read aloud is not supported in this browser.');
+            return;
+        }
+        const synth = window.speechSynthesis;
+        if (isReadingAloud) {
+            synth.cancel();
+            setIsReadingAloud(false);
+            setFeedbackMessage('Stopped reading aloud.');
+            return;
+        }
+
+        const utteranceCtor = window.SpeechSynthesisUtterance || window.webkitSpeechSynthesisUtterance;
+        if (typeof utteranceCtor === 'undefined') {
+            setFeedbackMessage('Read aloud is not available on this device.');
+            return;
+        }
+
+        const target = document.querySelector('[data-reading-surface]') || document.querySelector('.post-content');
+        const text = target?.innerText?.trim();
+
+        if (!text) {
+            setFeedbackMessage('No readable content detected on this page.');
+            return;
+        }
+
+        const utterance = new utteranceCtor(text);
+        speechRef.current = utterance;
+        utterance.onend = () => {
+            setIsReadingAloud(false);
+            setFeedbackMessage('Finished reading aloud.');
+        };
+        utterance.onerror = () => {
+            setIsReadingAloud(false);
+            setFeedbackMessage('Unable to read aloud this content.');
+        };
+
+        synth.cancel();
+        synth.speak(utterance);
+        setIsReadingAloud(true);
+        setFeedbackMessage('Started reading aloud the article.');
     };
 
 
@@ -160,7 +319,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                             <p className="text-sm font-semibold uppercase tracking-wide text-slate-500/70 dark:text-slate-400/80">Live preview</p>
                             <p className="mt-2 text-sm leading-relaxed" style={{marginBottom: 'var(--paragraph-spacing, 1.25em)'}}>The quick brown fox jumps over the lazy dog. Adjust controls to see typography updates instantly.</p>
                             <p className="text-[0.8rem] text-slate-500 dark:text-slate-300">
-                                {settings.lineHeight.toFixed(1)}× line height · {settings.paragraphSpacing.toFixed(2)}em spacing · {settings.fontSize}px type
+                                {settings.lineHeight.toFixed(1)}× line height · {settings.paragraphSpacing.toFixed(2)}em spacing · {settings.fontSize}px type · {settings.fontWeight} weight · {Math.round(settings.brightness * 100)}% brightness
                             </p>
                         </div>
 
@@ -222,6 +381,30 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                 </div>
                             </section>
 
+                            <section className="space-y-3">
+                                <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Font weight</h4>
+                                <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-3">
+                                    <div className="mb-2 flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400">
+                                        <span>Weight</span>
+                                        <span className="font-semibold text-slate-600 dark:text-slate-200">{settings.fontWeight}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="300"
+                                        max="800"
+                                        step="50"
+                                        value={settings.fontWeight}
+                                        onChange={handleFontWeightChange}
+                                        className="w-full accent-sky-500"
+                                        aria-label="Adjust font weight"
+                                    />
+                                    <div className="mt-2 flex items-center justify-between text-[0.65rem] uppercase tracking-wide text-slate-400">
+                                        <span>Light</span>
+                                        <span>Bold</span>
+                                    </div>
+                                </div>
+                            </section>
+
                             <section className="space-y-4">
                                 <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Spacing</h4>
                                 <div>
@@ -243,6 +426,14 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                             </section>
 
                             <section className="space-y-3">
+                                <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Display</h4>
+                                <div>
+                                    <div className="mb-1 flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400"><span>Brightness</span><span>{Math.round(settings.brightness * 100)}%</span></div>
+                                    <input type="range" min="0.6" max="1.4" step="0.05" value={settings.brightness} onChange={handleBrightnessChange} className="w-full accent-sky-500" />
+                                </div>
+                            </section>
+
+                            <section className="space-y-3">
                                 <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Layout</h4>
                                 <div className="grid grid-cols-3 gap-2">
                                     {widthOptions.map(option => (
@@ -260,22 +451,155 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                         </button>
                                     ))}
                                 </div>
+                                <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-3 space-y-3">
+                                    <div className="flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400">
+                                        <span>Page margins</span>
+                                        <span className="font-semibold text-slate-500 dark:text-slate-300">{marginOptions[marginIndex]?.label || 'Medium'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        {marginOptions.map(option => {
+                                            const isActive = settings.pageMargin === option.id;
+                                            return (
+                                                <button
+                                                    key={option.id}
+                                                    type="button"
+                                                    onClick={() => onChange('pageMargin', option.id)}
+                                                    aria-pressed={isActive}
+                                                    className={`flex-1 rounded-xl border px-2 py-2 text-center transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+                                                        isActive
+                                                            ? 'border-sky-400 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-500/10 dark:text-sky-200'
+                                                            : 'border-transparent text-slate-500 dark:text-slate-400 hover:border-sky-300/60 dark:hover:border-sky-500/60'
+                                                    }`}
+                                                >
+                                                    <div className="mx-auto mb-1 flex h-8 w-full max-w-[3.5rem] items-center justify-center rounded-lg bg-slate-200/70 dark:bg-slate-700/70">
+                                                        <div
+                                                            className={`h-6 w-full rounded-md bg-white dark:bg-slate-900 shadow-inner transition-all ${
+                                                                option.id === 'narrow'
+                                                                    ? 'mx-1'
+                                                                    : option.id === 'medium'
+                                                                        ? 'mx-2'
+                                                                        : 'mx-3'
+                                                            }`}
+                                                        ></div>
+                                                    </div>
+                                                    <p className="text-[0.65rem] font-medium">{option.label}</p>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max={marginOptions.length - 1}
+                                        step="1"
+                                        value={marginIndex}
+                                        onChange={handleMarginChange}
+                                        className="w-full accent-sky-500"
+                                        aria-label="Adjust page margins"
+                                    />
+                                    <p className="text-[0.7rem] text-slate-500 dark:text-slate-400 text-center">
+                                        {marginOptions[marginIndex]?.description || 'Adjust the white space on either side of the page.'}
+                                    </p>
+                                </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     {alignmentOptions.map(option => (
                                         <button
                                             key={option.id}
                                             type="button"
                                             onClick={() => onChange('textAlign', option.id)}
-                                            className={`rounded-2xl border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+                                            className={`flex items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
                                                 settings.textAlign === option.id
                                                     ? 'border-sky-400 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-500/10 dark:text-sky-200'
                                                     : 'border-slate-200 hover:border-sky-300 dark:border-slate-700 dark:hover:border-sky-500'
                                             }`}
                                         >
-                                            {option.label}
+                                            <option.Icon className="h-5 w-5" aria-hidden="true" />
+                                            <span className="flex flex-col items-start leading-tight">
+                                                <span>{option.label}</span>
+                                                <span className="text-[0.6rem] font-normal text-slate-500 dark:text-slate-400">{option.description}</span>
+                                            </span>
                                         </button>
                                     ))}
                                 </div>
+                            </section>
+
+                            <section className="space-y-3">
+                                <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Reading Aids &amp; Tools</h4>
+                                <div className="space-y-2">
+                                    {readingAidOptions.map(option => {
+                                        const isActive = Boolean(settings[option.id]);
+                                        return (
+                                            <button
+                                                key={option.id}
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={isActive}
+                                                onClick={() => handleAidToggle(option)}
+                                                className={`flex items-center justify-between rounded-2xl border px-3 py-2 text-left transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+                                                    isActive
+                                                        ? 'border-sky-400 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-500/10 dark:text-sky-200'
+                                                        : 'border-slate-200/80 hover:border-sky-300 dark:border-slate-700/80 dark:hover:border-sky-500/70'
+                                                }`}
+                                            >
+                                                <span className="flex items-start gap-3">
+                                                    <span className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full ${
+                                                        isActive
+                                                            ? 'bg-sky-500/20 text-sky-600 dark:text-sky-200'
+                                                            : 'bg-slate-200/70 text-slate-500 dark:bg-slate-700/70 dark:text-slate-300'
+                                                    }`}>
+                                                        <option.Icon className="h-5 w-5" aria-hidden="true" />
+                                                    </span>
+                                                    <span className="flex flex-col">
+                                                        <span className="text-sm font-semibold">{option.label}</span>
+                                                        <span className="text-[0.7rem] text-slate-500 dark:text-slate-400">{option.description}</span>
+                                                    </span>
+                                                </span>
+                                                <span className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition ${
+                                                    isActive
+                                                        ? 'bg-sky-500/90'
+                                                        : 'bg-slate-300 dark:bg-slate-600'
+                                                }`}>
+                                                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                                                        isActive ? 'translate-x-5' : 'translate-x-1'
+                                                    }`}></span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleReadAloud}
+                                        className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700/80 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:border-sky-500/80"
+                                    >
+                                        <HiOutlineSpeakerWave className="h-5 w-5" aria-hidden="true" />
+                                        <span>{isReadingAloud ? 'Stop reading' : 'Read aloud'}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleDictionaryLookup}
+                                        className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700/80 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:border-sky-500/80"
+                                    >
+                                        <HiOutlineBookOpen className="h-5 w-5" aria-hidden="true" />
+                                        <span>Dictionary</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveHighlight}
+                                        className="col-span-2 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-100/70 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-sky-500/60 dark:hover:text-sky-200"
+                                    >
+                                        <HiOutlineClipboardDocument className="h-5 w-5" aria-hidden="true" />
+                                        <span>Copy highlight</span>
+                                    </button>
+                                </div>
+
+                                {feedbackMessage && (
+                                    <p className="text-[0.7rem] text-slate-500 dark:text-slate-400">
+                                        {feedbackMessage}
+                                    </p>
+                                )}
                             </section>
                         </div>
                         <button type="button" onClick={onReset} className="mt-6 w-full rounded-2xl border border-transparent bg-slate-900 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
