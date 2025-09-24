@@ -11,6 +11,13 @@ import {
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
     HiOutlineTrash,
+    HiOutlineChevronDoubleLeft,
+    HiOutlineChevronDoubleRight,
+    HiOutlineClipboardCopy,
+    HiOutlineShare,
+    HiOutlineVolumeUp,
+    HiOutlineSelector,
+    HiOutlineCollection,
 } from 'react-icons/hi';
 import { FaHighlighter } from 'react-icons/fa';
 
@@ -45,6 +52,215 @@ const getTextNodes = (container) => {
         nodes.push(walker.currentNode);
     }
     return nodes;
+};
+
+const isWhitespace = (char) => /\s/.test(char || '');
+
+const normalizeOffsets = (text, start, end) => {
+    let normalizedStart = Math.max(0, start);
+    let normalizedEnd = Math.max(normalizedStart, end);
+
+    while (normalizedStart < normalizedEnd && isWhitespace(text[normalizedStart])) {
+        normalizedStart += 1;
+    }
+
+    while (normalizedEnd > normalizedStart && isWhitespace(text[normalizedEnd - 1])) {
+        normalizedEnd -= 1;
+    }
+
+    return { start: normalizedStart, end: normalizedEnd };
+};
+
+const createRangeFromOffsets = (container, start, end) => {
+    if (!container || start >= end) return null;
+
+    const nodes = getTextNodes(container);
+    if (!nodes.length) return null;
+
+    const range = document.createRange();
+    let charIndex = 0;
+    let startNode = null;
+    let startOffset = 0;
+    let endNode = null;
+    let endOffset = 0;
+
+    for (const node of nodes) {
+        const content = node.textContent || '';
+        const nodeLength = content.length;
+        const nodeStart = charIndex;
+        const nodeEnd = nodeStart + nodeLength;
+
+        if (!startNode && start >= nodeStart && start <= nodeEnd) {
+            startNode = node;
+            startOffset = Math.min(Math.max(start - nodeStart, 0), nodeLength);
+        }
+
+        if (!endNode && end >= nodeStart && end <= nodeEnd) {
+            endNode = node;
+            endOffset = Math.min(Math.max(end - nodeStart, 0), nodeLength);
+        }
+
+        if (startNode && endNode) {
+            break;
+        }
+
+        charIndex = nodeEnd;
+    }
+
+    if (!startNode || !endNode) {
+        return null;
+    }
+
+    try {
+        range.setStart(startNode, startOffset);
+        range.setEnd(endNode, endOffset);
+        return range;
+    } catch (error) {
+        console.error('Failed to create range from offsets', error);
+        return null;
+    }
+};
+
+const getRangePosition = (range) => {
+    if (typeof window === 'undefined') {
+        return { x: 0, y: 0 };
+    }
+
+    const primaryRect = range.getBoundingClientRect();
+    const rect = primaryRect.width === 0 && primaryRect.height === 0 ? range.getClientRects()[0] || primaryRect : primaryRect;
+
+    return {
+        x: rect.left + window.scrollX + rect.width / 2,
+        y: rect.top + window.scrollY - 12,
+    };
+};
+
+const expandStartOffset = (text, start) => {
+    if (start <= 0) return 0;
+    let cursor = Math.min(Math.max(start, 0), text.length);
+    cursor = Math.max(0, cursor - 1);
+
+    while (cursor > 0 && isWhitespace(text[cursor])) {
+        cursor -= 1;
+    }
+
+    while (cursor > 0 && !isWhitespace(text[cursor - 1])) {
+        cursor -= 1;
+    }
+
+    return cursor;
+};
+
+const expandEndOffset = (text, end) => {
+    const length = text.length;
+    let cursor = Math.min(Math.max(end, 0), length);
+
+    while (cursor < length && isWhitespace(text[cursor])) {
+        cursor += 1;
+    }
+
+    while (cursor < length && !isWhitespace(text[cursor])) {
+        cursor += 1;
+    }
+
+    return cursor;
+};
+
+const shrinkStartOffset = (text, start, end) => {
+    const snippet = text.slice(start, end);
+    if (!snippet.trim()) return start;
+
+    const remainder = snippet.replace(/^\s*\S+\s*/, '');
+    if (!remainder.trim()) return start;
+
+    return start + (snippet.length - remainder.length);
+};
+
+const shrinkEndOffset = (text, start, end) => {
+    const snippet = text.slice(start, end);
+    if (!snippet.trim()) return end;
+
+    const remainder = snippet.replace(/\s*\S+\s*$/, '');
+    if (!remainder.trim()) return end;
+
+    return end - (snippet.length - remainder.length);
+};
+
+const expandToSentenceBoundaries = (text, start, end) => {
+    const length = text.length;
+    let sentenceStart = Math.min(Math.max(start, 0), length);
+    let sentenceEnd = Math.min(Math.max(end, 0), length);
+
+    while (sentenceStart > 0) {
+        const prev = text[sentenceStart - 1];
+        if (prev === '\n' || '.!?'.includes(prev)) {
+            break;
+        }
+        sentenceStart -= 1;
+    }
+
+    while (sentenceStart < length && isWhitespace(text[sentenceStart])) {
+        sentenceStart += 1;
+    }
+
+    while (sentenceEnd < length) {
+        const current = text[sentenceEnd];
+        if (!current) {
+            break;
+        }
+        if (current === '\n' || '.!?'.includes(current)) {
+            sentenceEnd += 1;
+            break;
+        }
+        sentenceEnd += 1;
+    }
+
+    while (sentenceEnd < length && isWhitespace(text[sentenceEnd])) {
+        sentenceEnd += 1;
+    }
+
+    if (sentenceEnd <= sentenceStart) {
+        sentenceEnd = Math.min(length, sentenceStart + 1);
+    }
+
+    return { start: sentenceStart, end: sentenceEnd };
+};
+
+const expandToParagraphBoundaries = (text, start, end) => {
+    const length = text.length;
+    const delimiter = /\n\s*\n/g;
+    let paragraphStart = 0;
+    let paragraphEnd = length;
+    let match;
+
+    while ((match = delimiter.exec(text)) !== null) {
+        const breakStart = match.index;
+        const breakEnd = match.index + match[0].length;
+
+        if (breakEnd <= start) {
+            paragraphStart = breakEnd;
+            continue;
+        }
+
+        if (breakStart >= end) {
+            paragraphEnd = breakStart;
+            break;
+        }
+    }
+
+    while (paragraphStart < length && isWhitespace(text[paragraphStart])) {
+        paragraphStart += 1;
+    }
+
+    while (paragraphEnd > paragraphStart && isWhitespace(text[paragraphEnd - 1])) {
+        paragraphEnd -= 1;
+    }
+
+    if (paragraphEnd <= paragraphStart) {
+        paragraphEnd = Math.min(length, paragraphStart + 1);
+    }
+
+    return { start: paragraphStart, end: paragraphEnd };
 };
 
 const applyHighlightRange = (container, highlight) => {
@@ -179,6 +395,8 @@ const InteractiveReadingSurface = ({
 }) => {
     const containerRef = useRef(null);
     const selectionMenuRef = useRef(null);
+    const speechUtteranceRef = useRef(null);
+    const fullTextRef = useRef('');
     const [highlights, setHighlights] = useState([]);
     const [selectionMenu, setSelectionMenu] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -191,6 +409,8 @@ const InteractiveReadingSurface = ({
         error: null,
         open: false,
     });
+    const [selectionFeedback, setSelectionFeedback] = useState('');
+    const [isSpeaking, setIsSpeaking] = useState(false);
 
     const parsedContent = useMemo(() => parse(content || '', parserOptions), [content, parserOptions]);
 
@@ -229,7 +449,32 @@ const InteractiveReadingSurface = ({
         setSearchMatches([]);
         setActiveMatchIndex(0);
         setSelectionMenu(null);
+        setSelectionFeedback('');
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+        setIsSpeaking(false);
     }, [chapterId, content]);
+
+    useEffect(() => () => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!selectionFeedback) return undefined;
+        const timeout = setTimeout(() => setSelectionFeedback(''), 2500);
+        return () => clearTimeout(timeout);
+    }, [selectionFeedback]);
+
+    useEffect(() => {
+        if (!selectionMenu && isSpeaking && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+            speechUtteranceRef.current = null;
+        }
+    }, [selectionMenu, isSpeaking]);
 
     useLayoutEffect(() => {
         const container = containerRef.current;
@@ -277,33 +522,56 @@ const InteractiveReadingSurface = ({
             return;
         }
 
-        const text = selection.toString().trim();
+        const fullText = container.textContent || '';
+        fullTextRef.current = fullText;
+
+        const rawSelection = selection.toString();
+        const text = rawSelection.trim();
         if (!text) {
             closeSelectionMenu();
             return;
         }
 
-        const { start, end } = getSelectionOffsets(container, range);
+        const offsets = getSelectionOffsets(container, range);
+        const leadingWhitespace = rawSelection.length - rawSelection.trimStart().length;
+        const trailingWhitespace = rawSelection.length - rawSelection.trimEnd().length;
+
+        let start = offsets.start + leadingWhitespace;
+        let end = offsets.end - trailingWhitespace;
+
+        ({ start, end } = normalizeOffsets(fullText, start, end));
+
         if (start === end) {
             closeSelectionMenu();
             return;
         }
 
-        const rect = range.getBoundingClientRect();
+        const normalizedRange = createRangeFromOffsets(container, start, end) || range.cloneRange();
+
+        if (selection && normalizedRange) {
+            selection.removeAllRanges();
+            selection.addRange(normalizedRange);
+        }
+
         const existing = highlights.find((item) => start >= item.start && end <= item.end);
 
+        if (isSpeaking && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+            speechUtteranceRef.current = null;
+        }
+
+        setSelectionFeedback('');
+
         setSelectionMenu({
-            text,
+            text: normalizedRange?.toString().trim() || text,
             start,
             end,
             highlightId: existing?.id || null,
             color: existing?.color || null,
-            position: {
-                x: rect.left + window.scrollX + rect.width / 2,
-                y: rect.top + window.scrollY - 12,
-            },
+            position: getRangePosition(normalizedRange),
         });
-    }, [closeSelectionMenu, highlights]);
+    }, [closeSelectionMenu, highlights, isSpeaking]);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -386,6 +654,208 @@ const InteractiveReadingSurface = ({
                 open: true,
             });
         }
+    };
+
+    const adjustSelection = (edge, direction) => {
+        if (!selectionMenu) return;
+        const container = containerRef.current;
+        if (!container) return;
+
+        const fullText = fullTextRef.current || container.textContent || '';
+        if (!fullText) return;
+
+        let { start, end } = selectionMenu;
+
+        if (direction === 'expand') {
+            if (edge === 'start') {
+                const nextStart = expandStartOffset(fullText, start);
+                if (nextStart === start) {
+                    setSelectionFeedback('Reached the beginning of the text.');
+                    return;
+                }
+                start = nextStart;
+            } else {
+                const nextEnd = expandEndOffset(fullText, end);
+                if (nextEnd === end) {
+                    setSelectionFeedback('Reached the end of the text.');
+                    return;
+                }
+                end = nextEnd;
+            }
+        } else {
+            if (edge === 'start') {
+                const nextStart = shrinkStartOffset(fullText, start, end);
+                if (nextStart === start) {
+                    setSelectionFeedback('Cannot trim further from the left.');
+                    return;
+                }
+                start = nextStart;
+            } else {
+                const nextEnd = shrinkEndOffset(fullText, start, end);
+                if (nextEnd === end) {
+                    setSelectionFeedback('Cannot trim further from the right.');
+                    return;
+                }
+                end = nextEnd;
+            }
+        }
+
+        ({ start, end } = normalizeOffsets(fullText, start, end));
+
+        if (start >= end) {
+            setSelectionFeedback('Selection cannot be reduced further.');
+            return;
+        }
+
+        if (start === selectionMenu.start && end === selectionMenu.end) {
+            return;
+        }
+
+        const range = createRangeFromOffsets(container, start, end);
+        if (!range) return;
+
+        const selection = window.getSelection();
+        if (selection) {
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        setSelectionMenu((prev) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                start,
+                end,
+                text: range.toString().trim(),
+                highlightId: null,
+                color: null,
+                position: getRangePosition(range),
+            };
+        });
+        setSelectionFeedback(direction === 'expand' ? 'Selection expanded.' : 'Selection trimmed.');
+    };
+
+    const expandSelectionToScope = (scope) => {
+        if (!selectionMenu) return;
+        const container = containerRef.current;
+        if (!container) return;
+
+        const fullText = fullTextRef.current || container.textContent || '';
+        if (!fullText) return;
+
+        let { start, end } = selectionMenu;
+        let boundaries = null;
+
+        if (scope === 'sentence') {
+            boundaries = expandToSentenceBoundaries(fullText, start, end);
+        } else if (scope === 'paragraph') {
+            boundaries = expandToParagraphBoundaries(fullText, start, end);
+        }
+
+        if (!boundaries) return;
+
+        ({ start, end } = normalizeOffsets(fullText, boundaries.start, boundaries.end));
+
+        if (start >= end) {
+            setSelectionFeedback('Unable to expand selection.');
+            return;
+        }
+
+        if (start === selectionMenu.start && end === selectionMenu.end) {
+            const label = scope === 'sentence' ? 'sentence' : 'paragraph';
+            setSelectionFeedback(`Already selecting the full ${label}.`);
+            return;
+        }
+
+        const range = createRangeFromOffsets(container, start, end);
+        if (!range) return;
+
+        const selection = window.getSelection();
+        if (selection) {
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        setSelectionMenu((prev) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                start,
+                end,
+                text: range.toString().trim(),
+                highlightId: null,
+                color: null,
+                position: getRangePosition(range),
+            };
+        });
+
+        const label = scope === 'sentence' ? 'sentence' : 'paragraph';
+        setSelectionFeedback(`Expanded to the full ${label}.`);
+    };
+
+    const handleCopySelection = async () => {
+        if (!selectionMenu?.text) return;
+        if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+            setSelectionFeedback('Clipboard access is not available.');
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(selectionMenu.text);
+            setSelectionFeedback('Selection copied to clipboard.');
+        } catch (error) {
+            console.error('Unable to copy selection', error);
+            setSelectionFeedback('Unable to copy selection.');
+        }
+    };
+
+    const handleShareSelection = async () => {
+        if (!selectionMenu?.text) return;
+        if (typeof navigator === 'undefined' || !navigator.share) {
+            setSelectionFeedback('Sharing is not supported in this browser.');
+            return;
+        }
+        try {
+            await navigator.share({ text: selectionMenu.text });
+            setSelectionFeedback('Shared selection.');
+        } catch (error) {
+            if (error?.name !== 'AbortError') {
+                console.error('Unable to share selection', error);
+                setSelectionFeedback('Unable to share selection.');
+            }
+        }
+    };
+
+    const handleSpeakSelection = () => {
+        if (!selectionMenu?.text) return;
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            setSelectionFeedback('Text-to-speech is not supported in this browser.');
+            return;
+        }
+
+        if (isSpeaking) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+            speechUtteranceRef.current = null;
+            setSelectionFeedback('Stopped reading the selection.');
+            return;
+        }
+
+        const utterance = new window.SpeechSynthesisUtterance(selectionMenu.text);
+        speechUtteranceRef.current = utterance;
+        utterance.onend = () => {
+            setIsSpeaking(false);
+            speechUtteranceRef.current = null;
+        };
+        utterance.onerror = () => {
+            setIsSpeaking(false);
+            speechUtteranceRef.current = null;
+            setSelectionFeedback('Unable to read the selection aloud.');
+        };
+
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+        setIsSpeaking(true);
+        setSelectionFeedback('Reading selection aloud…');
     };
 
     const handleSearchChange = (event) => {
@@ -579,37 +1049,116 @@ const InteractiveReadingSurface = ({
                         >
                             <div className="reader-selection-card">
                                 <p className="reader-selection-text">{selectionMenu.text.slice(0, 80)}{selectionMenu.text.length > 80 ? '…' : ''}</p>
-                                <div className="reader-selection-actions">
-                                    {highlightPalette.map((item) => (
-                                        <button
-                                            key={item.id}
-                                            type="button"
-                                            className={`reader-highlight-option ${selectionMenu.color === item.id ? 'active' : ''}`}
-                                            onClick={() => handleAddHighlight(item.id)}
-                                            style={{ '--highlight-swatch': item.swatch }}
-                                        >
-                                            <FaHighlighter aria-hidden />
+                                <div className="reader-selection-section">
+                                    <span className="reader-selection-section-title">Adjust range</span>
+                                    <div className="reader-selection-range-controls">
+                                        <div className="reader-selection-handle-group">
+                                            <button
+                                                type="button"
+                                                className="reader-selection-handle"
+                                                onClick={() => adjustSelection('start', 'expand')}
+                                                aria-label="Expand selection to the left"
+                                            >
+                                                <HiOutlineChevronDoubleLeft />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="reader-selection-handle"
+                                                onClick={() => adjustSelection('start', 'shrink')}
+                                                aria-label="Trim selection from the left"
+                                            >
+                                                <HiOutlineChevronRight />
+                                            </button>
+                                        </div>
+                                        <div className="reader-selection-handle-group">
+                                            <button
+                                                type="button"
+                                                className="reader-selection-handle"
+                                                onClick={() => adjustSelection('end', 'shrink')}
+                                                aria-label="Trim selection from the right"
+                                            >
+                                                <HiOutlineChevronLeft />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="reader-selection-handle"
+                                                onClick={() => adjustSelection('end', 'expand')}
+                                                aria-label="Expand selection to the right"
+                                            >
+                                                <HiOutlineChevronDoubleRight />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="reader-selection-section">
+                                    <span className="reader-selection-section-title">Smart select</span>
+                                    <div className="reader-selection-scope">
+                                        <button type="button" onClick={() => expandSelectionToScope('sentence')}>
+                                            <HiOutlineSelector /> Sentence
                                         </button>
-                                    ))}
-                                    <button
-                                        type="button"
-                                        className="reader-selection-button"
-                                        onClick={() => handleLookupWord(selectionMenu.text)}
-                                        aria-label="Look up in dictionary"
-                                    >
-                                        <HiOutlineBookOpen />
-                                    </button>
-                                    {selectionMenu.highlightId && (
+                                        <button type="button" onClick={() => expandSelectionToScope('paragraph')}>
+                                            <HiOutlineCollection /> Paragraph
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="reader-selection-section">
+                                    <span className="reader-selection-section-title">Highlight & tools</span>
+                                    <div className="reader-selection-actions">
+                                        {highlightPalette.map((item) => (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                className={`reader-highlight-option ${selectionMenu.color === item.id ? 'active' : ''}`}
+                                                onClick={() => handleAddHighlight(item.id)}
+                                                style={{ '--highlight-swatch': item.swatch }}
+                                            >
+                                                <FaHighlighter aria-hidden />
+                                            </button>
+                                        ))}
                                         <button
                                             type="button"
                                             className="reader-selection-button"
-                                            onClick={() => handleRemoveHighlight(selectionMenu.highlightId)}
-                                            aria-label="Remove highlight"
+                                            onClick={() => handleLookupWord(selectionMenu.text)}
+                                            aria-label="Look up in dictionary"
                                         >
-                                            <HiOutlineTrash />
+                                            <HiOutlineBookOpen />
                                         </button>
-                                    )}
+                                        {selectionMenu.highlightId && (
+                                            <button
+                                                type="button"
+                                                className="reader-selection-button"
+                                                onClick={() => handleRemoveHighlight(selectionMenu.highlightId)}
+                                                aria-label="Remove highlight"
+                                            >
+                                                <HiOutlineTrash />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+                                <div className="reader-selection-section">
+                                    <span className="reader-selection-section-title">Quick actions</span>
+                                    <div className="reader-selection-quick">
+                                        <button type="button" onClick={handleCopySelection} aria-label="Copy selection">
+                                            <HiOutlineClipboardCopy />
+                                            <span>Copy</span>
+                                        </button>
+                                        <button type="button" onClick={handleShareSelection} aria-label="Share selection">
+                                            <HiOutlineShare />
+                                            <span>Share</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleSpeakSelection}
+                                            aria-label={isSpeaking ? 'Stop reading selection' : 'Read selection aloud'}
+                                            aria-pressed={isSpeaking}
+                                            className={isSpeaking ? 'active' : ''}
+                                        >
+                                            <HiOutlineVolumeUp />
+                                            <span>{isSpeaking ? 'Stop' : 'Listen'}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                {selectionFeedback && <p className="reader-selection-feedback">{selectionFeedback}</p>}
                             </div>
                         </motion.div>
                     </AnimatePresence>,
