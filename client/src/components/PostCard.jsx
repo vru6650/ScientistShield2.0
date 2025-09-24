@@ -65,10 +65,12 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
 
     const [mediaOrientation, setMediaOrientation] = useState('landscape');
     const [isMediaLoading, setIsMediaLoading] = useState(Boolean(mediaUrl));
+    const [mediaDimensions, setMediaDimensions] = useState({ width: null, height: null });
 
     const handleOrientationUpdate = useCallback((width, height) => {
         if (!width || !height) return;
         const ratio = width / height;
+        setMediaDimensions({ width, height });
         if (Math.abs(ratio - 1) < 0.08) {
             setMediaOrientation('square');
             return;
@@ -92,33 +94,68 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
         setIsMediaLoading(false);
     }, []);
 
+    useEffect(() => {
+        setIsMediaLoading(Boolean(mediaUrl));
+        setMediaOrientation('landscape');
+        setMediaDimensions({ width: null, height: null });
+    }, [mediaUrl]);
+
     const baseClass = 'relative w-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer';
+
+    const computedAspectRatio = useMemo(() => {
+        if (!mediaUrl) return null;
+        if (mediaDimensions.width && mediaDimensions.height) {
+            const ratio = mediaDimensions.width / mediaDimensions.height;
+            // Prevent absurd aspect ratios from breaking the layout
+            const MIN_RATIO = 0.55; // ~9:16 portrait
+            const MAX_RATIO = 1.85; // ~16:9 landscape
+            const clampedRatio = Math.min(Math.max(ratio, MIN_RATIO), MAX_RATIO);
+            return clampedRatio;
+        }
+        if (shouldRenderVideo) {
+            return 16 / 9;
+        }
+        return 4 / 3;
+    }, [mediaDimensions.height, mediaDimensions.width, mediaUrl, shouldRenderVideo]);
 
     const orientationClasses = useMemo(() => {
         if (!mediaUrl) {
-            return 'flex items-center justify-center py-12';
+            return 'flex items-center justify-center py-12 min-h-[12rem]';
         }
 
         if (shouldRenderVideo) {
-            return 'aspect-video max-h-[520px]';
+            return 'max-h-[520px]';
         }
 
         if (isMediaLoading) {
-            return 'aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9] max-h-[420px]';
+            return 'max-h-[420px]';
         }
 
         switch (mediaOrientation) {
             case 'portrait':
-                return 'aspect-[3/4] sm:aspect-[4/5] lg:aspect-[9/16] max-h-[560px]';
+                return 'max-h-[560px]';
             case 'square':
-                return 'aspect-square max-h-[520px]';
+                return 'max-h-[520px]';
             default:
-                return 'aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9] max-h-[460px]';
+                return 'max-h-[460px]';
         }
     }, [isMediaLoading, mediaOrientation, mediaUrl, shouldRenderVideo]);
 
+    const containerStyle = useMemo(() => {
+        if (!mediaUrl) {
+            return undefined;
+        }
+
+        if (computedAspectRatio) {
+            // React supports numeric aspectRatio, but we clamp the precision to avoid noisy renders
+            return { aspectRatio: Number(computedAspectRatio.toFixed(3)) };
+        }
+
+        return undefined;
+    }, [computedAspectRatio, mediaUrl]);
+
     return (
-        <div onDoubleClick={onDoubleClick} className={`${baseClass} ${orientationClasses}`}>
+        <div onDoubleClick={onDoubleClick} className={`${baseClass} ${orientationClasses}`} style={containerStyle}>
             {isMediaLoading && mediaUrl && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-slate-700 dark:via-slate-800 dark:to-slate-700 animate-pulse">
                     <Spinner aria-hidden size="lg" />
