@@ -1,9 +1,8 @@
 // client/src/pages/PostPage.jsx
-import { Button, Spinner, Alert } from 'flowbite-react';
+import { Button, Alert } from 'flowbite-react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import parse from 'html-react-parser';
 import { useEffect, useState, useMemo } from 'react';
 import hljs from 'highlight.js';
 import ImageViewer from 'react-simple-image-viewer';
@@ -19,6 +18,7 @@ import ClapButton from '../components/ClapButton';
 import CodeEditor from '../components/CodeEditor';
 import ReadingControlCenter from '../components/ReadingControlCenter';
 import useReadingSettings from '../hooks/useReadingSettings';
+import InteractiveReadingSurface from '../components/InteractiveReadingSurface.jsx';
 import '../Tiptap.css';
 
 // --- API fetching functions ---
@@ -285,13 +285,15 @@ export default function PostPage() {
                     <TableOfContents headings={headings} />
                 </div>
 
-                <div
-                    data-reading-surface="true"
-                    className={`p-3 max-w-2xl mx-auto w-full post-content tiptap reading-surface transition-all duration-300 ${surfaceClass}`.trim()}
-                    style={{ ...contentStyles, maxWidth: contentMaxWidth }}
-                >
-                    {parse(sanitizedContent, parserOptions)}
-                </div>
+                <InteractiveReadingSurface
+                    content={sanitizedContent}
+                    parserOptions={parserOptions}
+                    contentStyles={contentStyles}
+                    contentMaxWidth={contentMaxWidth}
+                    surfaceClass={surfaceClass}
+                    className='p-3 max-w-2xl mx-auto w-full post-content tiptap reading-surface transition-all duration-300'
+                    chapterId={post._id}
+                />
 
                 <div
                     className='max-w-2xl mx-auto w-full px-3 my-8 flex justify-between items-center'
