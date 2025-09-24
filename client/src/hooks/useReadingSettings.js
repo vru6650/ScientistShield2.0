@@ -22,6 +22,9 @@ const defaultSettings = {
     theme: 'auto',
     textAlign: 'left',
     brightness: 1,
+    focusMode: false,
+    readingGuide: false,
+    highContrast: false,
 };
 
 const fontFamilyMap = {
@@ -89,18 +92,25 @@ export default function useReadingSettings() {
         [settings.pageMargin]
     );
 
-    const contentStyles = useMemo(() => ({
-        fontSize: `${settings.fontSize}px`,
-        lineHeight: settings.lineHeight,
-        letterSpacing: `${settings.letterSpacing}em`,
-        wordSpacing: `${settings.wordSpacing}em`, // New style
-        fontWeight: settings.fontWeight,
-        textAlign: settings.textAlign,
-        '--paragraph-spacing': `${settings.paragraphSpacing}em`, // New CSS variable for paragraph spacing
-        fontFamily: fontFamilyMap[settings.fontFamily] || fontFamilyMap.serif,
-        filter: `brightness(${settings.brightness})`,
-        paddingInline: contentPadding,
-    }), [
+    const contentStyles = useMemo(() => {
+        const filterParts = [`brightness(${settings.brightness})`];
+        if (settings.highContrast) {
+            filterParts.push('contrast(1.15)');
+        }
+
+        return {
+            fontSize: `${settings.fontSize}px`,
+            lineHeight: settings.lineHeight,
+            letterSpacing: `${settings.letterSpacing}em`,
+            wordSpacing: `${settings.wordSpacing}em`, // New style
+            fontWeight: settings.fontWeight,
+            textAlign: settings.textAlign,
+            '--paragraph-spacing': `${settings.paragraphSpacing}em`, // New CSS variable for paragraph spacing
+            fontFamily: fontFamilyMap[settings.fontFamily] || fontFamilyMap.serif,
+            filter: filterParts.join(' '),
+            paddingInline: contentPadding,
+        };
+    }, [
         settings.fontSize,
         settings.lineHeight,
         settings.letterSpacing,
@@ -110,6 +120,7 @@ export default function useReadingSettings() {
         settings.textAlign,
         settings.paragraphSpacing,
         settings.brightness,
+        settings.highContrast,
         contentPadding
     ]);
 

@@ -94,6 +94,7 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, conten
                     <h3 className='text-xl font-semibold mb-3 flex items-center gap-2'><FaCode /> Try it yourself!</h3>
                     <div
                         className={`${readingClassName} mb-4 bg-white/5 p-4 text-base text-slate-100`}
+                        data-reading-surface="true"
                         style={readingStyle}
                         dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                     />
@@ -117,6 +118,7 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, conten
                     <h3 className='text-xl font-semibold mb-3 flex items-center gap-2 text-blue-800 dark:text-blue-300'><FaQuestionCircle /> Test Your Knowledge!</h3>
                     <div
                         className={`${readingClassName} mb-4 bg-white/40 p-4 text-base text-blue-900/80 dark:bg-slate-900/60 dark:text-slate-100`}
+                        data-reading-surface="true"
                         style={readingStyle}
                         dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                     />
@@ -134,6 +136,7 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, conten
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.4 }}
                     className={`${readingClassName} p-3 mx-auto leading-relaxed text-lg text-gray-700 dark:text-gray-300`}
+                    data-reading-surface="true"
                     style={readingStyle}
                 >
                     {parse(sanitizedContent, parserOptions)}
@@ -366,6 +369,35 @@ export default function SingleTutorialPage() {
             }
         }
     }, [tutorial, chapterSlug, navigate, activeChapter]);
+
+    useEffect(() => {
+        const { classList } = document.body;
+        const focusClass = 'reading-focus-active';
+        const guideClass = 'reading-guide-active';
+        const contrastClass = 'reading-contrast-active';
+
+        if (readingSettings.focusMode) {
+            classList.add(focusClass);
+        } else {
+            classList.remove(focusClass);
+        }
+
+        if (readingSettings.readingGuide) {
+            classList.add(guideClass);
+        } else {
+            classList.remove(guideClass);
+        }
+
+        if (readingSettings.highContrast) {
+            classList.add(contrastClass);
+        } else {
+            classList.remove(contrastClass);
+        }
+
+        return () => {
+            classList.remove(focusClass, guideClass, contrastClass);
+        };
+    }, [readingSettings.focusMode, readingSettings.readingGuide, readingSettings.highContrast]);
 
     const createMetaDescription = (htmlContent) => {
         if (!htmlContent) return '';

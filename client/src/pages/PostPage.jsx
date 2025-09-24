@@ -161,6 +161,35 @@ export default function PostPage() {
         }
     }, [post]);
 
+    useEffect(() => {
+        const { classList } = document.body;
+        const focusClass = 'reading-focus-active';
+        const guideClass = 'reading-guide-active';
+        const contrastClass = 'reading-contrast-active';
+
+        if (readingSettings.focusMode) {
+            classList.add(focusClass);
+        } else {
+            classList.remove(focusClass);
+        }
+
+        if (readingSettings.readingGuide) {
+            classList.add(guideClass);
+        } else {
+            classList.remove(guideClass);
+        }
+
+        if (readingSettings.highContrast) {
+            classList.add(contrastClass);
+        } else {
+            classList.remove(contrastClass);
+        }
+
+        return () => {
+            classList.remove(focusClass, guideClass, contrastClass);
+        };
+    }, [readingSettings.focusMode, readingSettings.readingGuide, readingSettings.highContrast]);
+
     if (isLoadingPost) return <PostPageSkeleton />;
     if (postError) return (
         <div className='flex justify-center items-center min-h-screen'>
@@ -257,6 +286,7 @@ export default function PostPage() {
                 </div>
 
                 <div
+                    data-reading-surface="true"
                     className={`p-3 max-w-2xl mx-auto w-full post-content tiptap reading-surface transition-all duration-300 ${surfaceClass}`.trim()}
                     style={{ ...contentStyles, maxWidth: contentMaxWidth }}
                 >

@@ -1,6 +1,16 @@
 // client/src/components/ReadingControlCenter.jsx
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { HiOutlineAdjustmentsHorizontal, HiOutlineXMark, HiOutlineArrowsPointingOut } from 'react-icons/hi2';
+import {
+    HiOutlineAdjustmentsHorizontal,
+    HiOutlineXMark,
+    HiOutlineArrowsPointingOut,
+    HiOutlineLightBulb,
+    HiOutlineSparkles,
+    HiOutlineEye,
+    HiOutlineSpeakerWave,
+    HiOutlineBookOpen,
+    HiOutlineClipboardDocument,
+} from 'react-icons/hi2';
 import { LuAlignLeft, LuAlignJustify } from 'react-icons/lu';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { marginStyleMap } from '../hooks/useReadingSettings';
@@ -37,6 +47,27 @@ const marginOptions = [
     { id: 'wide', label: 'Wide', description: 'Extra breathing room' },
 ];
 
+const readingAidOptions = [
+    {
+        id: 'focusMode',
+        label: 'Focus Mode',
+        description: 'Dim the surrounding interface to stay immersed in the page.',
+        Icon: HiOutlineEye,
+    },
+    {
+        id: 'readingGuide',
+        label: 'Reading Guide',
+        description: 'Highlight lines as you hover to keep your place like a reading ruler.',
+        Icon: HiOutlineSparkles,
+    },
+    {
+        id: 'highContrast',
+        label: 'Enhanced Contrast',
+        description: 'Boost contrast for crisp, Kindle-style text clarity.',
+        Icon: HiOutlineLightBulb,
+    },
+];
+
 const themePreviewClassMap = {
     auto: 'bg-white/90 text-slate-800 border-slate-200/70 dark:bg-slate-900/80 dark:text-slate-100 dark:border-slate-700/70',
     day: 'bg-white text-slate-900 border-slate-200',
@@ -53,6 +84,9 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
     const dragControls = useDragControls(); // 1. Initialize drag controls
+    const speechRef = useRef(null);
+    const [feedbackMessage, setFeedbackMessage] = useState('');
+    const [isReadingAloud, setIsReadingAloud] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -76,6 +110,18 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
             document.removeEventListener('keydown', handleEscape);
         };
     }, [isOpen]);
+
+    useEffect(() => () => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!feedbackMessage) return undefined;
+        const timeout = setTimeout(() => setFeedbackMessage(''), 4000);
+        return () => clearTimeout(timeout);
+    }, [feedbackMessage]);
 
     const previewStyles = useMemo(() => ({
         fontSize: `${settings.fontSize}px`,
@@ -137,6 +183,88 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
     };
 
     const marginIndex = Math.max(0, marginOptions.findIndex(option => option.id === settings.pageMargin));
+
+    const handleAidToggle = (option) => {
+        const isActive = Boolean(settings[option.id]);
+        onChange(option.id, !isActive);
+        setFeedbackMessage(`${option.label} ${!isActive ? 'enabled' : 'disabled'}.`);
+    };
+
+    const handleDictionaryLookup = () => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        const selection = window.getSelection()?.toString().trim();
+        if (!selection) {
+            setFeedbackMessage('Select a word or phrase to look up in the dictionary.');
+            return;
+        }
+        const encoded = encodeURIComponent(selection);
+        window.open(`https://www.lexico.com/en/definition/${encoded}`, '_blank', 'noopener,noreferrer');
+        setFeedbackMessage(`Looking up “${selection}” in a new tab.`);
+    };
+
+    const handleSaveHighlight = async () => {
+        if (typeof window === 'undefined' || typeof navigator === 'undefined' || !navigator.clipboard) {
+            setFeedbackMessage('Clipboard access is not available in this environment.');
+            return;
+        }
+        const selection = window.getSelection()?.toString().trim();
+        if (!selection) {
+            setFeedbackMessage('Select text to copy it as a highlight.');
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(selection);
+            setFeedbackMessage('Highlight copied to your clipboard.');
+        } catch (error) {
+            setFeedbackMessage('Unable to copy the selected text.');
+        }
+    };
+
+    const handleReadAloud = () => {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            setFeedbackMessage('Read aloud is not supported in this browser.');
+            return;
+        }
+        const synth = window.speechSynthesis;
+        if (isReadingAloud) {
+            synth.cancel();
+            setIsReadingAloud(false);
+            setFeedbackMessage('Stopped reading aloud.');
+            return;
+        }
+
+        const utteranceCtor = window.SpeechSynthesisUtterance || window.webkitSpeechSynthesisUtterance;
+        if (typeof utteranceCtor === 'undefined') {
+            setFeedbackMessage('Read aloud is not available on this device.');
+            return;
+        }
+
+        const target = document.querySelector('[data-reading-surface]') || document.querySelector('.post-content');
+        const text = target?.innerText?.trim();
+
+        if (!text) {
+            setFeedbackMessage('No readable content detected on this page.');
+            return;
+        }
+
+        const utterance = new utteranceCtor(text);
+        speechRef.current = utterance;
+        utterance.onend = () => {
+            setIsReadingAloud(false);
+            setFeedbackMessage('Finished reading aloud.');
+        };
+        utterance.onerror = () => {
+            setIsReadingAloud(false);
+            setFeedbackMessage('Unable to read aloud this content.');
+        };
+
+        synth.cancel();
+        synth.speak(utterance);
+        setIsReadingAloud(true);
+        setFeedbackMessage('Started reading aloud the article.');
+    };
 
 
     return (
@@ -393,6 +521,85 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                         </button>
                                     ))}
                                 </div>
+                            </section>
+
+                            <section className="space-y-3">
+                                <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Reading Aids &amp; Tools</h4>
+                                <div className="space-y-2">
+                                    {readingAidOptions.map(option => {
+                                        const isActive = Boolean(settings[option.id]);
+                                        return (
+                                            <button
+                                                key={option.id}
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={isActive}
+                                                onClick={() => handleAidToggle(option)}
+                                                className={`flex items-center justify-between rounded-2xl border px-3 py-2 text-left transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+                                                    isActive
+                                                        ? 'border-sky-400 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-500/10 dark:text-sky-200'
+                                                        : 'border-slate-200/80 hover:border-sky-300 dark:border-slate-700/80 dark:hover:border-sky-500/70'
+                                                }`}
+                                            >
+                                                <span className="flex items-start gap-3">
+                                                    <span className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full ${
+                                                        isActive
+                                                            ? 'bg-sky-500/20 text-sky-600 dark:text-sky-200'
+                                                            : 'bg-slate-200/70 text-slate-500 dark:bg-slate-700/70 dark:text-slate-300'
+                                                    }`}>
+                                                        <option.Icon className="h-5 w-5" aria-hidden="true" />
+                                                    </span>
+                                                    <span className="flex flex-col">
+                                                        <span className="text-sm font-semibold">{option.label}</span>
+                                                        <span className="text-[0.7rem] text-slate-500 dark:text-slate-400">{option.description}</span>
+                                                    </span>
+                                                </span>
+                                                <span className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition ${
+                                                    isActive
+                                                        ? 'bg-sky-500/90'
+                                                        : 'bg-slate-300 dark:bg-slate-600'
+                                                }`}>
+                                                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                                                        isActive ? 'translate-x-5' : 'translate-x-1'
+                                                    }`}></span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleReadAloud}
+                                        className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700/80 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:border-sky-500/80"
+                                    >
+                                        <HiOutlineSpeakerWave className="h-5 w-5" aria-hidden="true" />
+                                        <span>{isReadingAloud ? 'Stop reading' : 'Read aloud'}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleDictionaryLookup}
+                                        className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700/80 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:border-sky-500/80"
+                                    >
+                                        <HiOutlineBookOpen className="h-5 w-5" aria-hidden="true" />
+                                        <span>Dictionary</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveHighlight}
+                                        className="col-span-2 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-100/70 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-sky-500/60 dark:hover:text-sky-200"
+                                    >
+                                        <HiOutlineClipboardDocument className="h-5 w-5" aria-hidden="true" />
+                                        <span>Copy highlight</span>
+                                    </button>
+                                </div>
+
+                                {feedbackMessage && (
+                                    <p className="text-[0.7rem] text-slate-500 dark:text-slate-400">
+                                        {feedbackMessage}
+                                    </p>
+                                )}
                             </section>
                         </div>
                         <button type="button" onClick={onReset} className="mt-6 w-full rounded-2xl border border-transparent bg-slate-900 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
