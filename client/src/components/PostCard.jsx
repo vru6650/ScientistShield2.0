@@ -62,8 +62,14 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
     const fallbackImage = post.image || null;
     const mediaUrl = post.mediaUrl || fallbackImage;
     const shouldRenderVideo = mediaType === 'video' && !!post.mediaUrl;
+
+    const baseClass = 'relative w-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer';
+    const mediaClass = mediaUrl
+        ? `${baseClass} ${shouldRenderVideo ? 'aspect-video' : 'aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9] max-h-[420px]'}`
+        : `${baseClass} flex items-center justify-center py-12`;
+
     return (
-        <div onDoubleClick={onDoubleClick} className="relative w-full aspect-square bg-gray-200 dark:bg-gray-700 cursor-pointer">
+        <div onDoubleClick={onDoubleClick} className={mediaClass}>
             {mediaUrl ? (
                 shouldRenderVideo ? (
                     <video src={mediaUrl} className='h-full w-full object-cover' loop autoPlay muted playsInline poster={fallbackImage || undefined} />
@@ -71,7 +77,7 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
                     <img src={mediaUrl} alt={post.title} loading='lazy' className='h-full w-full object-cover' />
                 )
             ) : (
-                <div className='h-full w-full flex items-center justify-center text-gray-500 dark:text-gray-300 text-sm p-4 text-center'>
+                <div className='text-gray-500 dark:text-gray-300 text-sm text-center px-6'>
                     Media unavailable
                 </div>
             )}
