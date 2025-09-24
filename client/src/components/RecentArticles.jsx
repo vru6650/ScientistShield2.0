@@ -49,14 +49,27 @@ export default function RecentArticles({ currentPostId }) {
         );
     }
 
+    const hasSinglePost = filteredPosts.length === 1;
+
     return (
         <div className='flex flex-col justify-center items-center mb-5 mt-10'> {/* Added more top margin */}
             <h1 className='text-3xl font-bold text-center mb-8 text-gray-800 dark:text-gray-100 drop-shadow-sm'>
                 More Articles You Might Like
             </h1>
-            <div className='flex flex-wrap gap-6 mt-5 justify-center'> {/* Increased gap */}
+            <div
+                className={
+                    hasSinglePost
+                        ? 'mt-5 flex justify-center gap-6 w-full'
+                        : 'mt-5 grid w-full max-w-6xl gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
+                }
+            >
                 {filteredPosts.map((p) => (
-                    <PostCard key={p._id} post={p} />
+                    <div
+                        key={p._id}
+                        className={hasSinglePost ? 'w-full max-w-2xl' : 'h-full'}
+                    >
+                        <PostCard post={p} />
+                    </div>
                 ))}
             </div>
         </div>
