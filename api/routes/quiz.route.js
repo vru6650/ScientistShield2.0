@@ -21,11 +21,11 @@ router.post('/quizzes', verifyToken, createQuiz);
 // GET all quizzes (Public)
 router.get('/quizzes', getQuizzes);
 
-// GET a single quiz by ID (Public)
-router.get('/quizzes/:quizId', getSingleQuizById);
-
 // GET a single quiz by slug (Public)
 router.get('/quizzes/slug/:quizSlug', getSingleQuizBySlug);
+
+// GET a single quiz by ID (Public)
+router.get('/quizzes/:quizId([a-fA-F0-9]{24})', getSingleQuizById);
 
 // UPDATE a quiz (Admin-only)
 router.put('/quizzes/:quizId/:userId', verifyToken, updateQuiz);
