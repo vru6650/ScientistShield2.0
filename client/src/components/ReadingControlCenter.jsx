@@ -77,6 +77,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
         textAlign: settings.textAlign,
         '--paragraph-spacing': `${settings.paragraphSpacing}em`,
         fontFamily: settings.fontFamily === 'mono' ? 'monospace' : settings.fontFamily === 'sans' ? 'sans-serif' : 'serif',
+        filter: `brightness(${settings.brightness})`,
     }), [settings]);
 
     const previewThemeClass = themePreviewClassMap[settings.theme] || themePreviewClassMap.auto;
@@ -105,6 +106,11 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
     const handleParagraphSpacingChange = (event) => {
         const value = Number(event.target.value);
         onChange('paragraphSpacing', clamp(Number(value.toFixed(2)), 0.5, 2));
+    };
+
+    const handleBrightnessChange = (event) => {
+        const value = Number(event.target.value);
+        onChange('brightness', clamp(Number(value.toFixed(2)), 0.6, 1.4));
     };
 
 
@@ -160,7 +166,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                             <p className="text-sm font-semibold uppercase tracking-wide text-slate-500/70 dark:text-slate-400/80">Live preview</p>
                             <p className="mt-2 text-sm leading-relaxed" style={{marginBottom: 'var(--paragraph-spacing, 1.25em)'}}>The quick brown fox jumps over the lazy dog. Adjust controls to see typography updates instantly.</p>
                             <p className="text-[0.8rem] text-slate-500 dark:text-slate-300">
-                                {settings.lineHeight.toFixed(1)}× line height · {settings.paragraphSpacing.toFixed(2)}em spacing · {settings.fontSize}px type
+                                {settings.lineHeight.toFixed(1)}× line height · {settings.paragraphSpacing.toFixed(2)}em spacing · {settings.fontSize}px type · {Math.round(settings.brightness * 100)}% brightness
                             </p>
                         </div>
 
@@ -239,6 +245,14 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                 <div>
                                     <div className="mb-1 flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400"><span>Word</span><span>{settings.wordSpacing.toFixed(2)}em</span></div>
                                     <input type="range" min="0" max="0.5" step="0.01" value={settings.wordSpacing} onChange={handleWordSpacingChange} className="w-full accent-sky-500" />
+                                </div>
+                            </section>
+
+                            <section className="space-y-3">
+                                <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Display</h4>
+                                <div>
+                                    <div className="mb-1 flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400"><span>Brightness</span><span>{Math.round(settings.brightness * 100)}%</span></div>
+                                    <input type="range" min="0.6" max="1.4" step="0.05" value={settings.brightness} onChange={handleBrightnessChange} className="w-full accent-sky-500" />
                                 </div>
                             </section>
 
