@@ -1,6 +1,6 @@
 export default function PostCardSkeleton() {
     return (
-        <div className='w-full border dark:border-slate-700 border-gray-200 h-[460px] overflow-hidden rounded-xl sm:w-[380px] mx-auto shadow-lg relative animate-fade-in'>
+        <div className='w-full h-full border dark:border-slate-700 border-gray-200 h-[460px] overflow-hidden rounded-xl shadow-lg relative animate-fade-in'>
             {/* Media part - Mimics the slight shadow/lift of the actual image */}
             <div className='h-[220px] w-full bg-gray-200 dark:bg-slate-700 animate-pulse-slow rounded-t-xl overflow-hidden relative'>
                 {/* Subtle gradient overlay to mimic media depth */}

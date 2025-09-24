@@ -357,7 +357,7 @@ export default function PostCard({ post }) {
     return (
         <motion.div
             layoutId={`post-card-${post.slug}`}
-            className='w-full border dark:border-slate-700 border-gray-200 rounded-xl sm:w-[420px] mx-auto shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col bg-white dark:bg-slate-800 overflow-hidden'
+            className='w-full h-full border dark:border-slate-700 border-gray-200 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col bg-white dark:bg-slate-800 overflow-hidden'
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.1 }}
