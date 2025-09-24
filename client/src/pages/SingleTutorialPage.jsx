@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { getTutorials } from '../services/tutorialService';
 import { Spinner, Alert, Button, Progress } from 'flowbite-react';
 import DOMPurify from 'dompurify';
-import parse from 'html-react-parser';
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSelector } from 'react-redux';
@@ -19,6 +18,7 @@ import CommentSection from '../components/CommentSection';
 import CodeEditor from '../components/CodeEditor';
 import QuizComponent from '../components/QuizComponent';
 import InteractiveCodeBlock from '../components/InteractiveCodeBlock.jsx';
+import InteractiveReadingSurface from '../components/InteractiveReadingSurface.jsx';
 import ReadingControlCenter from '../components/ReadingControlCenter';
 import useReadingSettings from '../hooks/useReadingSettings';
 
@@ -127,20 +127,16 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, conten
             );
         case 'text':
         default:
-            // Renders standard text content from the Tiptap editor.
             return (
-                <motion.div
-                    key="text-content"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.4 }}
-                    className={`${readingClassName} p-3 mx-auto leading-relaxed text-lg text-gray-700 dark:text-gray-300`}
-                    data-reading-surface="true"
-                    style={readingStyle}
-                >
-                    {parse(sanitizedContent, parserOptions)}
-                </motion.div>
+                <InteractiveReadingSurface
+                    content={sanitizedContent}
+                    parserOptions={parserOptions}
+                    contentStyles={contentStyles}
+                    contentMaxWidth={contentMaxWidth}
+                    surfaceClass={surfaceClass}
+                    className='post-content tiptap reading-surface transition-all duration-300 p-3 mx-auto leading-relaxed text-lg text-gray-700 dark:text-gray-300'
+                    chapterId={activeChapter?._id}
+                />
             );
     }
 };
