@@ -218,7 +218,8 @@ html {
   background-color: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.25);
   box-shadow: 0 20px 45px -25px rgba(15, 23, 42, 0.4);
-  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, filter 0.3s ease;
+  position: relative;
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, filter 0.3s ease, transform 0.3s ease;
   backdrop-filter: blur(8px);
 }
 
@@ -226,6 +227,64 @@ html {
   background-color: rgba(15, 23, 42, 0.75);
   border-color: rgba(71, 85, 105, 0.35);
   box-shadow: 0 24px 55px -30px rgba(15, 23, 42, 0.7);
+}
+
+body.reading-focus-active::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(148, 163, 184, 0.1) 0%, rgba(15, 23, 42, 0.55) 70%);
+  pointer-events: none;
+  z-index: 30;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+body.reading-focus-active .reading-surface {
+  z-index: 50;
+  box-shadow: 0 28px 70px -32px rgba(14, 116, 144, 0.45), 0 0 0 3px rgba(125, 211, 252, 0.35);
+  transform: translateY(-2px);
+}
+
+body.dark.reading-focus-active .reading-surface {
+  box-shadow: 0 32px 80px -28px rgba(8, 47, 73, 0.75), 0 0 0 3px rgba(56, 189, 248, 0.35);
+}
+
+body.reading-focus-active #reading-control-panel {
+  position: relative;
+  z-index: 60;
+}
+
+body.reading-guide-active .post-content p,
+body.reading-guide-active .post-content li {
+  position: relative;
+  z-index: 0;
+  transition: color 0.2s ease;
+}
+
+body.reading-guide-active .post-content p:hover::before,
+body.reading-guide-active .post-content li:hover::before {
+  content: '';
+  position: absolute;
+  inset: -0.35em -0.75em;
+  border-radius: 1rem;
+  background: rgba(56, 189, 248, 0.18);
+  box-shadow: 0 18px 45px -25px rgba(59, 130, 246, 0.45);
+  z-index: -1;
+}
+
+body.dark.reading-guide-active .post-content p:hover::before,
+body.dark.reading-guide-active .post-content li:hover::before {
+  background: rgba(56, 189, 248, 0.22);
+  box-shadow: 0 18px 45px -25px rgba(14, 165, 233, 0.55);
+}
+
+body.reading-contrast-active .post-content {
+  text-shadow: 0 0.65px 0 rgba(15, 23, 42, 0.2);
+}
+
+body.dark.reading-contrast-active .post-content {
+  text-shadow: 0 0.75px 0 rgba(148, 163, 184, 0.3);
 }
 
 .reading-surface a {
