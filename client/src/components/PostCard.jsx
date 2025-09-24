@@ -9,7 +9,19 @@ import { Tooltip, Spinner } from 'flowbite-react';
 import moment from 'moment';
 
 // --- Icon and Hook Imports ---
-import { FaHeart, FaRegHeart, FaBookmark, FaRegBookmark, FaShareAlt, FaUserCircle } from 'react-icons/fa';
+import {
+    FaHeart,
+    FaRegHeart,
+    FaBookmark,
+    FaRegBookmark,
+    FaShareAlt,
+    FaUserCircle,
+    FaTag,
+    FaClock,
+    FaBookOpen,
+    FaFire,
+    FaExternalLinkAlt,
+} from 'react-icons/fa';
 import { HiDotsHorizontal } from 'react-icons/hi';
 import { useLike } from '../hooks/useLike';
 import { useBookmark } from '../hooks/useBookmark';
@@ -17,7 +29,56 @@ import useUser from '../hooks/useUser';
 
 // --- SUB-COMPONENTS for Instagram-style Layout ---
 
-const CardHeader = ({ userId, fallbackUsername }) => {
+const formatCategory = (category) => {
+    if (!category) return 'Uncategorized';
+    const trimmed = category.trim();
+    if (!trimmed) return 'Uncategorized';
+    return trimmed
+        .split(/[-_\s]+/)
+        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+        .join(' ');
+};
+
+const stripHtml = (htmlContent) => {
+    if (!htmlContent || typeof htmlContent !== 'string') return '';
+    return htmlContent
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+const buildPostInsights = (htmlContent, fallbackTitle) => {
+    const sanitizedText = stripHtml(htmlContent);
+    const baseText = sanitizedText || fallbackTitle || '';
+    const words = baseText ? baseText.split(/\s+/).filter(Boolean) : [];
+    const wordCount = words.length;
+    const readingMinutes = wordCount === 0 ? 0 : Math.max(1, Math.ceil(wordCount / 200));
+
+    let readingLabel = 'Quick update';
+    if (wordCount > 0) {
+        if (readingMinutes <= 3) readingLabel = 'Quick read';
+        else if (readingMinutes <= 6) readingLabel = `${readingMinutes} min read`;
+        else readingLabel = 'Deep dive';
+    }
+
+    const maxPreviewLength = 180;
+    let previewText = baseText;
+    if (baseText.length > maxPreviewLength) {
+        const truncated = baseText.slice(0, maxPreviewLength);
+        previewText = `${truncated.replace(/[.,;:\s]+$/, '')}…`;
+    }
+
+    if (!previewText) {
+        previewText = 'Untitled post';
+    }
+
+    return { previewText, wordCount, readingMinutes, readingLabel };
+};
+
+const CardHeader = ({ userId, fallbackUsername, category }) => {
     const { user, isLoading, error } = useUser(userId);
     if (isLoading) {
         return (
@@ -47,14 +108,22 @@ const CardHeader = ({ userId, fallbackUsername }) => {
                     />
                 )}
                 <span className='font-bold text-sm text-gray-800 dark:text-gray-200'>{displayName}</span>
+                <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wide font-semibold bg-professional-blue-50 dark:bg-professional-blue-900/40 text-professional-blue-600 dark:text-professional-blue-300 px-2 py-0.5 rounded-full">
+                    <FaTag aria-hidden />
+                    {formatCategory(category)}
+                </span>
             </div>
-            <button className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full p-2">
+            <button
+                type='button'
+                aria-label='More options'
+                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full p-2"
+            >
                 <HiDotsHorizontal size={20} />
             </button>
         </div>
     );
 };
-CardHeader.propTypes = { userId: PropTypes.string, fallbackUsername: PropTypes.string };
+CardHeader.propTypes = { userId: PropTypes.string, fallbackUsername: PropTypes.string, category: PropTypes.string };
 
 
 const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
@@ -224,6 +293,8 @@ const CardActions = ({ likeProps, bookmarkProps, onActionClick, onShareClick, sh
             await onShareClick(e);
         } catch (error) {
             console.error('Share handler failed:', error);
+        } finally {
+            setIsSharing(false);
         }
     };
 
@@ -320,41 +391,96 @@ CardActions.propTypes = { likeProps: PropTypes.object, bookmarkProps: PropTypes.
 
 
 const CardBody = ({ post, likeCount, authorUsername }) => {
-    const getCaption = (htmlContent) => {
-        if (!htmlContent) return post.title; // Fallback to title if content is empty
-        const text = htmlContent.replace(/<[^>]*>?/gm, ''); // Simple HTML stripper
-        return text.length > 100 ? text.substring(0, 100) + '...' : text;
-    };
-
-    const caption = getCaption(post.content);
-    const safeCaption = caption || 'Untitled post';
+    const { previewText, wordCount, readingMinutes, readingLabel } = useMemo(
+        () => buildPostInsights(post.content, post.title),
+        [post.content, post.title]
+    );
+    const safeCaption = previewText || 'Untitled post';
     const likeTotal = Number.isFinite(likeCount) ? likeCount : 0;
     const hasSlug = Boolean(post?.slug);
     const publishedLabel = post?.createdAt ? moment(post.createdAt).fromNow() : 'Recently';
-    const showMoreLink = safeCaption.endsWith('...') && hasSlug;
+    const showMoreLink = (safeCaption.endsWith('…') || safeCaption.endsWith('...')) && hasSlug;
+    const formattedCategory = formatCategory(post?.category);
+    const isTrending = likeTotal >= 50;
 
     return (
         <div className="px-3 pb-3 text-sm text-gray-800 dark:text-gray-200">
-            <p className="font-bold">{likeTotal.toLocaleString()} likes</p>
-            <p className="mt-1">
-                <span className="font-bold mr-2">{authorUsername}</span>
-                <span className="text-gray-700 dark:text-gray-300">{safeCaption}</span>
-                {showMoreLink && (
-                    <Link to={`/post/${post.slug}`} className="text-gray-500 dark:text-gray-400 hover:underline ml-1">
-                        more
+            <div className="flex flex-col gap-2">
+                <div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">
+                        {hasSlug ? (
+                            <Link to={`/post/${post.slug}`} className="hover:text-professional-blue-500 dark:hover:text-professional-blue-300 transition-colors">
+                                {post.title}
+                            </Link>
+                        ) : (
+                            post.title
+                        )}
+                    </h3>
+                    <p className="text-[13px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mt-1">
+                        Published {publishedLabel}
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-gray-600 dark:text-gray-300">
+                    <span className="inline-flex items-center gap-1 bg-gray-100/80 dark:bg-slate-700/60 px-2 py-1 rounded-full">
+                        <FaClock aria-hidden className="text-[12px]" />
+                        {readingLabel}
+                        {readingMinutes > 0 && <span className="sr-only">Estimated reading time</span>}
+                    </span>
+                    {wordCount > 0 && (
+                        <span className="inline-flex items-center gap-1 bg-gray-100/80 dark:bg-slate-700/60 px-2 py-1 rounded-full">
+                            <FaBookOpen aria-hidden className="text-[12px]" />
+                            {wordCount.toLocaleString()} words
+                        </span>
+                    )}
+                    {formattedCategory && (
+                        <span className="inline-flex items-center gap-1 bg-professional-blue-50/70 dark:bg-professional-blue-900/40 text-professional-blue-600 dark:text-professional-blue-300 px-2 py-1 rounded-full">
+                            <FaTag aria-hidden className="text-[12px]" />
+                            {formattedCategory}
+                        </span>
+                    )}
+                    {isTrending && (
+                        <span className="inline-flex items-center gap-1 bg-orange-100/80 text-orange-600 dark:bg-orange-500/20 dark:text-orange-200 px-2 py-1 rounded-full">
+                            <FaFire aria-hidden className="text-[12px]" />
+                            Trending
+                        </span>
+                    )}
+                </div>
+
+                <div>
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
+                        <span className="font-bold mr-1">{authorUsername}</span>
+                        {safeCaption}
+                        {showMoreLink && (
+                            <Link to={`/post/${post.slug}`} className="text-gray-500 dark:text-gray-400 hover:underline ml-1">
+                                more
+                            </Link>
+                        )}
+                    </p>
+                </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
+                {hasSlug ? (
+                    <Link to={`/post/${post.slug}#comments`} className="hover:text-professional-blue-500 dark:hover:text-professional-blue-300 transition-colors">
+                        View all comments
                     </Link>
+                ) : (
+                    <span className="text-gray-400 dark:text-gray-500">Comments unavailable</span>
                 )}
-            </p>
-            {hasSlug ? (
-                <Link to={`/post/${post.slug}#comments`} className="text-gray-500 dark:text-gray-400 block mt-2 hover:underline">
-                    View all comments
-                </Link>
-            ) : (
-                <span className="text-gray-400 dark:text-gray-500 block mt-2">Comments unavailable</span>
-            )}
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 uppercase">
-                {publishedLabel}
-            </p>
+                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-bold">{likeTotal.toLocaleString()} likes</span>
+                    {hasSlug && (
+                        <Link
+                            to={`/post/${post.slug}`}
+                            className="inline-flex items-center gap-1 text-professional-blue-600 dark:text-professional-blue-300 hover:underline"
+                        >
+                            Read story
+                            <FaExternalLinkAlt aria-hidden className="text-[12px]" />
+                        </Link>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
@@ -520,7 +646,11 @@ export default function PostCard({ post }) {
             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
             onClick={handleCardClick}
         >
-            <CardHeader userId={post.userId} fallbackUsername={post?.authorName || post?.username || post?.author} />
+            <CardHeader
+                userId={post.userId}
+                fallbackUsername={post?.authorName || post?.username || post?.author}
+                category={post?.category}
+            />
 
             <CardMedia post={post} onDoubleClick={canInteractWithPost ? handleMediaDoubleClick : undefined} showLikeHeart={showLikeHeart} />
 
