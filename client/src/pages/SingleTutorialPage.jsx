@@ -253,7 +253,25 @@ export default function SingleTutorialPage() {
         contentStyles,
         contentMaxWidth,
         surfaceClass,
+        contentPadding,
     } = useReadingSettings();
+
+    const sharedContentStyle = useMemo(
+        () => ({
+            maxWidth: contentMaxWidth,
+            paddingInline: contentPadding,
+        }),
+        [contentMaxWidth, contentPadding]
+    );
+
+    const centeredContentStyle = useMemo(
+        () => ({
+            ...sharedContentStyle,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+        }),
+        [sharedContentStyle]
+    );
 
     const findChapterBySlug = (chapters, slug) => {
         for (const chapter of chapters) {
@@ -456,20 +474,20 @@ export default function SingleTutorialPage() {
                 <main className="flex-1 p-8 overflow-x-hidden">
                     <h1
                         className='text-4xl lg:text-5xl font-extrabold text-center my-8 leading-tight text-gray-900 dark:text-white'
-                        style={{ maxWidth: contentMaxWidth, marginLeft: 'auto', marginRight: 'auto' }}
+                        style={centeredContentStyle}
                     >
                         {tutorial.title}
                     </h1>
                     <p
                         className='text-xl text-gray-600 dark:text-gray-400 text-center max-w-4xl mx-auto mb-12 font-light'
-                        style={{ maxWidth: contentMaxWidth }}
+                        style={sharedContentStyle}
                     >
                         {tutorial.description}
                     </p>
 
                     <div
                         className='flex justify-center items-center text-sm text-gray-500 dark:text-gray-400 max-w-3xl mx-auto border-b border-t py-4 mb-10 transition-all duration-300 ease-in-out'
-                        style={{ maxWidth: contentMaxWidth }}
+                        style={sharedContentStyle}
                     >
                         <div className="flex items-center mx-4">
                             <img src={author?.profilePicture || 'https://via.placeholder.com/40'} alt={author?.username} className='w-10 h-10 rounded-full object-cover mr-3 border-2 border-blue-400' />
@@ -489,7 +507,7 @@ export default function SingleTutorialPage() {
                     )}
 
                     <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto">
-                        <div className="lg:w-3/4 w-full" style={{ maxWidth: contentMaxWidth }}>
+                        <div className="lg:w-3/4 w-full" style={sharedContentStyle}>
                             <h2 className='text-3xl lg:text-4xl font-bold my-6 text-gray-900 dark:text-white leading-tight'>{activeChapter.chapterTitle}</h2>
                             <ChapterContent
                                 activeChapter={activeChapter}

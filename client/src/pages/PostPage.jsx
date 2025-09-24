@@ -119,7 +119,16 @@ export default function PostPage() {
         contentStyles,
         contentMaxWidth,
         surfaceClass,
+        contentPadding,
     } = useReadingSettings();
+
+    const sharedContentStyle = useMemo(
+        () => ({
+            maxWidth: contentMaxWidth,
+            paddingInline: contentPadding,
+        }),
+        [contentMaxWidth, contentPadding]
+    );
 
     const openImageViewer = (index) => {
         setCurrentImage(index);
@@ -219,7 +228,7 @@ export default function PostPage() {
             <main className='p-3 flex flex-col max-w-6xl mx-auto min-h-screen'>
                 <h1
                     className='text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-4xl'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     {post.title}
                 </h1>
@@ -228,13 +237,13 @@ export default function PostPage() {
                 </Link>
                 <div
                     className='mt-10 p-3 max-h-[600px] w-full flex justify-center'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     {post.mediaType === 'video' ? <video src={post.mediaUrl} controls className='w-full object-contain rounded-lg shadow-lg' /> : <img src={post.mediaUrl || post.image} alt={post.title} className='w-full object-contain rounded-lg shadow-lg' />}
                 </div>
                 <div
                     className='flex justify-between p-3 border-b border-slate-500 mx-auto w-full max-w-2xl text-xs'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     <span>{new Date(post.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                     <span className='italic'>{post.content ? `${Math.ceil(post.content.split(' ').length / 200)} min read` : '0 min read'}</span>
@@ -242,7 +251,7 @@ export default function PostPage() {
 
                 <div
                     className='max-w-2xl mx-auto w-full'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     <TableOfContents headings={headings} />
                 </div>
@@ -256,7 +265,7 @@ export default function PostPage() {
 
                 <div
                     className='max-w-2xl mx-auto w-full px-3 my-8 flex justify-between items-center'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     <ClapButton post={post} />
                     <SocialShare post={post} />
@@ -264,7 +273,7 @@ export default function PostPage() {
 
                 <div
                     className='max-w-2xl mx-auto w-full'
-                    style={{ maxWidth: contentMaxWidth }}
+                    style={sharedContentStyle}
                 >
                     <CommentSection postId={post._id} />
                 </div>
