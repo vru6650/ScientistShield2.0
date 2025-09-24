@@ -13,6 +13,7 @@ const defaultSettings = {
     pageWidth: 'comfortable',
     theme: 'auto',
     textAlign: 'left',
+    brightness: 1,
 };
 
 const fontFamilyMap = {
@@ -83,6 +84,7 @@ export default function useReadingSettings() {
         textAlign: settings.textAlign,
         '--paragraph-spacing': `${settings.paragraphSpacing}em`, // New CSS variable for paragraph spacing
         fontFamily: fontFamilyMap[settings.fontFamily] || fontFamilyMap.serif,
+        filter: `brightness(${settings.brightness})`,
     }), [
         settings.fontSize,
         settings.lineHeight,
@@ -90,7 +92,8 @@ export default function useReadingSettings() {
         settings.wordSpacing,
         settings.fontFamily,
         settings.textAlign,
-        settings.paragraphSpacing
+        settings.paragraphSpacing,
+        settings.brightness
     ]);
 
     const contentMaxWidth = useMemo(() => widthStyleMap[settings.pageWidth] || widthStyleMap.comfortable, [settings.pageWidth]);
