@@ -178,6 +178,7 @@ const InteractiveReadingSurface = ({
     chapterId,
 }) => {
     const containerRef = useRef(null);
+    const selectionMenuRef = useRef(null);
     const [highlights, setHighlights] = useState([]);
     const [selectionMenu, setSelectionMenu] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -314,7 +315,14 @@ const InteractiveReadingSurface = ({
         const handleScroll = () => closeSelectionMenu();
         const handleDocumentClick = (event) => {
             if (!selectionMenu) return;
-            if (!container.contains(event.target)) {
+            const target = event.target;
+            if (!target || typeof target !== 'object' || !('nodeType' in target)) {
+                return;
+            }
+            if (selectionMenuRef.current?.contains(target)) {
+                return;
+            }
+            if (!container.contains(target)) {
                 closeSelectionMenu();
             }
         };
@@ -439,7 +447,7 @@ const InteractiveReadingSurface = ({
 
             <motion.div
                 ref={containerRef}
-                className={`${className} ${surfaceClass}`.trim()}
+                className={[className, surfaceClass].filter(Boolean).join(' ')}
                 data-reading-surface="true"
                 style={{ ...contentStyles, maxWidth: contentMaxWidth }}
                 initial={{ opacity: 0, y: 10 }}
@@ -561,6 +569,7 @@ const InteractiveReadingSurface = ({
                 createPortal(
                     <AnimatePresence>
                         <motion.div
+                            ref={selectionMenuRef}
                             key="selection-menu"
                             className="reader-selection-menu"
                             initial={{ opacity: 0, scale: 0.95 }}
