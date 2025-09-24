@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PropTypes from 'prop-types';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -63,18 +63,90 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
     const mediaUrl = post.mediaUrl || fallbackImage;
     const shouldRenderVideo = mediaType === 'video' && !!post.mediaUrl;
 
+    const [mediaOrientation, setMediaOrientation] = useState('landscape');
+    const [isMediaLoading, setIsMediaLoading] = useState(Boolean(mediaUrl));
+
+    const handleOrientationUpdate = useCallback((width, height) => {
+        if (!width || !height) return;
+        const ratio = width / height;
+        if (Math.abs(ratio - 1) < 0.08) {
+            setMediaOrientation('square');
+            return;
+        }
+        setMediaOrientation(ratio > 1 ? 'landscape' : 'portrait');
+    }, []);
+
+    const handleImageLoad = useCallback((event) => {
+        const { naturalWidth, naturalHeight } = event.target || {};
+        handleOrientationUpdate(naturalWidth, naturalHeight);
+        setIsMediaLoading(false);
+    }, [handleOrientationUpdate]);
+
+    const handleVideoMetadata = useCallback((event) => {
+        const { videoWidth, videoHeight } = event.target || {};
+        handleOrientationUpdate(videoWidth, videoHeight);
+        setIsMediaLoading(false);
+    }, [handleOrientationUpdate]);
+
+    const handleMediaError = useCallback(() => {
+        setIsMediaLoading(false);
+    }, []);
+
     const baseClass = 'relative w-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer';
-    const mediaClass = mediaUrl
-        ? `${baseClass} ${shouldRenderVideo ? 'aspect-video' : 'aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9] max-h-[420px]'}`
-        : `${baseClass} flex items-center justify-center py-12`;
+
+    const orientationClasses = useMemo(() => {
+        if (!mediaUrl) {
+            return 'flex items-center justify-center py-12';
+        }
+
+        if (shouldRenderVideo) {
+            return 'aspect-video max-h-[520px]';
+        }
+
+        if (isMediaLoading) {
+            return 'aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9] max-h-[420px]';
+        }
+
+        switch (mediaOrientation) {
+            case 'portrait':
+                return 'aspect-[3/4] sm:aspect-[4/5] lg:aspect-[9/16] max-h-[560px]';
+            case 'square':
+                return 'aspect-square max-h-[520px]';
+            default:
+                return 'aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9] max-h-[460px]';
+        }
+    }, [isMediaLoading, mediaOrientation, mediaUrl, shouldRenderVideo]);
 
     return (
-        <div onDoubleClick={onDoubleClick} className={mediaClass}>
+        <div onDoubleClick={onDoubleClick} className={`${baseClass} ${orientationClasses}`}>
+            {isMediaLoading && mediaUrl && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-slate-700 dark:via-slate-800 dark:to-slate-700 animate-pulse">
+                    <Spinner aria-hidden size="lg" />
+                </div>
+            )}
             {mediaUrl ? (
                 shouldRenderVideo ? (
-                    <video src={mediaUrl} className='h-full w-full object-cover' loop autoPlay muted playsInline poster={fallbackImage || undefined} />
+                    <video
+                        src={mediaUrl}
+                        className='h-full w-full object-cover'
+                        loop
+                        autoPlay
+                        muted
+                        playsInline
+                        poster={fallbackImage || undefined}
+                        onLoadedMetadata={handleVideoMetadata}
+                        onError={handleMediaError}
+                    />
                 ) : (
-                    <img src={mediaUrl} alt={post.title} loading='lazy' className='h-full w-full object-cover' />
+                    <img
+                        src={mediaUrl}
+                        alt={post.title}
+                        loading='lazy'
+                        onLoad={handleImageLoad}
+                        onError={handleMediaError}
+                        className='h-full w-full object-cover transition-opacity duration-300'
+                        style={{ opacity: isMediaLoading ? 0 : 1 }}
+                    />
                 )
             ) : (
                 <div className='text-gray-500 dark:text-gray-300 text-sm text-center px-6'>
