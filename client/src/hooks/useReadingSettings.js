@@ -12,6 +12,7 @@ export const marginStyleMap = {
 const defaultSettings = {
     fontSize: 18,
     fontFamily: 'serif',
+    fontWeight: 400,
     lineHeight: 1.8,
     letterSpacing: 0,
     wordSpacing: 0, // New setting
@@ -93,6 +94,7 @@ export default function useReadingSettings() {
         lineHeight: settings.lineHeight,
         letterSpacing: `${settings.letterSpacing}em`,
         wordSpacing: `${settings.wordSpacing}em`, // New style
+        fontWeight: settings.fontWeight,
         textAlign: settings.textAlign,
         '--paragraph-spacing': `${settings.paragraphSpacing}em`, // New CSS variable for paragraph spacing
         fontFamily: fontFamilyMap[settings.fontFamily] || fontFamilyMap.serif,
@@ -103,6 +105,7 @@ export default function useReadingSettings() {
         settings.lineHeight,
         settings.letterSpacing,
         settings.wordSpacing,
+        settings.fontWeight,
         settings.fontFamily,
         settings.textAlign,
         settings.paragraphSpacing,

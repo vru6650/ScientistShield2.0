@@ -82,6 +82,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
         lineHeight: settings.lineHeight,
         letterSpacing: `${settings.letterSpacing}em`,
         wordSpacing: `${settings.wordSpacing}em`,
+        fontWeight: settings.fontWeight,
         textAlign: settings.textAlign,
         '--paragraph-spacing': `${settings.paragraphSpacing}em`,
         fontFamily: settings.fontFamily === 'mono' ? 'monospace' : settings.fontFamily === 'sans' ? 'sans-serif' : 'serif',
@@ -110,6 +111,11 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
     const handleWordSpacingChange = (event) => {
         const value = Number(event.target.value);
         onChange('wordSpacing', clamp(Number(value.toFixed(2)), 0, 0.5));
+    };
+
+    const handleFontWeightChange = (event) => {
+        const value = Number(event.target.value);
+        onChange('fontWeight', clamp(Math.round(value), 300, 800));
     };
 
     const handleParagraphSpacingChange = (event) => {
@@ -185,7 +191,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                             <p className="text-sm font-semibold uppercase tracking-wide text-slate-500/70 dark:text-slate-400/80">Live preview</p>
                             <p className="mt-2 text-sm leading-relaxed" style={{marginBottom: 'var(--paragraph-spacing, 1.25em)'}}>The quick brown fox jumps over the lazy dog. Adjust controls to see typography updates instantly.</p>
                             <p className="text-[0.8rem] text-slate-500 dark:text-slate-300">
-                                {settings.lineHeight.toFixed(1)}× line height · {settings.paragraphSpacing.toFixed(2)}em spacing · {settings.fontSize}px type · {Math.round(settings.brightness * 100)}% brightness
+                                {settings.lineHeight.toFixed(1)}× line height · {settings.paragraphSpacing.toFixed(2)}em spacing · {settings.fontSize}px type · {settings.fontWeight} weight · {Math.round(settings.brightness * 100)}% brightness
                             </p>
                         </div>
 
@@ -244,6 +250,30 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                             {option.label}
                                         </button>
                                     ))}
+                                </div>
+                            </section>
+
+                            <section className="space-y-3">
+                                <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Font weight</h4>
+                                <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-3">
+                                    <div className="mb-2 flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400">
+                                        <span>Weight</span>
+                                        <span className="font-semibold text-slate-600 dark:text-slate-200">{settings.fontWeight}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="300"
+                                        max="800"
+                                        step="50"
+                                        value={settings.fontWeight}
+                                        onChange={handleFontWeightChange}
+                                        className="w-full accent-sky-500"
+                                        aria-label="Adjust font weight"
+                                    />
+                                    <div className="mt-2 flex items-center justify-between text-[0.65rem] uppercase tracking-wide text-slate-400">
+                                        <span>Light</span>
+                                        <span>Bold</span>
+                                    </div>
                                 </div>
                             </section>
 
