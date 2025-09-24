@@ -1,7 +1,9 @@
 // client/src/components/ReadingControlCenter.jsx
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { HiOutlineAdjustmentsHorizontal, HiOutlineXMark, HiOutlineArrowsPointingOut } from 'react-icons/hi2';
+import { LuAlignLeft, LuAlignJustify } from 'react-icons/lu';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { marginStyleMap } from '../hooks/useReadingSettings';
 
 const themeOptions = [
     { id: 'auto', label: 'Auto', swatch: 'bg-gradient-to-r from-slate-200 via-white to-slate-200', description: 'Follow site theme' },
@@ -25,8 +27,14 @@ const widthOptions = [
 ];
 
 const alignmentOptions = [
-    { id: 'left', label: 'Left' },
-    { id: 'justify', label: 'Justify' },
+    { id: 'left', label: 'Left', description: 'Ragged right edge', Icon: LuAlignLeft },
+    { id: 'justify', label: 'Justify', description: 'Clean edges on both sides', Icon: LuAlignJustify },
+];
+
+const marginOptions = [
+    { id: 'narrow', label: 'Narrow', description: 'More words per line' },
+    { id: 'medium', label: 'Medium', description: 'Balanced reading comfort' },
+    { id: 'wide', label: 'Wide', description: 'Extra breathing room' },
 ];
 
 const themePreviewClassMap = {
@@ -78,6 +86,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
         '--paragraph-spacing': `${settings.paragraphSpacing}em`,
         fontFamily: settings.fontFamily === 'mono' ? 'monospace' : settings.fontFamily === 'sans' ? 'sans-serif' : 'serif',
         filter: `brightness(${settings.brightness})`,
+        paddingInline: marginStyleMap[settings.pageMargin] || marginStyleMap.medium,
     }), [settings]);
 
     const previewThemeClass = themePreviewClassMap[settings.theme] || themePreviewClassMap.auto;
@@ -112,6 +121,16 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
         const value = Number(event.target.value);
         onChange('brightness', clamp(Number(value.toFixed(2)), 0.6, 1.4));
     };
+
+    const handleMarginChange = (event) => {
+        const index = clamp(Number(event.target.value), 0, marginOptions.length - 1);
+        const option = marginOptions[index];
+        if (option) {
+            onChange('pageMargin', option.id);
+        }
+    };
+
+    const marginIndex = Math.max(0, marginOptions.findIndex(option => option.id === settings.pageMargin));
 
 
     return (
@@ -274,19 +293,73 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                         </button>
                                     ))}
                                 </div>
+                                <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-3 space-y-3">
+                                    <div className="flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400">
+                                        <span>Page margins</span>
+                                        <span className="font-semibold text-slate-500 dark:text-slate-300">{marginOptions[marginIndex]?.label || 'Medium'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        {marginOptions.map(option => {
+                                            const isActive = settings.pageMargin === option.id;
+                                            return (
+                                                <button
+                                                    key={option.id}
+                                                    type="button"
+                                                    onClick={() => onChange('pageMargin', option.id)}
+                                                    aria-pressed={isActive}
+                                                    className={`flex-1 rounded-xl border px-2 py-2 text-center transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+                                                        isActive
+                                                            ? 'border-sky-400 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-500/10 dark:text-sky-200'
+                                                            : 'border-transparent text-slate-500 dark:text-slate-400 hover:border-sky-300/60 dark:hover:border-sky-500/60'
+                                                    }`}
+                                                >
+                                                    <div className="mx-auto mb-1 flex h-8 w-full max-w-[3.5rem] items-center justify-center rounded-lg bg-slate-200/70 dark:bg-slate-700/70">
+                                                        <div
+                                                            className={`h-6 w-full rounded-md bg-white dark:bg-slate-900 shadow-inner transition-all ${
+                                                                option.id === 'narrow'
+                                                                    ? 'mx-1'
+                                                                    : option.id === 'medium'
+                                                                        ? 'mx-2'
+                                                                        : 'mx-3'
+                                                            }`}
+                                                        ></div>
+                                                    </div>
+                                                    <p className="text-[0.65rem] font-medium">{option.label}</p>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max={marginOptions.length - 1}
+                                        step="1"
+                                        value={marginIndex}
+                                        onChange={handleMarginChange}
+                                        className="w-full accent-sky-500"
+                                        aria-label="Adjust page margins"
+                                    />
+                                    <p className="text-[0.7rem] text-slate-500 dark:text-slate-400 text-center">
+                                        {marginOptions[marginIndex]?.description || 'Adjust the white space on either side of the page.'}
+                                    </p>
+                                </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     {alignmentOptions.map(option => (
                                         <button
                                             key={option.id}
                                             type="button"
                                             onClick={() => onChange('textAlign', option.id)}
-                                            className={`rounded-2xl border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+                                            className={`flex items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
                                                 settings.textAlign === option.id
                                                     ? 'border-sky-400 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-500/10 dark:text-sky-200'
                                                     : 'border-slate-200 hover:border-sky-300 dark:border-slate-700 dark:hover:border-sky-500'
                                             }`}
                                         >
-                                            {option.label}
+                                            <option.Icon className="h-5 w-5" aria-hidden="true" />
+                                            <span className="flex flex-col items-start leading-tight">
+                                                <span>{option.label}</span>
+                                                <span className="text-[0.6rem] font-normal text-slate-500 dark:text-slate-400">{option.description}</span>
+                                            </span>
                                         </button>
                                     ))}
                                 </div>

@@ -3,6 +3,12 @@ import { useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'reading-preferences';
 
+export const marginStyleMap = {
+    narrow: '0.75rem',
+    medium: '1.5rem',
+    wide: '2.25rem',
+};
+
 const defaultSettings = {
     fontSize: 18,
     fontFamily: 'serif',
@@ -11,6 +17,7 @@ const defaultSettings = {
     wordSpacing: 0, // New setting
     paragraphSpacing: 1.25, // New setting
     pageWidth: 'comfortable',
+    pageMargin: 'medium',
     theme: 'auto',
     textAlign: 'left',
     brightness: 1,
@@ -76,6 +83,11 @@ export default function useReadingSettings() {
 
     const resetSettings = () => setSettings(defaultSettings);
 
+    const contentPadding = useMemo(
+        () => marginStyleMap[settings.pageMargin] || marginStyleMap.medium,
+        [settings.pageMargin]
+    );
+
     const contentStyles = useMemo(() => ({
         fontSize: `${settings.fontSize}px`,
         lineHeight: settings.lineHeight,
@@ -85,6 +97,7 @@ export default function useReadingSettings() {
         '--paragraph-spacing': `${settings.paragraphSpacing}em`, // New CSS variable for paragraph spacing
         fontFamily: fontFamilyMap[settings.fontFamily] || fontFamilyMap.serif,
         filter: `brightness(${settings.brightness})`,
+        paddingInline: contentPadding,
     }), [
         settings.fontSize,
         settings.lineHeight,
@@ -93,7 +106,8 @@ export default function useReadingSettings() {
         settings.fontFamily,
         settings.textAlign,
         settings.paragraphSpacing,
-        settings.brightness
+        settings.brightness,
+        contentPadding
     ]);
 
     const contentMaxWidth = useMemo(() => widthStyleMap[settings.pageWidth] || widthStyleMap.comfortable, [settings.pageWidth]);
@@ -112,5 +126,6 @@ export default function useReadingSettings() {
         contentStyles,
         contentMaxWidth,
         surfaceClass,
+        contentPadding,
     };
 }
