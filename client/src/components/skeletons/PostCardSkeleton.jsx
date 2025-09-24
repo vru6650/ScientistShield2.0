@@ -1,6 +1,6 @@
 export default function PostCardSkeleton() {
     return (
-        <div className='w-full h-full border dark:border-slate-700 border-gray-200 h-[460px] overflow-hidden rounded-xl shadow-lg relative animate-fade-in'>
+        <div className='w-full border dark:border-slate-700 border-gray-200 overflow-hidden rounded-xl shadow-lg relative animate-fade-in flex flex-col'>
             {/* Media part - Mimics the slight shadow/lift of the actual image */}
             <div className='h-[220px] w-full bg-gray-200 dark:bg-slate-700 animate-pulse-slow rounded-t-xl overflow-hidden relative'>
                 {/* Subtle gradient overlay to mimic media depth */}
@@ -23,7 +23,7 @@ export default function PostCardSkeleton() {
             </div>
 
             {/* Content part - Enhanced placeholders */}
-            <div className='p-4 flex flex-col gap-2 bg-white dark:bg-slate-800 flex-grow h-[240px]'>
+            <div className='p-4 flex flex-col gap-2 bg-white dark:bg-slate-800 flex-grow'>
                 {/* Category & Reading Time */}
                 <div className='flex justify-between items-center text-xs'>
                     <div className='h-5 w-20 bg-teal-100/50 dark:bg-teal-900/50 animate-pulse-slow rounded-full shadow-sm'></div> {/* Softer teal for category */}
