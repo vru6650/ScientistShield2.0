@@ -44,6 +44,7 @@ const navLinks = [
   { label: 'Home', path: '/' },
   { label: 'About', path: '/about' },
   { label: 'Projects', path: '/projects' },
+  { label: 'Tools', path: '/tools' },
   { label: 'Problem Solving', path: '/problems' },
   { label: 'Code Visualizer', path: '/visualizer' },
 ];

@@ -17,6 +17,7 @@ import {
     FaThumbtack,
     FaShieldAlt,
     FaLaptopCode,
+    FaTools,
 } from 'react-icons/fa';
 import { Avatar, Tooltip, Button } from 'flowbite-react';
 
@@ -214,6 +215,7 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
         { to: '/quizzes', label: 'Quizzes', icon: FaQuestionCircle },
         { to: '/problems', label: 'Problem Solving', icon: FaLightbulb },
         { to: '/projects', label: 'Projects', icon: FaProjectDiagram },
+        { to: '/tools', label: 'Tools Hub', icon: FaTools },
         { to: '/visualizer', label: 'Code Visualizer', icon: FaLaptopCode },
         { to: '/invoices', label: 'Invoices', icon: FaRegFileAlt },
         { to: '/wallet', label: 'Wallet', icon: FaRegCreditCard },

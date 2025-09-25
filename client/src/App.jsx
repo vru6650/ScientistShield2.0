@@ -19,6 +19,7 @@ const CreatePost = lazy(() => import('./pages/CreatePost'));
 const UpdatePost = lazy(() => import('./pages/UpdatePost'));
 const PostPage = lazy(() => import('./pages/PostPage'));
 const Search = lazy(() => import('./pages/Search'));
+const Tools = lazy(() => import('./pages/Tools'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // NEW: Lazy load tutorial-related pages
@@ -62,6 +63,7 @@ export default function App() {
                         <Route path="about" element={<About />} />
                         <Route path="search" element={<Search />} />
                         <Route path="projects" element={<Projects />} />
+                        <Route path="tools" element={<Tools />} />
                         <Route path="post/:postSlug" element={<PostPage />} />
 
                         {/* Public Tutorial Routes */}
