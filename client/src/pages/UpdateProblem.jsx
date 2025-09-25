@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, Label, Select, Switch, TextInput, Textarea, Spinner } from 'flowbite-react';
+import { Alert, Button, Label, Select, TextInput, Textarea, Spinner, ToggleSwitch } from 'flowbite-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { FaPlus, FaTrash } from 'react-icons/fa';
 
@@ -180,17 +180,17 @@ export default function UpdateProblem() {
                             <TextInput id="estimatedTime" type="number" min="0" value={formData.estimatedTime} onChange={handleInputChange} />
                         </div>
                         <div className="flex items-center gap-3 pt-6">
-                            <Switch
+                            <ToggleSwitch
                                 id="isPublished"
                                 checked={formData.isPublished}
-                                onChange={(event) =>
+                                label="Published"
+                                onChange={(value) =>
                                     setFormData((prev) => ({
                                         ...prev,
-                                        isPublished: event.target.checked,
+                                        isPublished: value,
                                     }))
                                 }
                             />
-                            <Label htmlFor="isPublished">Published</Label>
                         </div>
                     </div>
                     <div>
