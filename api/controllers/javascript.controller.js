@@ -11,9 +11,9 @@ const TEMP_DIR = path.join(__dirname, 'temp');
 const execFileAsync = promisify(execFile);
 
 export const runJavascriptCode = async (req, res, next) => {
-    const { code } = req.body;
+    const { code } = req?.body ?? {};
 
-    if (!code) {
+    if (typeof code !== 'string' || code.length === 0) {
         return next(errorHandler(400, 'JavaScript code is required.'));
     }
 
@@ -27,11 +27,13 @@ export const runJavascriptCode = async (req, res, next) => {
 
         const { stdout } = await execFileAsync('node', ['--no-warnings', filePath], {
             timeout: 5000,
+            encoding: 'utf8',
         });
 
         res.status(200).json({ output: stdout, error: false });
     } catch (err) {
-        const output = err?.stderr || err?.stdout || err?.message || String(err);
+        const rawOutput = err?.stderr || err?.stdout || err?.message || String(err);
+        const output = Buffer.isBuffer(rawOutput) ? rawOutput.toString('utf8') : rawOutput;
         res.status(200).json({ output, error: true });
     } finally {
         try {
