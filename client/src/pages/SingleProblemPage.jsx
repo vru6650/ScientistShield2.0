@@ -28,6 +28,9 @@ export default function SingleProblemPage() {
         enabled: Boolean(problemSlug),
     });
 
+    const topTopics = useMemo(() => (data?.topics ?? []).slice(0, 3), [data?.topics]);
+    const highlightedTags = useMemo(() => (data?.tags ?? []).slice(0, 4), [data?.tags]);
+
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -45,9 +48,6 @@ export default function SingleProblemPage() {
             </div>
         );
     }
-
-    const topTopics = useMemo(() => data.topics?.slice(0, 3) ?? [], [data.topics]);
-    const highlightedTags = useMemo(() => data.tags?.slice(0, 4) ?? [], [data.tags]);
 
     return (
         <div className="relative min-h-screen bg-slate-50 pb-24 dark:bg-slate-950">
