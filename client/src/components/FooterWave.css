@@ -1,0 +1,65 @@
+/* src/components/FooterWave.css */
+
+/* Keyframes for the continuous wave motion */
+@keyframes move-wave {
+    0% {
+        transform: translateX(0);
+    }
+    50% {
+        transform: translateX(-35px); /* Slightly increased movement for more dynamism */
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+/* Applies the wave motion animation */
+.animate-wave {
+    animation: move-wave 20s ease-in-out infinite; /* Increased duration for an even smoother, more subtle flow */
+}
+
+/*
+ * Styles for the interactive spotlight effect on the wave.
+ * This creates a "hole" in the wave layer, revealing content underneath,
+ * with the hole's position determined by custom CSS properties (like --mouse-x).
+ */
+.interactive-wave {
+    mask-image: radial-gradient(
+            350px 120px at var(--mouse-x, 50%) 50%, /* Slightly larger default spotlight */
+            black,
+            transparent
+    );
+    transition: mask-position 0.15s ease-out, mask-image 0.2s ease-out; /* Smoother, slightly delayed transition for mask-image changes */
+}
+
+/* Base styles for the SVG element, ensuring subtle glow and potential subtle transform */
+.footer-wave-svg {
+    filter: brightness(1.08) drop-shadow(0px 2px 4px rgba(0,0,0,0.1)); /* Slightly brighter with a subtle drop shadow */
+    transition: filter 0.3s ease-in-out; /* Smooth transition for filter changes */
+}
+
+/* Dark mode adjustments for the SVG filter, making it slightly softer */
+html.dark .footer-wave-svg {
+    filter: brightness(1.1) drop-shadow(0px 2px 4px rgba(255,255,255,0.05)); /* Brighter in dark mode, subtle light shadow */
+}
+
+
+/* Enhanced hover effect for the interactive spotlight */
+.footer-wave-svg:hover .interactive-wave {
+    mask-image: radial-gradient(
+            500px 180px at var(--mouse-x, 50%) 50%, /* Significantly larger spotlight on hover */
+            black,
+            transparent
+    );
+}
+
+/* Optional: Add a subtle ripple or shimmer effect to the wave itself on hover */
+.footer-wave-svg:hover .animate-wave {
+    animation-duration: 18s; /* Slightly faster wave animation on hover */
+    filter: saturate(1.1); /* Slightly more vibrant color on hover */
+}
+
+/* Optional: Deeper dark mode specific styles for the wave paths if needed */
+.shape-fill.dark\:text-gray-800 {
+    /* Example: adjust specific dark mode path colors here if not handled by fill-current correctly */
+}
