@@ -40,6 +40,10 @@ const CreatePage = lazy(() => import('./pages/CreatePage'));
 const UpdatePage = lazy(() => import('./pages/UpdatePage'));
 const ContentPage = lazy(() => import('./pages/ContentPage'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const ProblemSolving = lazy(() => import('./pages/ProblemSolving'));
+const SingleProblemPage = lazy(() => import('./pages/SingleProblemPage'));
+const CreateProblem = lazy(() => import('./pages/CreateProblem'));
+const UpdateProblem = lazy(() => import('./pages/UpdateProblem'));
 
 // A fallback component to show while pages are loading
 const LoadingFallback = () => (
@@ -69,6 +73,10 @@ export default function App() {
                         <Route path="quizzes" element={<Quizzes />} />
                         <Route path="quizzes/:quizSlug" element={<SingleQuizPage />} />
 
+                        {/* Public Problem Routes */}
+                        <Route path="problems" element={<ProblemSolving />} />
+                        <Route path="problems/:problemSlug" element={<SingleProblemPage />} />
+
                         {/* NEW: Try It Yourself Route */}
                         <Route path="tryit" element={<TryItPage />} />
                         <Route path="visualizer" element={<CodeVisualizer />} />
@@ -93,6 +101,9 @@ export default function App() {
                             {/* Admin Content Routes */}
                             <Route path="create-page" element={<CreatePage />} />
                             <Route path="update-page/:pageId" element={<UpdatePage />} />
+                            {/* Admin Problem Routes */}
+                            <Route path="create-problem" element={<CreateProblem />} />
+                            <Route path="update-problem/:problemId" element={<UpdateProblem />} />
                         </Route>
 
                         <Route path="*" element={<NotFound />} />

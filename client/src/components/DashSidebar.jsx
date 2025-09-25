@@ -23,6 +23,7 @@ const sidebarLinks = [
   { tab: 'comments', label: 'Comments', icon: HiAnnotation, adminOnly: true },
   { tab: 'tutorials', label: 'Tutorials', icon: HiDocumentText, adminOnly: true },
   { tab: 'quizzes', label: 'Quizzes', icon: HiPuzzle, adminOnly: true }, // NEW: Add Quizzes link
+  { tab: 'problems', label: 'Problems', icon: HiPuzzle, adminOnly: true },
   { tab: 'content', label: 'Content', icon: HiCollection, adminOnly: true },
 ];
 

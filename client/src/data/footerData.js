@@ -6,6 +6,7 @@ export const footerLinks = [
         links: [
             { name: '100 JS Projects', href: 'https://www.100jsprojects.com' },
             { name: "Sahand's Blog", href: '/about' },
+            { name: 'Problem Solving Hub', href: '/problems' },
         ],
     },
     {

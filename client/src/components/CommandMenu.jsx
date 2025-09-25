@@ -21,7 +21,9 @@ const CommandMenu = ({ isOpen, onClose }) => {
                 { label: 'Create a Post', path: '/create-post' },
                 { label: 'Create a Tutorial', path: '/create-tutorial' },
                 { label: 'Create a Quiz', path: '/create-quiz' },
+                { label: 'Create a Problem', path: '/create-problem' },
                 { label: 'Create a Page', path: '/create-page' },
+                { label: 'Browse problems', path: '/problems' },
                 { label: 'Code Visualizer', path: '/visualizer' },
             ];
         }
@@ -29,6 +31,7 @@ const CommandMenu = ({ isOpen, onClose }) => {
         return [
             { label: 'Profile', path: '/dashboard?tab=profile' },
             { label: 'Create a Post', path: '/create-post' },
+            { label: 'Practice problems', path: '/problems' },
             { label: 'Code Visualizer', path: '/visualizer' },
         ];
     }, [currentUser]);

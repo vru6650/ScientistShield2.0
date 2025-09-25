@@ -12,6 +12,7 @@ import codeSnippetRoutes from './routes/codeSnippet.route.js';
 import cppRoutes from './routes/cpp.route.js';
 import pythonRoutes from './routes/python.route.js';
 import pageRoutes from './routes/page.route.js';
+import problemRoutes from './routes/problem.route.js';
 
 import cookieParser from 'cookie-parser';
 import path from 'path';
@@ -60,6 +61,7 @@ app.use('/api/comment', commentRoutes);
 app.use('/api/tutorial', tutorialRoutes);
 app.use('/api/code-snippet', codeSnippetRoutes);
 app.use('/api', quizRoutes);
+app.use('/api', problemRoutes);
 app.use('/api/code', cppRoutes); // NEW: Use the new C++ route
 app.use('/api/code', pythonRoutes); // NEW: Use the new Python route
 app.use('/api', pageRoutes);
