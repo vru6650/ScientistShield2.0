@@ -361,7 +361,7 @@ export default function CodeEditor({ initialCode = {}, language = 'html', snippe
                         </Button>
                     </div>
                 </div>
-                <div className="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden">
+                <div className="flex-1 flex flex-col gap-4 overflow-hidden">
                     <div className="flex-1 flex flex-col rounded-md shadow-inner bg-white dark:bg-gray-800 p-1">
                         <div className="flex-1 rounded-md overflow-hidden relative">
                             <Editor
@@ -390,35 +390,34 @@ export default function CodeEditor({ initialCode = {}, language = 'html', snippe
                     <AnimatePresence>
                         {showOutputPanel && (
                             <motion.div
-                                initial={{ opacity: 0, width: 0 }}
-                                animate={{ opacity: 1, width: '100%' }}
-                                exit={{ opacity: 0, width: 0 }}
+                                key="output-panel"
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
                                 transition={{ duration: 0.3 }}
-                                className="flex-1 flex flex-col gap-4 overflow-hidden md:w-1/2"
+                                className="flex flex-col flex-none rounded-md shadow-inner bg-white dark:bg-gray-800 p-2 overflow-hidden min-h-[240px]"
                             >
-                                <div className="flex flex-col flex-1 rounded-md shadow-inner bg-white dark:bg-gray-800 p-2">
-                                    <h3 className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 p-1">
-                                        <FaTerminal />
-                                        {isLivePreviewLanguage ? 'Live Preview & Console' : 'Terminal Output'}
-                                    </h3>
-                                    {isLivePreviewLanguage ? (
-                                        <div className="flex-1 flex flex-col gap-2 overflow-hidden">
-                                            <iframe
-                                                title="live-output"
-                                                srcDoc={srcDoc}
-                                                sandbox="allow-scripts"
-                                                className="w-full flex-1 bg-white border border-gray-200 dark:border-gray-700 rounded-md"
-                                            />
-                                            <pre className="whitespace-pre-wrap p-2 text-xs text-gray-400 font-mono h-1/3 overflow-auto bg-gray-900 rounded-md">{consoleOutput || '// JavaScript console output will appear here...'}</pre>
-                                        </div>
-                                    ) : (
-                                        <div ref={outputRef} className='whitespace-pre-wrap p-2 text-sm text-green-400 font-mono h-full overflow-auto bg-gray-900 rounded-md'>
-                                            {isRunning && <div className="flex items-center text-gray-400"><Spinner size="sm" /> <span className="ml-2">Running...</span></div>}
-                                            {runError && <Alert color="failure" className="!bg-transparent text-sm"><pre className="whitespace-pre-wrap text-red-400 font-mono">{runError}</pre></Alert>}
-                                            {!isRunning && !runError && <pre className="whitespace-pre-wrap text-sm text-green-400 font-mono">{consoleOutput || 'Execution complete.'}</pre>}
-                                        </div>
-                                    )}
-                                </div>
+                                <h3 className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 p-1">
+                                    <FaTerminal />
+                                    {isLivePreviewLanguage ? 'Live Preview & Console' : 'Terminal Output'}
+                                </h3>
+                                {isLivePreviewLanguage ? (
+                                    <div className="flex-1 flex flex-col gap-2 overflow-hidden">
+                                        <iframe
+                                            title="live-output"
+                                            srcDoc={srcDoc}
+                                            sandbox="allow-scripts"
+                                            className="w-full flex-1 min-h-[160px] bg-white border border-gray-200 dark:border-gray-700 rounded-md"
+                                        />
+                                        <pre className="whitespace-pre-wrap p-2 text-xs text-gray-400 font-mono max-h-40 overflow-auto bg-gray-900 rounded-md">{consoleOutput || '// JavaScript console output will appear here...'}</pre>
+                                    </div>
+                                ) : (
+                                    <div ref={outputRef} className='flex-1 whitespace-pre-wrap p-2 text-sm text-green-400 font-mono overflow-auto bg-gray-900 rounded-md'>
+                                        {isRunning && <div className="flex items-center text-gray-400"><Spinner size="sm" /> <span className="ml-2">Running...</span></div>}
+                                        {runError && <Alert color="failure" className="!bg-transparent text-sm"><pre className="whitespace-pre-wrap text-red-400 font-mono">{runError}</pre></Alert>}
+                                        {!isRunning && !runError && <pre className="whitespace-pre-wrap text-sm text-green-400 font-mono">{consoleOutput || 'Execution complete.'}</pre>}
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>
