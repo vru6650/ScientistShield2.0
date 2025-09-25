@@ -12,8 +12,9 @@ export default function TryItPage() {
 
     // Default message when there's no initial code
     const defaultCodeMessage = `// Welcome to the live code editor!
-// You can write and run HTML, CSS, or JavaScript here.
+// You can write and run JavaScript, C++, or Python here.
 // Enjoy experimenting with your code!
+console.log('Happy coding!');
 `;
 
     useEffect(() => {
@@ -23,7 +24,8 @@ export default function TryItPage() {
             setEditorLanguage('javascript');
         } else {
             setEditorCode(code);
-            setEditorLanguage(language);
+            const allowedLanguages = ['javascript', 'cpp', 'python'];
+            setEditorLanguage(allowedLanguages.includes(language) ? language : 'javascript');
         }
     }, [code, language]);
 

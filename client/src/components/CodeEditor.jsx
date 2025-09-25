@@ -11,7 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import LanguageSelector from './LanguageSelector';
 import useCodeSnippet from '../hooks/useCodeSnippet';
 
-const supportedLanguages = ['html', 'css', 'javascript', 'cpp', 'python'];
+const supportedLanguages = ['javascript', 'cpp', 'python'];
+const storageLanguages = [...supportedLanguages, 'html', 'css'];
 
 const languageAliases = {
     js: 'javascript',
@@ -20,11 +21,24 @@ const languageAliases = {
     python: 'python',
     'c++': 'cpp',
     cpp: 'cpp',
+    html: 'javascript',
+    css: 'javascript',
+};
+
+const storageLanguageAliases = {
+    js: 'javascript',
+    javascript: 'javascript',
+    py: 'python',
+    python: 'python',
+    'c++': 'cpp',
+    cpp: 'cpp',
+    html: 'html',
+    css: 'css',
 };
 
 const normalizeLanguage = (language) => {
     if (!language) {
-        return 'html';
+        return 'javascript';
     }
 
     const normalizedInput = typeof language === 'string'
@@ -33,7 +47,21 @@ const normalizeLanguage = (language) => {
 
     const normalized = languageAliases[normalizedInput] || normalizedInput;
 
-    return supportedLanguages.includes(normalized) ? normalized : 'html';
+    return supportedLanguages.includes(normalized) ? normalized : 'javascript';
+};
+
+const normalizeStorageLanguage = (language) => {
+    if (!language) {
+        return null;
+    }
+
+    const normalizedInput = typeof language === 'string'
+        ? language.toLowerCase()
+        : String(language).toLowerCase();
+
+    const normalized = storageLanguageAliases[normalizedInput] || normalizedInput;
+
+    return storageLanguages.includes(normalized) ? normalized : null;
 };
 
 const normalizeInitialCode = (initialCode, fallbackLanguage) => {
@@ -48,8 +76,8 @@ const normalizeInitialCode = (initialCode, fallbackLanguage) => {
 
     if (typeof initialCode === 'object') {
         return Object.entries(initialCode).reduce((acc, [key, value]) => {
-            const normalizedKey = normalizeLanguage(key);
-            if (typeof value === 'string' && supportedLanguages.includes(normalizedKey)) {
+            const normalizedKey = normalizeStorageLanguage(key);
+            if (typeof value === 'string' && normalizedKey) {
                 acc[normalizedKey] = value;
             }
             return acc;
@@ -64,25 +92,31 @@ const defaultCodes = {
 <html>
   <head>
     <style>
-      body { 
-        font-family: sans-serif; 
+      body {
+        font-family: sans-serif;
         color: #333;
+        padding: 1.5rem;
+      }
+      h1 {
+        color: #7c3aed;
+        margin-bottom: 0.75rem;
+      }
+      p {
+        margin: 0;
+        color: #475569;
       }
     </style>
   </head>
   <body>
-    <h1>Welcome to the Editor!</h1>
-    <p>Change this HTML and see the live preview.</p>
+    <h1>Live Preview</h1>
+    <p>This preview updates automatically when you run JavaScript.</p>
   </body>
 </html>`,
     css: `body {
-  background-color: #f0f8ff;
-  padding: 1rem;
+  background-color: #f8fafc;
+  min-height: 100vh;
 }
-h1 {
-  color: #1e3a8a;
-  text-decoration: underline;
-}`,
+`,
     javascript: `// Use console.log() to see output in the terminal
 function greet(name) {
   return 'Hello, ' + name + '!';
@@ -109,7 +143,7 @@ hello_world()`
 
 const visualizerSupportedLanguages = new Set(['python', 'cpp', 'javascript']);
 
-export default function CodeEditor({ initialCode = {}, language = 'html', snippetId }) {
+export default function CodeEditor({ initialCode = {}, language = 'javascript', snippetId }) {
     const { theme } = useSelector((state) => state.theme);
     const navigate = useNavigate();
     const editorRef = useRef(null);
@@ -217,7 +251,7 @@ export default function CodeEditor({ initialCode = {}, language = 'html', snippe
         }
     };
 
-    const isLivePreviewLanguage = ['html', 'css', 'javascript'].includes(selectedLanguage);
+    const isLivePreviewLanguage = selectedLanguage === 'javascript';
 
     useEffect(() => {
         setEditorTheme(theme === 'dark' ? 'vs-dark' : 'vs-light');
@@ -233,17 +267,17 @@ export default function CodeEditor({ initialCode = {}, language = 'html', snippe
         }
 
         const preferredLanguage = (() => {
-            if (language && language !== 'html') {
-                return language;
-            }
-            if (snippet.html && snippet.html.trim()) {
-                return 'html';
+            if (language) {
+                return normalizeLanguage(language);
             }
             if (snippet.js && snippet.js.trim()) {
                 return 'javascript';
             }
-            if (snippet.css && snippet.css.trim()) {
-                return 'css';
+            if (snippet.cpp && snippet.cpp.trim()) {
+                return 'cpp';
+            }
+            if (snippet.python && snippet.python.trim()) {
+                return 'python';
             }
             return selectedLanguage;
         })();
@@ -253,8 +287,10 @@ export default function CodeEditor({ initialCode = {}, language = 'html', snippe
             html: snippet.html || defaultCodes.html,
             css: snippet.css || defaultCodes.css,
             javascript: snippet.js || defaultCodes.javascript,
+            cpp: snippet.cpp || prevCodes.cpp || defaultCodes.cpp,
+            python: snippet.python || prevCodes.python || defaultCodes.python,
         }));
-        setSelectedLanguage(normalizeLanguage(preferredLanguage));
+        setSelectedLanguage(supportedLanguages.includes(preferredLanguage) ? preferredLanguage : 'javascript');
         setHasAppliedSnippet(true);
     }, [snippetId, snippet, hasAppliedSnippet, language, selectedLanguage]);
 
@@ -281,8 +317,8 @@ export default function CodeEditor({ initialCode = {}, language = 'html', snippe
             html: (snippet?.html ?? normalizedInitialCode.html) || defaultCodes.html,
             css: (snippet?.css ?? normalizedInitialCode.css) || defaultCodes.css,
             javascript: (snippet?.js ?? normalizedInitialCode.javascript) || defaultCodes.javascript,
-            cpp: normalizedInitialCode.cpp || defaultCodes.cpp,
-            python: normalizedInitialCode.python || defaultCodes.python,
+            cpp: (snippet?.cpp ?? normalizedInitialCode.cpp) || defaultCodes.cpp,
+            python: (snippet?.python ?? normalizedInitialCode.python) || defaultCodes.python,
         });
         setSrcDoc('');
         setConsoleOutput('');
