@@ -67,7 +67,7 @@ const TutorialPageSkeleton = () => (
 
 // Map tutorial categories to code languages for syntax highlighting.
 const categoryToLanguageMap = {
-    'Web Development': 'html',
+    'Web Development': 'javascript',
     'JavaScript': 'javascript',
     'Python': 'python',
     'C++': 'cpp',
@@ -100,7 +100,7 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, conten
                     />
                     <CodeEditor
                         initialCode={activeChapter.initialCode || ''}
-                        language={activeChapter.codeLanguage || 'html'}
+                        language={activeChapter.codeLanguage || 'javascript'}
                     />
                 </motion.div>
             );
