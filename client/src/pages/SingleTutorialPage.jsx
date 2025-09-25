@@ -71,6 +71,7 @@ const categoryToLanguageMap = {
     'JavaScript': 'javascript',
     'Python': 'python',
     'C++': 'cpp',
+    'Java': 'java',
 };
 
 // New sub-component for rendering dynamic chapter content.
