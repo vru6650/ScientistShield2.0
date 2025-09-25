@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import LanguageSelector from './LanguageSelector';
 import useCodeSnippet from '../hooks/useCodeSnippet';
 
-const supportedLanguages = ['javascript', 'cpp', 'python', 'java'];
+const supportedLanguages = ['javascript', 'cpp', 'python', 'java', 'csharp'];
 const storageLanguages = [...supportedLanguages, 'html', 'css'];
 
 const languageAliases = {
@@ -22,6 +22,9 @@ const languageAliases = {
     'c++': 'cpp',
     cpp: 'cpp',
     java: 'java',
+    csharp: 'csharp',
+    'c#': 'csharp',
+    cs: 'csharp',
     html: 'javascript',
     css: 'javascript',
 };
@@ -34,6 +37,9 @@ const storageLanguageAliases = {
     'c++': 'cpp',
     cpp: 'cpp',
     java: 'java',
+    csharp: 'csharp',
+    'c#': 'csharp',
+    cs: 'csharp',
     html: 'html',
     css: 'css',
 };
@@ -146,7 +152,19 @@ int main() {
   message = "Hello, Python World!"
   print(message)
 
-hello_world()`
+hello_world()`,
+    csharp: `using System;
+
+namespace ScientistShield
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            Console.WriteLine("Hello from C#!");
+        }
+    }
+}`,
 };
 
 const visualizerSupportedLanguages = new Set(['python', 'cpp', 'javascript', 'java']);
@@ -173,6 +191,7 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
         cpp: normalizedInitialCode.cpp || defaultCodes.cpp,
         python: normalizedInitialCode.python || defaultCodes.python,
         java: normalizedInitialCode.java || defaultCodes.java,
+        csharp: normalizedInitialCode.csharp || defaultCodes.csharp,
     });
 
     const [selectedLanguage, setSelectedLanguage] = useState(normalizedInitialLanguage);
@@ -208,6 +227,7 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
             cpp: '/api/code/run-cpp',
             python: '/api/code/run-python',
             java: '/api/code/run-java',
+            csharp: '/api/code/run-csharp',
         };
 
         const endpoint = endpointMap[selectedLanguage];
@@ -267,6 +287,9 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
             if (snippet.java && snippet.java.trim()) {
                 return 'java';
             }
+            if (snippet.csharp && snippet.csharp.trim()) {
+                return 'csharp';
+            }
             return selectedLanguage;
         })();
 
@@ -278,6 +301,7 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
             cpp: snippet.cpp || prevCodes.cpp || defaultCodes.cpp,
             python: snippet.python || prevCodes.python || defaultCodes.python,
             java: snippet.java || prevCodes.java || defaultCodes.java,
+            csharp: snippet.csharp || prevCodes.csharp || defaultCodes.csharp,
         }));
         setSelectedLanguage(supportedLanguages.includes(preferredLanguage) ? preferredLanguage : 'javascript');
         setHasAppliedSnippet(true);
@@ -291,6 +315,7 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
             cpp: (snippet?.cpp ?? normalizedInitialCode.cpp) || defaultCodes.cpp,
             python: (snippet?.python ?? normalizedInitialCode.python) || defaultCodes.python,
             java: (snippet?.java ?? normalizedInitialCode.java) || defaultCodes.java,
+            csharp: (snippet?.csharp ?? normalizedInitialCode.csharp) || defaultCodes.csharp,
         });
         setConsoleOutput('');
         setRunError(null);
