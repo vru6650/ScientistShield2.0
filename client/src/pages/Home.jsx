@@ -505,27 +505,40 @@ export default function Home() {
                 </section>
 
                 {/* CTA */}
-                <section aria-labelledby="join-community" className="relative overflow-hidden rounded-3xl">
-                    <div className="absolute inset-0 -z-10 bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600" />
-                    <div className="relative px-6 py-12 sm:px-12 sm:py-16 flex flex-col lg:flex-row items-center lg:items-end lg:justify-between gap-8 text-white">
+                <section
+                    aria-labelledby="join-community"
+                    className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-transparent dark:bg-transparent"
+                >
+                    <div className="absolute inset-0 -z-10 hidden dark:block bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600" />
+                    <div className="relative px-6 py-12 sm:px-12 sm:py-16 flex flex-col lg:flex-row items-center lg:items-end lg:justify-between gap-8 text-slate-900 dark:text-white">
                         <div className="space-y-4 max-w-2xl">
-                            <p className="text-sm uppercase tracking-[0.4em] text-white/80 font-semibold">Join the community</p>
+                            <p className="text-sm uppercase tracking-[0.4em] text-indigo-600 dark:text-white/80 font-semibold">
+                                Join the community
+                            </p>
                             <h2 id="join-community" className="text-3xl sm:text-4xl font-extrabold">
                                 Ready to craft the next chapter of your developer story?
                             </h2>
-                            <p className="text-base sm:text-lg text-white/90">
-                                Create a free account, unlock personalized learning spaces, and start collaborating with mentors and
-                                peers today.
+                            <p className="text-base sm:text-lg text-slate-600 dark:text-white/90">
+                                Create a free account, unlock personalized learning spaces, and start collaborating with mentors and peers today.
                             </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-4">
                             <Link to="/sign-up">
-                                <Button pill size="lg" className="bg-white text-slate-900 hover:bg-white/90 hover:text-slate-900">
+                                <Button
+                                    pill
+                                    size="lg"
+                                    className="bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-white/90"
+                                >
                                     Create free account
                                 </Button>
                             </Link>
                             <Link to="/about">
-                                <Button pill size="lg" color="light" className="bg-transparent text-white border-white hover:bg-white/10">
+                                <Button
+                                    pill
+                                    size="lg"
+                                    color="light"
+                                    className="border border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white dark:border-white dark:text-white dark:hover:bg-white/10"
+                                >
                                     Learn more
                                 </Button>
                             </Link>
