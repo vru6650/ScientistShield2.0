@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -15,6 +15,8 @@ import {
     FaExternalLinkAlt,
     FaSyncAlt,
     FaSearch,
+    FaHistory,
+    FaLightbulb,
 } from 'react-icons/fa';
 import PropTypes from 'prop-types';
 import { workspaceTools, resourceTools, toolCategories } from '../data/toolsData';
@@ -266,6 +268,9 @@ const workspaceComponents = {
     'text-transformer': TextTransformerTool,
 };
 
+const RECENT_WORKSPACE_KEY = 'scientistshield.recentWorkspaceTools';
+const workspaceToolIdSet = new Set(workspaceTools.map((tool) => tool.id));
+
 const cardVariants = {
     initial: { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0 },
@@ -347,8 +352,45 @@ export default function Tools() {
     const [activeWorkspaceTool, setActiveWorkspaceTool] = useState(workspaceTools[0]?.id ?? null);
     const [searchTerm, setSearchTerm] = useState('');
     const [category, setCategory] = useState('all');
+    const [recentWorkspaceTools, setRecentWorkspaceTools] = useState([]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const stored = window.localStorage.getItem(RECENT_WORKSPACE_KEY);
+            if (!stored) return;
+            const parsed = JSON.parse(stored);
+            if (!Array.isArray(parsed)) return;
+            const valid = parsed.filter((id) => workspaceToolIdSet.has(id));
+            if (valid.length) {
+                setRecentWorkspaceTools(valid);
+            }
+        } catch (error) {
+            // Ignore storage access issues silently
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!activeWorkspaceTool || !workspaceToolIdSet.has(activeWorkspaceTool)) return;
+        setRecentWorkspaceTools((prev) => {
+            const next = [activeWorkspaceTool, ...prev.filter((id) => id !== activeWorkspaceTool)].slice(0, 4);
+            if (next.length === prev.length && next.every((value, index) => value === prev[index])) {
+                return prev;
+            }
+            if (typeof window !== 'undefined') {
+                try {
+                    window.localStorage.setItem(RECENT_WORKSPACE_KEY, JSON.stringify(next));
+                } catch (error) {
+                    // Ignore storage access issues silently
+                }
+            }
+            return next;
+        });
+    }, [activeWorkspaceTool]);
 
     const ActiveComponent = activeWorkspaceTool ? workspaceComponents[activeWorkspaceTool] : null;
+    const selectedTool = workspaceTools.find((tool) => tool.id === activeWorkspaceTool);
+    const SelectedIcon = selectedTool?.icon;
 
     const filteredTools = useMemo(() => {
         return resourceTools.filter((tool) => {
@@ -367,8 +409,13 @@ export default function Tools() {
                     <div className="absolute -top-24 right-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
                     <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-blue-900/40" />
                     <div className="relative z-10 flex flex-col gap-space-lg">
-                        <div className="inline-flex w-fit items-center gap-space-xs rounded-radius-full bg-white/10 px-space-md py-[6px] text-xs font-semibold uppercase tracking-wide">
-                            Inspired by tutorialsPoint toolkits
+                        <div className="flex w-fit flex-wrap items-center gap-space-sm">
+                            <div className="inline-flex items-center gap-space-xs rounded-radius-full bg-white/10 px-space-md py-[6px] text-xs font-semibold uppercase tracking-wide">
+                                Inspired by tutorialsPoint toolkits
+                            </div>
+                            <div className="inline-flex items-center gap-space-xs rounded-radius-full bg-white/15 px-space-md py-[6px] text-xs font-semibold uppercase tracking-wide">
+                                Upgraded UI &amp; UX workspace
+                            </div>
                         </div>
                         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight">
                             Developer tools and utilities in one hub
@@ -418,16 +465,17 @@ export default function Tools() {
                                         key={tool.id}
                                         type="button"
                                         onClick={() => setActiveWorkspaceTool(tool.id)}
-                                        className={`flex w-full items-center gap-space-md rounded-radius-lg border px-space-md py-space-md text-left transition ${
+                                        className={`group flex w-full items-center gap-space-md rounded-radius-lg border px-space-md py-space-md text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950 ${
                                             active
-                                                ? 'border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300'
-                                                : 'border-gray-200 dark:border-gray-700 hover:border-cyan-400/60 hover:bg-cyan-400/5'
+                                                ? 'border-cyan-500 bg-cyan-500/10 text-cyan-600 shadow-sm dark:border-cyan-400/70 dark:text-cyan-200'
+                                                : 'border-gray-200 text-gray-700 hover:border-cyan-400/60 hover:bg-cyan-400/5 dark:border-gray-700 dark:text-gray-300 dark:hover:border-cyan-400/60'
                                         }`}
+                                        aria-pressed={active}
                                     >
-                                        <span className={`flex h-10 w-10 items-center justify-center rounded-radius-full bg-gradient-to-br ${tool.accent} text-white`}>
-                                            <Icon />
+                                        <span className={`flex h-10 w-10 items-center justify-center rounded-radius-full bg-gradient-to-br ${tool.accent} text-white shadow-inner`}>
+                                            <Icon aria-hidden="true" />
                                         </span>
-                                        <div>
+                                        <div className="space-y-space-xs">
                                             <p className="font-semibold">{tool.name}</p>
                                             <p className="text-xs text-gray-600 dark:text-gray-400">{tool.description}</p>
                                         </div>
@@ -435,9 +483,92 @@ export default function Tools() {
                                 );
                             })}
                         </div>
+                        {recentWorkspaceTools.length > 0 && (
+                            <div className="space-y-space-xs rounded-radius-lg border border-dashed border-gray-200 bg-white/70 p-space-md shadow-sm dark:border-gray-700 dark:bg-slate-900/60">
+                                <div className="flex items-center gap-space-xs text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    <FaHistory aria-hidden="true" /> Recent tools
+                                </div>
+                                <div className="flex flex-wrap gap-space-xs">
+                                    {recentWorkspaceTools.map((id) => {
+                                        const recentTool = workspaceTools.find((tool) => tool.id === id);
+                                        if (!recentTool) return null;
+                                        const isActive = id === activeWorkspaceTool;
+                                        return (
+                                            <button
+                                                key={id}
+                                                type="button"
+                                                onClick={() => setActiveWorkspaceTool(id)}
+                                                className={`rounded-radius-full px-space-sm py-[6px] text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950 ${
+                                                    isActive
+                                                        ? 'bg-cyan-600 text-white shadow'
+                                                        : 'bg-white text-cyan-700 shadow-sm hover:bg-cyan-50 dark:bg-slate-950 dark:text-cyan-200 dark:hover:bg-cyan-900/40'
+                                                }`}
+                                                aria-pressed={isActive}
+                                            >
+                                                {recentTool.name}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </aside>
-                    <div className="rounded-radius-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 p-space-xl shadow-lg">
-                        {ActiveComponent ? <ActiveComponent /> : null}
+                    <div className="rounded-radius-lg border border-gray-200 bg-white/80 p-space-xl shadow-lg backdrop-blur dark:border-gray-800 dark:bg-slate-900/80">
+                        {ActiveComponent ? (
+                            <div className="space-y-space-lg">
+                                {selectedTool ? (
+                                    <div className="space-y-space-md rounded-radius-lg border border-dashed border-cyan-400/40 bg-cyan-500/5 p-space-lg dark:border-cyan-400/30 dark:bg-cyan-500/10">
+                                        <div className="flex flex-col gap-space-sm sm:flex-row sm:items-start sm:justify-between">
+                                            <div className="flex items-start gap-space-md">
+                                                {SelectedIcon ? (
+                                                    <span className={`hidden sm:inline-flex h-12 w-12 items-center justify-center rounded-radius-lg bg-gradient-to-br ${selectedTool.accent} text-white shadow-lg`}>
+                                                        <SelectedIcon aria-hidden="true" />
+                                                    </span>
+                                                ) : null}
+                                                <div className="space-y-space-xs">
+                                                    <div className="inline-flex items-center gap-space-xs text-xs font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-300">
+                                                        {selectedTool.category}
+                                                    </div>
+                                                    <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">{selectedTool.name}</h3>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                        {selectedTool.longDescription ?? selectedTool.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {selectedTool.tags?.length ? (
+                                                <div className="flex flex-wrap gap-space-xs">
+                                                    {selectedTool.tags.map((tag) => (
+                                                        <span
+                                                            key={tag}
+                                                            className="rounded-radius-full bg-white/70 px-space-sm py-[2px] text-xs font-medium text-cyan-700 shadow-sm dark:bg-slate-950/60 dark:text-cyan-200"
+                                                        >
+                                                            #{tag}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                        {selectedTool.tips?.length ? (
+                                            <ul className="grid gap-space-sm text-sm text-gray-600 dark:text-gray-300 sm:grid-cols-2">
+                                                {selectedTool.tips.map((tip) => (
+                                                    <li key={tip} className="flex items-start gap-space-sm">
+                                                        <FaLightbulb className="mt-[2px] text-cyan-500 dark:text-cyan-300" aria-hidden="true" />
+                                                        <span>{tip}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : null}
+                                    </div>
+                                ) : null}
+                                <div className="rounded-radius-lg border border-gray-100 bg-white/90 p-space-lg shadow-sm dark:border-gray-800 dark:bg-slate-950/90">
+                                    <ActiveComponent />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center gap-space-sm text-center text-sm text-gray-600 dark:text-gray-400">
+                                <p>Select a workspace tool from the left to get started.</p>
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -455,24 +586,30 @@ export default function Tools() {
                                 value={searchTerm}
                                 onChange={(event) => setSearchTerm(event.target.value)}
                                 placeholder="Search tools"
+                                aria-label="Search tools"
+                                type="search"
                             />
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-space-sm">
-                        {toolCategories.map((cat) => (
-                            <button
-                                type="button"
-                                key={cat}
-                                onClick={() => setCategory(cat)}
-                                className={`rounded-radius-full border px-space-md py-[6px] text-sm transition ${
-                                    category === cat
-                                        ? 'border-transparent bg-cyan-600 text-white shadow'
-                                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-cyan-400/60'
-                                }`}
-                            >
-                                {cat === 'all' ? 'All tools' : cat}
-                            </button>
-                        ))}
+                        {toolCategories.map((cat) => {
+                            const isActive = category === cat;
+                            return (
+                                <button
+                                    type="button"
+                                    key={cat}
+                                    onClick={() => setCategory(cat)}
+                                    className={`rounded-radius-full border px-space-md py-[6px] text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950 ${
+                                        isActive
+                                            ? 'border-transparent bg-cyan-600 text-white shadow'
+                                            : 'border-gray-200 text-gray-600 hover:border-cyan-400/60 hover:text-cyan-700 dark:border-gray-700 dark:text-gray-300 dark:hover:text-cyan-200'
+                                    }`}
+                                    aria-pressed={isActive}
+                                >
+                                    {cat === 'all' ? 'All tools' : cat}
+                                </button>
+                            );
+                        })}
                     </div>
                     <motion.div
                         className="grid grid-cols-1 gap-space-lg sm:grid-cols-2 xl:grid-cols-3"
@@ -485,10 +622,20 @@ export default function Tools() {
                         ))}
                     </motion.div>
                     {filteredTools.length === 0 && (
-                        <div className="rounded-radius-lg border border-dashed border-gray-300 dark:border-gray-700 p-space-2xl text-center">
+                        <div className="flex flex-col items-center gap-space-sm rounded-radius-lg border border-dashed border-gray-300 p-space-2xl text-center dark:border-gray-700">
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                                 No tools match that search yet. Try a different keyword or category.
                             </p>
+                            <Button
+                                color="light"
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setCategory('all');
+                                }}
+                                className="w-fit"
+                            >
+                                Reset filters
+                            </Button>
                         </div>
                     )}
                     <div className="flex flex-col gap-space-sm rounded-radius-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 p-space-xl shadow-inner">
