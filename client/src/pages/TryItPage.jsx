@@ -12,9 +12,9 @@ export default function TryItPage() {
 
     // Default message when there's no initial code
     const defaultCodeMessage = `// Welcome to the live code editor!
-// You can write and run JavaScript, C++, or Python here.
-// Enjoy experimenting with your code!
-console.log('Happy coding!');
+// JavaScript runs on a Node.js runtime.
+// You can also switch to C++ or Python.
+console.log('Happy coding with Node.js!');
 `;
 
     useEffect(() => {
