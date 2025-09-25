@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { Alert, Button } from 'flowbite-react';
-import { HiSparkles, HiArrowRight, HiOutlineTrendingUp } from 'react-icons/hi2';
+import { HiSparkles, HiArrowRight, HiArrowTrendingUp } from 'react-icons/hi2';
 
 import { getProblems } from '../services/problemService';
 import ProblemFilters from '../components/problems/ProblemFilters';
@@ -188,7 +188,7 @@ export default function ProblemSolving() {
                         <aside className="space-y-6">
                             <div className="rounded-2xl border border-cyan-200 bg-white p-6 shadow-sm dark:border-cyan-500/30 dark:bg-slate-900/70">
                                 <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-200">
-                                    <HiOutlineTrendingUp className="h-4 w-4" />
+                                    <HiArrowTrendingUp className="h-4 w-4" />
                                     Trending Topics
                                 </h3>
                                 <div className="mt-4 flex flex-wrap gap-2 text-xs">
