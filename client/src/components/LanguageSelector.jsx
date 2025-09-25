@@ -3,7 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Button from './ui/Button';
 
-const languages = ['javascript', 'cpp', 'python'];
+const languages = ['javascript', 'cpp', 'python', 'java'];
 
 export default function LanguageSelector({ selectedLanguage, setSelectedLanguage }) {
     return (

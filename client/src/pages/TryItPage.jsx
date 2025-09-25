@@ -13,7 +13,7 @@ export default function TryItPage() {
     // Default message when there's no initial code
     const defaultCodeMessage = `// Welcome to the live code editor!
 // JavaScript runs on a Node.js runtime.
-// You can also switch to C++ or Python.
+// You can also switch to C++, Python, or Java.
 console.log('Happy coding with Node.js!');
 `;
 
@@ -24,7 +24,7 @@ console.log('Happy coding with Node.js!');
             setEditorLanguage('javascript');
         } else {
             setEditorCode(code);
-            const allowedLanguages = ['javascript', 'cpp', 'python'];
+            const allowedLanguages = ['javascript', 'cpp', 'python', 'java'];
             setEditorLanguage(allowedLanguages.includes(language) ? language : 'javascript');
         }
     }, [code, language]);
