@@ -7,6 +7,7 @@ import {
     FaChevronDown,
     FaProjectDiagram,
     FaQuestionCircle,
+    FaLightbulb,
     FaSignInAlt,
     FaTachometerAlt,
     FaPlus,
@@ -211,6 +212,7 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
     const mainNavItems = [
         { to: '/tutorials', label: 'Tutorials', icon: FaBook },
         { to: '/quizzes', label: 'Quizzes', icon: FaQuestionCircle },
+        { to: '/problems', label: 'Problem Solving', icon: FaLightbulb },
         { to: '/projects', label: 'Projects', icon: FaProjectDiagram },
         { to: '/visualizer', label: 'Code Visualizer', icon: FaLaptopCode },
         { to: '/invoices', label: 'Invoices', icon: FaRegFileAlt },

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button, Alert } from 'flowbite-react';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import {
     HiOutlineAcademicCap,
     HiOutlineChartBar,
@@ -54,6 +55,7 @@ function EditorSkeleton() {
 }
 
 export default function Home() {
+    const { currentUser } = useSelector((state) => state.user);
     const [latestPosts, setLatestPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -397,6 +399,76 @@ export default function Home() {
                                 Explore All Categories
                             </Button>
                         </Link>
+                    </div>
+                </section>
+
+                {/* Problem Solving Feature */}
+                <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/80 p-10 shadow-xl dark:border-slate-700/70 dark:bg-slate-900/70" aria-labelledby="problem-solving">
+                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-cyan-100 via-indigo-100 to-purple-200 opacity-70 dark:from-cyan-900/30 dark:via-indigo-900/20 dark:to-purple-900/30" />
+                    <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+                        <div className="space-y-4">
+                            <p className="inline-flex items-center gap-2 rounded-full bg-cyan-100 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-200">
+                                Inspired by GeeksforGeeks
+                            </p>
+                            <h2 id="problem-solving" className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white">
+                                Master computer science problem solving
+                            </h2>
+                            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
+                                Tackle curated algorithmic challenges with structured hints, detailed editorials, and reference implementations. Practice in a focused environment that mirrors real interviews and competitions.
+                            </p>
+                            <ul className="grid gap-3 sm:grid-cols-2 text-sm text-gray-700 dark:text-gray-200">
+                                <li className="flex items-start gap-2">
+                                    <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                                    Progressive difficulty levels from warm-up to advanced puzzles.
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                                    Rich sample cases, constraints, and interactive hints to guide your approach.
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                                    Editorial write-ups and solution snippets in multiple languages.
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                                    Track trending topics and focus on the skills hiring managers expect.
+                                </li>
+                            </ul>
+                            <div className="flex flex-wrap gap-4 pt-4">
+                                <Link to="/problems">
+                                    <Button gradientDuoTone="cyanToBlue" size="lg" className="shadow-lg">
+                                        Start solving problems
+                                    </Button>
+                                </Link>
+                                {currentUser?.isAdmin && (
+                                    <Link to="/create-problem">
+                                        <Button color="light" size="lg" className="border border-cyan-500 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-300 dark:text-cyan-200 dark:hover:bg-cyan-900/30">
+                                            Contribute a challenge
+                                        </Button>
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                        <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/90 p-6 shadow-inner dark:border-white/10 dark:bg-slate-900/80">
+                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-indigo-500/10" />
+                            <div className="relative space-y-4">
+                                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Daily challenge preview</h3>
+                                <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 dark:border-slate-700 dark:bg-slate-900/80">
+                                    <p className="text-sm font-semibold text-cyan-600 dark:text-cyan-300">Dynamic Programming · Medium</p>
+                                    <p className="mt-2 font-bold text-gray-900 dark:text-white">Optimize workshop scheduling</p>
+                                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                        Given N workshops with start/end times and profit, compute the maximum profit without overlapping sessions.
+                                    </p>
+                                    <div className="mt-4 flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                        <span className="rounded-full bg-cyan-100 px-3 py-1 font-semibold text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-200">Success rate 42%</span>
+                                        <span className="rounded-full bg-gray-100 px-3 py-1 font-semibold text-gray-700 dark:bg-gray-800/70 dark:text-gray-200">1.2k submissions</span>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    Solve it now and compare approaches with the community&apos;s editorial breakdown.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </section>
 

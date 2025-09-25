@@ -92,6 +92,72 @@ export interface QuizSubmissionResult {
     message: string;
 }
 
+export interface ProblemSample {
+    label?: string;
+    input: string;
+    output: string;
+    explanation?: string;
+}
+
+export interface ProblemHint {
+    title?: string;
+    body: string;
+}
+
+export interface ProblemSolutionSnippet {
+    language: string;
+    code: string;
+    timeComplexity?: string;
+    spaceComplexity?: string;
+}
+
+export interface ProblemResourceLink {
+    label: string;
+    url: string;
+}
+
+export interface ProblemStats {
+    submissions: number;
+    accepted: number;
+    likes: number;
+}
+
+export interface ProblemSummary {
+    _id: string;
+    title: string;
+    slug: string;
+    description: string;
+    difficulty: 'Beginner' | 'Easy' | 'Medium' | 'Hard' | 'Advanced';
+    topics: string[];
+    tags: string[];
+    companies: string[];
+    estimatedTime?: number;
+    stats: ProblemStats;
+    successRate: number | null;
+    updatedAt: string;
+    createdAt: string;
+    isPublished: boolean;
+}
+
+export interface Problem extends ProblemSummary {
+    statement: string;
+    inputFormat?: string;
+    outputFormat?: string;
+    constraints: string[];
+    samples: ProblemSample[];
+    hints: ProblemHint[];
+    solutionApproach?: string;
+    editorial?: string;
+    solutionSnippets: ProblemSolutionSnippet[];
+    resources: ProblemResourceLink[];
+    createdBy?: {
+        _id?: string;
+        username?: string;
+        profilePicture?: string;
+        role?: string;
+    };
+}
+
 export interface PageSectionItem {
     title?: string;
     body?: string;

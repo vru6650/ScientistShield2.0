@@ -41,6 +41,13 @@ const quickActions = [
         gradient: 'from-violet-500 via-indigo-500 to-purple-500',
     },
     {
+        title: 'Publish a problem',
+        description: 'Craft algorithmic challenges complete with hints and editorial solutions.',
+        to: '/create-problem',
+        icon: HiPuzzle,
+        gradient: 'from-fuchsia-500 via-purple-500 to-pink-500',
+    },
+    {
         title: 'Design a page',
         description: 'Create marketing or documentation pages with modular content sections.',
         to: '/create-page',
@@ -78,6 +85,12 @@ const managementShortcuts = [
         title: 'Quiz insights',
         description: 'Audit question pools and align assessments with tutorials.',
         to: '/dashboard?tab=quizzes',
+        icon: HiPuzzle,
+    },
+    {
+        title: 'Problem library',
+        description: 'Review code challenges, update samples, and manage solution quality.',
+        to: '/dashboard?tab=problems',
         icon: HiPuzzle,
     },
     {

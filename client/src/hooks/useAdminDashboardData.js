@@ -7,18 +7,21 @@ const defaultDashboardState = Object.freeze({
     pages: [],
     tutorials: [],
     quizzes: [],
+    problems: [],
     totalUsers: 0,
     totalPosts: 0,
     totalComments: 0,
     totalPages: 0,
     totalTutorials: 0,
     totalQuizzes: 0,
+    totalProblems: 0,
     lastMonthUsers: 0,
     lastMonthPosts: 0,
     lastMonthComments: 0,
     lastMonthPages: 0,
     lastMonthTutorials: 0,
     lastMonthQuizzes: 0,
+    lastMonthProblems: 0,
 });
 
 export default function useAdminDashboardData(isEnabled) {
@@ -38,25 +41,27 @@ export default function useAdminDashboardData(isEnabled) {
         try {
             const authRequestOptions = { credentials: 'include' };
 
-            const [userRes, postRes, commentRes, pageRes, tutorialRes, quizRes] = await Promise.all([
+            const [userRes, postRes, commentRes, pageRes, tutorialRes, quizRes, problemRes] = await Promise.all([
                 fetch('/api/user/getusers?limit=5', authRequestOptions),
                 fetch('/api/post/getposts?limit=5', authRequestOptions),
                 fetch('/api/comment/getcomments?limit=5', authRequestOptions),
                 fetch('/api/pages?limit=5', authRequestOptions),
                 fetch('/api/tutorial/gettutorials?limit=5'),
                 fetch('/api/quizzes?limit=5'),
+                fetch('/api/problems?limit=5&includeDrafts=true'),
             ]);
 
-            const [userData, postData, commentData, pageData, tutorialData, quizData] = await Promise.all([
+            const [userData, postData, commentData, pageData, tutorialData, quizData, problemData] = await Promise.all([
                 userRes.json(),
                 postRes.json(),
                 commentRes.json(),
                 pageRes.json(),
                 tutorialRes.json(),
                 quizRes.json(),
+                problemRes.json(),
             ]);
 
-            if (!userRes.ok || !postRes.ok || !commentRes.ok || !pageRes.ok || !tutorialRes.ok || !quizRes.ok) {
+            if (!userRes.ok || !postRes.ok || !commentRes.ok || !pageRes.ok || !tutorialRes.ok || !quizRes.ok || !problemRes.ok) {
                 const message =
                     userData.message ||
                     postData.message ||
@@ -64,6 +69,7 @@ export default function useAdminDashboardData(isEnabled) {
                     pageData.message ||
                     tutorialData.message ||
                     quizData.message ||
+                    problemData.message ||
                     'Failed to fetch admin metrics. Please try again.';
                 throw new Error(message);
             }
@@ -75,18 +81,21 @@ export default function useAdminDashboardData(isEnabled) {
                 pages: pageData.pages || [],
                 tutorials: tutorialData.tutorials || [],
                 quizzes: quizData.quizzes || [],
+                problems: problemData.problems || [],
                 totalUsers: userData.totalUsers || 0,
                 totalPosts: postData.totalPosts || 0,
                 totalComments: commentData.totalComments || 0,
                 totalPages: pageData.totalCount || 0,
                 totalTutorials: tutorialData.totalTutorials || 0,
                 totalQuizzes: quizData.totalQuizzes || 0,
+                totalProblems: problemData.totalProblems || 0,
                 lastMonthUsers: userData.lastMonthUsers || 0,
                 lastMonthPosts: postData.lastMonthPosts || 0,
                 lastMonthComments: commentData.lastMonthComments || 0,
                 lastMonthPages: pageData.lastMonthCount || 0,
                 lastMonthTutorials: tutorialData.lastMonthTutorials || 0,
                 lastMonthQuizzes: quizData.lastMonthQuizzes || 0,
+                lastMonthProblems: problemData.lastMonthProblems || 0,
             });
             setLastSynced(new Date());
         } catch (err) {

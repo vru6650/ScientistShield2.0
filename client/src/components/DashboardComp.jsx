@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import { HiAnnotation, HiCollection, HiDocumentText, HiOutlineUserGroup } from 'react-icons/hi';
+import { HiAnnotation, HiCollection, HiDocumentText, HiOutlineUserGroup, HiPuzzle } from 'react-icons/hi';
 import { Alert, Badge, Spinner, Table } from 'flowbite-react';
 import StatCard from './StatCard'; // Import new component
 import RecentDataTable from './RecentDataTable'; // Import new component
@@ -59,6 +59,13 @@ export default function DashboardComp() {
                     iconBgColor='bg-lime-600'
                 />
                 <StatCard
+                    title='Total Problems'
+                    count={dashboardData.totalProblems}
+                    lastMonthCount={dashboardData.lastMonthProblems}
+                    icon={HiPuzzle}
+                    iconBgColor='bg-purple-600'
+                />
+                <StatCard
                     title='Total Pages'
                     count={dashboardData.totalPages}
                     lastMonthCount={dashboardData.lastMonthPages}
@@ -108,6 +115,20 @@ export default function DashboardComp() {
                                 <Table.Cell><img src={post.image} alt={post.title} className='w-14 h-10 rounded-md bg-gray-500 object-cover'/></Table.Cell>
                                 <Table.Cell className='w-96'>{post.title}</Table.Cell>
                                 <Table.Cell className='w-5'>{post.category}</Table.Cell>
+                            </Table.Row>
+                        </Table.Body>
+                    )}
+                />
+                <RecentDataTable
+                    title='Recent problems'
+                    linkTo='/dashboard?tab=problems'
+                    headers={['Title', 'Difficulty']}
+                    data={dashboardData.problems}
+                    renderRow={(problem) => (
+                        <Table.Body key={problem._id} className='divide-y'>
+                            <Table.Row className='bg-white dark:border-gray-700 dark:bg-gray-800'>
+                                <Table.Cell className='w-80'>{problem.title}</Table.Cell>
+                                <Table.Cell>{problem.difficulty}</Table.Cell>
                             </Table.Row>
                         </Table.Body>
                     )}

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FaBook, FaHome, FaQuestionCircle, FaUser, FaLaptopCode } from 'react-icons/fa';
+import { FaBook, FaHome, FaQuestionCircle, FaUser, FaLaptopCode, FaLightbulb } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle.jsx';
@@ -9,6 +9,7 @@ const items = [
     { to: '/', label: 'Home', icon: FaHome },
     { to: '/tutorials', label: 'Tutorials', icon: FaBook },
     { to: '/quizzes', label: 'Quizzes', icon: FaQuestionCircle },
+    { to: '/problems', label: 'Problems', icon: FaLightbulb },
     { to: '/visualizer', label: 'Code Visualizer', icon: FaLaptopCode }
 ];
 
