@@ -167,9 +167,7 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
     });
 
     const [selectedLanguage, setSelectedLanguage] = useState(normalizedInitialLanguage);
-    const [srcDoc, setSrcDoc] = useState('');
     const [consoleOutput, setConsoleOutput] = useState('');
-    const [autoRun, setAutoRun] = useState(true);
     const [isRunning, setIsRunning] = useState(false);
     const [runError, setRunError] = useState(null);
     const [showOutputPanel, setShowOutputPanel] = useState(true);
@@ -196,62 +194,39 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
         setRunError(null);
         setConsoleOutput('');
 
-        if (selectedLanguage === 'cpp' || selectedLanguage === 'python') {
-            const endpoint = selectedLanguage === 'cpp' ? '/api/code/run-cpp' : '/api/code/run-python';
-            try {
-                const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: codes[selectedLanguage] }),
-                });
-                const data = await res.json();
-                if (data.error) {
-                    setRunError(data.output);
-                } else {
-                    setConsoleOutput(data.output);
-                }
-            } catch (error) {
-                setRunError(`An error occurred while running the ${selectedLanguage} code.`);
-                console.error(error);
-            } finally {
-                setIsRunning(false);
+        const endpointMap = {
+            javascript: '/api/code/run-js',
+            cpp: '/api/code/run-cpp',
+            python: '/api/code/run-python',
+        };
+
+        const endpoint = endpointMap[selectedLanguage];
+
+        if (!endpoint) {
+            setRunError(`Unsupported language: ${selectedLanguage}`);
+            setIsRunning(false);
+            return;
+        }
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: codes[selectedLanguage] }),
+            });
+            const data = await res.json();
+            if (data.error) {
+                setRunError(data.output);
+            } else {
+                setConsoleOutput(data.output);
             }
-        } else {
-            const fullSrcDoc = `
-                <html>
-                    <head><style>${codes.css}</style></head>
-                    <body>
-                        ${codes.html}
-                        <script>
-                            const originalLog = console.log;
-                            let outputBuffer = '';
-                            console.log = (...args) => {
-                                outputBuffer += args.map(arg => {
-                                    try {
-                                        return JSON.stringify(arg, null, 2);
-                                    } catch {
-                                        return String(arg);
-                                    }
-                                }).join(' ') + '\\n';
-                            };
-                            try {
-                                ${codes.javascript}
-                                window.parent.postMessage({ type: 'js-output', output: outputBuffer.trim() || 'JavaScript executed successfully.' }, '*');
-                            } catch (e) {
-                                window.parent.postMessage({ type: 'js-output', output: 'JavaScript Error: ' + e.message }, '*');
-                            } finally {
-                                console.log = originalLog;
-                            }
-                        </script>
-                    </body>
-                </html>
-            `;
-            setSrcDoc(fullSrcDoc);
+        } catch (error) {
+            setRunError(`An error occurred while running the ${selectedLanguage} code.`);
+            console.error(error);
+        } finally {
             setIsRunning(false);
         }
     };
-
-    const isLivePreviewLanguage = selectedLanguage === 'javascript';
 
     useEffect(() => {
         setEditorTheme(theme === 'dark' ? 'vs-dark' : 'vs-light');
@@ -294,24 +269,6 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
         setHasAppliedSnippet(true);
     }, [snippetId, snippet, hasAppliedSnippet, language, selectedLanguage]);
 
-    useEffect(() => {
-        if (!autoRun || !isLivePreviewLanguage) return;
-        const timeout = setTimeout(() => runCode(), 1000);
-        return () => clearTimeout(timeout);
-    }, [codes.html, codes.css, codes.javascript, autoRun, selectedLanguage, isLivePreviewLanguage]);
-
-    useEffect(() => {
-        if (isLivePreviewLanguage) runCode();
-    }, [isLivePreviewLanguage, selectedLanguage]);
-
-    useEffect(() => {
-        const handleMessage = (event) => {
-            if (event.data?.type === 'js-output') setConsoleOutput(event.data.output);
-        };
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    }, []);
-
     const resetCode = () => {
         setCodes({
             html: (snippet?.html ?? normalizedInitialCode.html) || defaultCodes.html,
@@ -320,7 +277,6 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
             cpp: (snippet?.cpp ?? normalizedInitialCode.cpp) || defaultCodes.cpp,
             python: (snippet?.python ?? normalizedInitialCode.python) || defaultCodes.python,
         });
-        setSrcDoc('');
         setConsoleOutput('');
         setRunError(null);
     };
@@ -356,7 +312,6 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
                         setSelectedLanguage={(lang) => setSelectedLanguage(normalizeLanguage(lang))}
                     />
                     <div className="flex items-center gap-4 flex-wrap justify-center">
-                        {isLivePreviewLanguage && <ToggleSwitch checked={autoRun} onChange={() => setAutoRun(!autoRun)} label="Auto-Run" />}
                         <Button gradientDuoTone="purpleToBlue" onClick={runCode} isProcessing={isRunning} disabled={isRunning} size="sm">
                             <FaPlay className="mr-2 h-3 w-3" /> Run
                         </Button>
@@ -435,25 +390,13 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
                             >
                                 <h3 className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 p-1">
                                     <FaTerminal />
-                                    {isLivePreviewLanguage ? 'Live Preview & Console' : 'Terminal Output'}
+                                    Terminal Output
                                 </h3>
-                                {isLivePreviewLanguage ? (
-                                    <div className="flex-1 flex flex-col gap-2 overflow-hidden">
-                                        <iframe
-                                            title="live-output"
-                                            srcDoc={srcDoc}
-                                            sandbox="allow-scripts"
-                                            className="w-full flex-1 min-h-[160px] bg-white border border-gray-200 dark:border-gray-700 rounded-md"
-                                        />
-                                        <pre className="whitespace-pre-wrap p-2 text-xs text-gray-400 font-mono max-h-40 overflow-auto bg-gray-900 rounded-md">{consoleOutput || '// JavaScript console output will appear here...'}</pre>
-                                    </div>
-                                ) : (
-                                    <div ref={outputRef} className='flex-1 whitespace-pre-wrap p-2 text-sm text-green-400 font-mono overflow-auto bg-gray-900 rounded-md'>
-                                        {isRunning && <div className="flex items-center text-gray-400"><Spinner size="sm" /> <span className="ml-2">Running...</span></div>}
-                                        {runError && <Alert color="failure" className="!bg-transparent text-sm"><pre className="whitespace-pre-wrap text-red-400 font-mono">{runError}</pre></Alert>}
-                                        {!isRunning && !runError && <pre className="whitespace-pre-wrap text-sm text-green-400 font-mono">{consoleOutput || 'Execution complete.'}</pre>}
-                                    </div>
-                                )}
+                                <div ref={outputRef} className='flex-1 whitespace-pre-wrap p-2 text-sm text-green-400 font-mono overflow-auto bg-gray-900 rounded-md'>
+                                    {isRunning && <div className="flex items-center text-gray-400"><Spinner size="sm" /> <span className="ml-2">Running...</span></div>}
+                                    {runError && <Alert color="failure" className="!bg-transparent text-sm"><pre className="whitespace-pre-wrap text-red-400 font-mono">{runError}</pre></Alert>}
+                                    {!isRunning && !runError && <pre className="whitespace-pre-wrap text-sm text-green-400 font-mono">{consoleOutput || 'Execution complete.'}</pre>}
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
