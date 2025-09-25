@@ -1,18 +1,14 @@
-import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Breadcrumb, Spinner } from 'flowbite-react';
 import { HiHome, HiArrowLeft } from 'react-icons/hi2';
-import DOMPurify from 'dompurify';
 
 import { getProblemBySlug } from '../services/problemService';
 import ProblemStatsBar from '../components/problems/ProblemStatsBar';
-import ProblemHints from '../components/problems/ProblemHints';
-import ProblemSampleTests from '../components/problems/ProblemSampleTests';
-import ProblemSolutionTabs from '../components/problems/ProblemSolutionTabs';
-import ProblemConstraintList from '../components/problems/ProblemConstraintList';
 import ProblemResourceLinks from '../components/problems/ProblemResourceLinks';
 import ProblemMetaSummary from '../components/problems/ProblemMetaSummary';
+import ProblemWorkspace from '../components/problems/ProblemWorkspace';
+import CodeEditor from '../components/CodeEditor';
 
 export default function SingleProblemPage() {
     const { problemSlug } = useParams();
@@ -22,11 +18,6 @@ export default function SingleProblemPage() {
         queryFn: () => getProblemBySlug(problemSlug),
         enabled: Boolean(problemSlug),
     });
-
-    const sanitizedStatement = useMemo(() => {
-        if (!data?.statement) return '';
-        return DOMPurify.sanitize(data.statement, { USE_PROFILES: { html: true } });
-    }, [data?.statement]);
 
     if (isLoading) {
         return (
@@ -68,65 +59,48 @@ export default function SingleProblemPage() {
                 </div>
             </div>
 
-            <div className="mx-auto mt-10 grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-[2fr,1fr] lg:px-8">
-                <main className="space-y-10">
-                    <div className="rounded-3xl border border-slate-200 bg-white/80 p-8 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
-                        <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Problem statement</h2>
-                        <div
-                            className="prose prose-slate mt-5 max-w-none dark:prose-invert prose-pre:bg-slate-900"
-                            dangerouslySetInnerHTML={{ __html: sanitizedStatement }}
-                        />
-                    </div>
-
-                    <div className="grid gap-8 lg:grid-cols-2">
-                        <ProblemConstraintList constraints={data.constraints} />
-                        <ProblemHints hints={data.hints} />
-                    </div>
-
-                    <ProblemSampleTests samples={data.samples} />
-
-                    {(data.solutionApproach || data.editorial) && (
-                        <section className="space-y-4 rounded-3xl border border-slate-200 bg-white/80 p-8 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
-                            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Editorial walkthrough</h2>
-                            {data.solutionApproach && (
-                                <p className="text-slate-600 dark:text-slate-300">{data.solutionApproach}</p>
-                            )}
-                            {data.editorial && (
-                                <div
-                                    className="prose prose-slate max-w-none dark:prose-invert"
-                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.editorial, { USE_PROFILES: { html: true } }) }}
-                                />
-                            )}
-                        </section>
-                    )}
-
-                    <ProblemSolutionTabs solutionSnippets={data.solutionSnippets} />
-
-                    <ProblemResourceLinks resources={data.resources} />
-
-                    <Link
-                        to="/problems"
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-600 transition hover:text-cyan-500 dark:text-cyan-300"
-                    >
-                        <HiArrowLeft className="h-4 w-4" />
-                        Back to problem list
-                    </Link>
-                </main>
-
-                <div className="space-y-6">
-                    <ProblemMetaSummary problem={data} />
-                    <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
-                        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">Share your solution</h3>
-                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                            Publish a write-up in the ScientistShield community forum and help fellow learners master this challenge.
-                        </p>
-                        <a
-                            href="mailto:team@scientistshield.dev?subject=Solution%20write-up%20for%20"
-                            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-cyan-600 hover:text-cyan-500 dark:text-cyan-300"
+            <div className="mx-auto mt-10 max-w-6xl px-4 sm:px-6 lg:px-8">
+                <div className="grid gap-8 lg:grid-cols-[1.15fr,0.85fr]">
+                    <div className="space-y-8">
+                        <ProblemWorkspace problem={data} />
+                        <ProblemResourceLinks resources={data.resources} />
+                        <Link
+                            to="/problems"
+                            className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-600 transition hover:text-cyan-500 dark:text-cyan-300"
                         >
-                            Start a discussion
-                        </a>
+                            <HiArrowLeft className="h-4 w-4" />
+                            Back to problem list
+                        </Link>
                     </div>
+
+                    <aside className="space-y-6">
+                        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+                            <div className="space-y-1 border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+                                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Interactive editor</h2>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    Write, run, and visualize your solution without leaving the problem page.
+                                </p>
+                            </div>
+                            <div className="h-[720px] bg-slate-50/80 dark:bg-slate-900/70">
+                                <CodeEditor language="javascript" />
+                            </div>
+                        </section>
+
+                        <ProblemMetaSummary problem={data} />
+
+                        <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+                            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">Share your solution</h3>
+                            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                                Publish a write-up in the ScientistShield community forum and help fellow learners master this challenge.
+                            </p>
+                            <a
+                                href="mailto:team@scientistshield.dev?subject=Solution%20write-up%20for%20"
+                                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-cyan-600 hover:text-cyan-500 dark:text-cyan-300"
+                            >
+                                Start a discussion
+                            </a>
+                        </div>
+                    </aside>
                 </div>
             </div>
         </div>
