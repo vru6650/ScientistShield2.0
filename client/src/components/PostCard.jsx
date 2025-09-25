@@ -390,6 +390,79 @@ const CardActions = ({ likeProps, bookmarkProps, onActionClick, onShareClick, sh
 CardActions.propTypes = { likeProps: PropTypes.object, bookmarkProps: PropTypes.object, onActionClick: PropTypes.func, onShareClick: PropTypes.func, shareTooltip: PropTypes.string, disableLikes: PropTypes.bool, disableBookmarks: PropTypes.bool, disableShare: PropTypes.bool };
 
 
+
+const CardInsightPanel = ({ readingMinutes, readingLabel, wordCount, likeTotal, isTrending, isFresh, formattedCategory }) => {
+    const progressValue = useMemo(() => {
+        if (readingMinutes <= 0) {
+            const base = likeTotal > 0 ? 30 + Math.min(30, likeTotal) : 24;
+            return Math.min(100, base);
+        }
+        const readingContribution = Math.min(80, Math.round((readingMinutes / 8) * 100));
+        const applauseBoost = Math.min(20, Math.round(likeTotal / 5));
+        return Math.min(100, readingContribution + applauseBoost);
+    }, [likeTotal, readingMinutes]);
+
+    const accentGradient = isTrending
+        ? 'from-amber-400 via-rose-400 to-professional-blue-500'
+        : 'from-professional-blue-500 via-indigo-500 to-purple-500';
+
+    const wordsLabel = wordCount > 0 ? `${wordCount.toLocaleString()} words` : 'Bite-sized update';
+    const clapsLabel = likeTotal === 1 ? '1 clap' : `${likeTotal.toLocaleString()} claps`;
+
+    return (
+        <div className="rounded-xl border border-gray-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 shadow-inner backdrop-blur-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-600 dark:text-gray-300">
+                    <span className="inline-flex items-center gap-1 text-professional-blue-600 dark:text-professional-blue-300">
+                        <FaTag aria-hidden className="text-[10px]" />
+                        {formattedCategory}
+                    </span>
+                    {isTrending && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/70 px-2 py-0.5 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
+                            <FaFire aria-hidden className="text-[12px]" />
+                            Trending
+                        </span>
+                    )}
+                    {isFresh && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100/70 px-2 py-0.5 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
+                            <FaClock aria-hidden className="text-[12px]" />
+                            Fresh
+                        </span>
+                    )}
+                </div>
+                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                    {readingLabel}
+                    {readingMinutes > 0 ? ` · ${readingMinutes} min` : ''}
+                </span>
+            </div>
+            <div className="px-3 pb-3">
+                <div className="flex items-center justify-between text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                    <span>{wordsLabel}</span>
+                    <span>{clapsLabel}</span>
+                </div>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-slate-700">
+                    <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${Math.max(18, progressValue)}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                        className={`h-full rounded-full bg-gradient-to-r ${accentGradient}`}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
+CardInsightPanel.propTypes = {
+    readingMinutes: PropTypes.number.isRequired,
+    readingLabel: PropTypes.string.isRequired,
+    wordCount: PropTypes.number.isRequired,
+    likeTotal: PropTypes.number.isRequired,
+    isTrending: PropTypes.bool.isRequired,
+    isFresh: PropTypes.bool.isRequired,
+    formattedCategory: PropTypes.string.isRequired,
+};
+
 const CardBody = ({ post, likeCount, authorUsername }) => {
     const { previewText, wordCount, readingMinutes, readingLabel } = useMemo(
         () => buildPostInsights(post.content, post.title),
@@ -402,89 +475,69 @@ const CardBody = ({ post, likeCount, authorUsername }) => {
     const showMoreLink = (safeCaption.endsWith('…') || safeCaption.endsWith('...')) && hasSlug;
     const formattedCategory = formatCategory(post?.category);
     const isTrending = likeTotal >= 50;
+    const isFresh = post?.createdAt ? moment().diff(moment(post.createdAt), 'hours') <= 48 : false;
 
     return (
         <div className="px-3 pb-3 text-sm text-gray-800 dark:text-gray-200">
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
                 <div>
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">
+                    <h3 className="text-base font-semibold leading-snug text-gray-900 transition-colors hover:text-professional-blue-500 dark:text-gray-100 dark:hover:text-professional-blue-300">
                         {hasSlug ? (
-                            <Link to={`/post/${post.slug}`} className="hover:text-professional-blue-500 dark:hover:text-professional-blue-300 transition-colors">
+                            <Link to={`/post/${post.slug}`}>
                                 {post.title}
                             </Link>
                         ) : (
                             post.title
                         )}
                     </h3>
-                    <p className="text-[13px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="mt-1 text-[13px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Published {publishedLabel}
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-gray-600 dark:text-gray-300">
-                    <span className="inline-flex items-center gap-1 bg-gray-100/80 dark:bg-slate-700/60 px-2 py-1 rounded-full">
-                        <FaClock aria-hidden className="text-[12px]" />
-                        {readingLabel}
-                        {readingMinutes > 0 && <span className="sr-only">Estimated reading time</span>}
-                    </span>
-                    {wordCount > 0 && (
-                        <span className="inline-flex items-center gap-1 bg-gray-100/80 dark:bg-slate-700/60 px-2 py-1 rounded-full">
-                            <FaBookOpen aria-hidden className="text-[12px]" />
-                            {wordCount.toLocaleString()} words
-                        </span>
-                    )}
-                    {formattedCategory && (
-                        <span className="inline-flex items-center gap-1 bg-professional-blue-50/70 dark:bg-professional-blue-900/40 text-professional-blue-600 dark:text-professional-blue-300 px-2 py-1 rounded-full">
-                            <FaTag aria-hidden className="text-[12px]" />
-                            {formattedCategory}
-                        </span>
-                    )}
-                    {isTrending && (
-                        <span className="inline-flex items-center gap-1 bg-orange-100/80 text-orange-600 dark:bg-orange-500/20 dark:text-orange-200 px-2 py-1 rounded-full">
-                            <FaFire aria-hidden className="text-[12px]" />
-                            Trending
-                        </span>
-                    )}
-                </div>
+                <CardInsightPanel
+                    readingMinutes={readingMinutes}
+                    readingLabel={readingLabel}
+                    wordCount={wordCount}
+                    likeTotal={likeTotal}
+                    isTrending={isTrending}
+                    isFresh={isFresh}
+                    formattedCategory={formattedCategory}
+                />
 
-                <div>
-                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
-                        <span className="font-bold mr-1">{authorUsername}</span>
-                        {safeCaption}
-                        {showMoreLink && (
-                            <Link to={`/post/${post.slug}`} className="text-gray-500 dark:text-gray-400 hover:underline ml-1">
-                                more
-                            </Link>
-                        )}
-                    </p>
-                </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
-                {hasSlug ? (
-                    <Link to={`/post/${post.slug}#comments`} className="hover:text-professional-blue-500 dark:hover:text-professional-blue-300 transition-colors">
-                        View all comments
-                    </Link>
-                ) : (
-                    <span className="text-gray-400 dark:text-gray-500">Comments unavailable</span>
-                )}
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <span className="font-bold">{likeTotal.toLocaleString()} likes</span>
-                    {hasSlug && (
+                <div className="rounded-xl border border-gray-200/70 bg-white/70 px-4 py-3 text-[15px] leading-relaxed text-gray-700 shadow-sm transition-all hover:border-professional-blue-200 hover:shadow-md dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-gray-300">
+                    <p className="line-clamp-4">{safeCaption}</p>
+                    {showMoreLink ? (
                         <Link
                             to={`/post/${post.slug}`}
-                            className="inline-flex items-center gap-1 text-professional-blue-600 dark:text-professional-blue-300 hover:underline"
+                            className="group mt-3 inline-flex items-center gap-2 text-sm font-semibold text-professional-blue-600 transition-colors hover:text-professional-blue-500 dark:text-professional-blue-300 dark:hover:text-professional-blue-200"
                         >
-                            Read story
-                            <FaExternalLinkAlt aria-hidden className="text-[12px]" />
+                            Continue reading
+                            <FaExternalLinkAlt className="text-xs transition-transform group-hover:translate-x-1" aria-hidden />
                         </Link>
+                    ) : (
+                        <span className="mt-3 block text-xs font-medium uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">
+                            End of preview
+                        </span>
                     )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                    <span className="inline-flex items-center gap-2">
+                        <FaUserCircle aria-hidden className="text-base" />
+                        {authorUsername}
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                        <FaBookOpen aria-hidden className="text-base" />
+                        {readingMinutes > 0 ? `${readingMinutes} min journey` : 'Skim friendly'}
+                    </span>
                 </div>
             </div>
         </div>
     );
 };
-CardBody.propTypes = { post: PropTypes.object, likeCount: PropTypes.number, authorUsername: PropTypes.string };
+CardBody.propTypes = { post: PropTypes.object.isRequired, likeCount: PropTypes.number, authorUsername: PropTypes.string };
+
 
 
 // --- Main PostCard Component ---
