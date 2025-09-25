@@ -18,28 +18,46 @@ export const workspaceTools = [
         id: 'json-formatter',
         name: 'JSON Formatter',
         description: 'Validate and beautify JSON payloads with instant feedback.',
+        longDescription:
+            'Validate, prettify, and minify JSON payloads before sharing API responses or storing them for later reference.',
         icon: FaCode,
         category: 'Formatters & Validators',
         accent: 'from-cyan-500 to-blue-500',
         tags: ['json', 'validation', 'api'],
+        tips: [
+            'Beautify complex payloads to surface malformed keys and visualize deeply nested data.',
+            'Minify the output before copying it back into a request body to keep network payloads lean.',
+        ],
     },
     {
         id: 'base64-converter',
         name: 'Base64 Converter',
         description: 'Encode or decode Base64 strings safely with Unicode support.',
+        longDescription:
+            'Swap between encoded and decoded strings without losing Unicode characters or formatted input.',
         icon: FaBolt,
         category: 'Converters',
         accent: 'from-purple-500 to-pink-500',
         tags: ['encoding', 'security'],
+        tips: [
+            'Use encode mode when you need to embed assets or auth tokens inside URLs or HTML.',
+            'Decode suspicious payloads quickly to inspect what is being sent across the wire.',
+        ],
     },
     {
         id: 'text-transformer',
         name: 'Text Transformer',
         description: 'Quickly switch between common casing styles and clean text.',
+        longDescription:
+            'Normalize copy for UI labels, API slugs, and helper texts with one-click casing transformations.',
         icon: FaMagic,
         category: 'Productivity',
         accent: 'from-amber-500 to-orange-500',
         tags: ['text', 'productivity'],
+        tips: [
+            'Use sentence and title case helpers to prepare marketing copy without leaving the app.',
+            'Generate snake case instantly when you need environment variable friendly identifiers.',
+        ],
     },
 ];
 
