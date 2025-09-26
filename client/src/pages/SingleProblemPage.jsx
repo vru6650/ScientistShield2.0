@@ -17,6 +17,48 @@ import ProblemResourceLinks from '../components/problems/ProblemResourceLinks';
 import ProblemMetaSummary from '../components/problems/ProblemMetaSummary';
 import ProblemWorkspace from '../components/problems/ProblemWorkspace';
 import CodeEditor from '../components/CodeEditor';
+
+const normalizeStarterLanguage = (language) => {
+    if (!language) {
+        return null;
+    }
+
+    const normalized = language.toLowerCase().trim();
+
+    if (!normalized) {
+        return null;
+    }
+
+    if (normalized.includes('javascript') || normalized.includes('node')) {
+        return 'javascript';
+    }
+
+    if (normalized.includes('python')) {
+        return 'python';
+    }
+
+    if (normalized.includes('c++') || normalized.includes('cpp')) {
+        return 'cpp';
+    }
+
+    if (normalized === 'html' || normalized.includes('markup')) {
+        return 'html';
+    }
+
+    if (normalized === 'css') {
+        return 'css';
+    }
+
+    if (normalized.includes('java') && !normalized.includes('javascript')) {
+        return 'java';
+    }
+
+    if (normalized.includes('c#') || normalized.includes('csharp') || normalized.includes('dotnet')) {
+        return 'csharp';
+    }
+
+    return null;
+};
 import ProblemDifficultyBadge from '../components/problems/ProblemDifficultyBadge';
 
 export default function SingleProblemPage() {
@@ -48,6 +90,41 @@ export default function SingleProblemPage() {
             </div>
         );
     }
+
+    const { starterInitialCode, starterDefaultLanguage } = useMemo(() => {
+        if (!data?.starterCodes?.length) {
+            return { starterInitialCode: undefined, starterDefaultLanguage: undefined };
+        }
+
+        const collectedCodes = {};
+        let firstLanguage = null;
+
+        data.starterCodes.forEach((template) => {
+            if (!template?.code) {
+                return;
+            }
+
+            const normalizedLanguage = normalizeStarterLanguage(template.language);
+
+            if (!normalizedLanguage) {
+                return;
+            }
+
+            collectedCodes[normalizedLanguage] = template.code;
+
+            if (!firstLanguage) {
+                firstLanguage = normalizedLanguage;
+            }
+        });
+
+        const preferredLanguageOrder = ['javascript', 'python', 'cpp', 'java', 'csharp', 'html', 'css'];
+        const prioritizedLanguage = preferredLanguageOrder.find((lang) => collectedCodes[lang]);
+
+        return {
+            starterInitialCode: Object.keys(collectedCodes).length ? collectedCodes : undefined,
+            starterDefaultLanguage: prioritizedLanguage ?? firstLanguage ?? undefined,
+        };
+    }, [data?.starterCodes]);
 
     return (
         <div className="relative min-h-screen bg-slate-50 pb-24 dark:bg-slate-950">
@@ -203,7 +280,10 @@ export default function SingleProblemPage() {
                                 </p>
                             </div>
                             <div className="h-[720px] bg-slate-50/80 dark:bg-slate-900/70">
-                                <CodeEditor language="javascript" />
+                                <CodeEditor
+                                    language={starterDefaultLanguage ?? 'javascript'}
+                                    initialCode={starterInitialCode}
+                                />
                             </div>
                         </section>
 
