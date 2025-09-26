@@ -58,6 +58,24 @@ const solutionSnippetSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const starterCodeSchema = new mongoose.Schema(
+    {
+        language: {
+            type: String,
+            required: true,
+        },
+        code: {
+            type: String,
+            required: true,
+        },
+        notes: {
+            type: String,
+            default: '',
+        },
+    },
+    { _id: false }
+);
+
 const resourceLinkSchema = new mongoose.Schema(
     {
         label: {
@@ -159,6 +177,10 @@ const problemSchema = new mongoose.Schema(
         },
         solutionSnippets: {
             type: [solutionSnippetSchema],
+            default: [],
+        },
+        starterCodes: {
+            type: [starterCodeSchema],
             default: [],
         },
         resources: {

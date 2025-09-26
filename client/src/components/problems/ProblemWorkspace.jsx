@@ -6,6 +6,7 @@ import ProblemConstraintList from './ProblemConstraintList';
 import ProblemSampleTests from './ProblemSampleTests';
 import ProblemHints from './ProblemHints';
 import ProblemSolutionTabs from './ProblemSolutionTabs';
+import ProblemStarterCodeTabs from './ProblemStarterCodeTabs';
 
 const tabBaseClasses =
     'inline-flex min-w-[120px] items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500';
@@ -51,6 +52,12 @@ export default function ProblemWorkspace({ problem }) {
                 visible: Boolean(sanitizedStatement || problem?.inputFormat || problem?.outputFormat || problem?.constraints?.length),
             },
             {
+                id: 'starter',
+                label: 'Starter code',
+                description: 'Jump-start your implementation with language templates.',
+                visible: Boolean(problem?.starterCodes?.length),
+            },
+            {
                 id: 'examples',
                 label: 'Examples',
                 description: 'Review sample inputs and outputs.',
@@ -71,7 +78,18 @@ export default function ProblemWorkspace({ problem }) {
         ];
 
         return tabs.filter((tab) => tab.visible);
-    }, [problem?.constraints?.length, problem?.hints?.length, problem?.samples?.length, problem?.solutionApproach, problem?.solutionSnippets?.length, problem?.inputFormat, problem?.outputFormat, sanitizedEditorial, sanitizedStatement]);
+    }, [
+        problem?.constraints?.length,
+        problem?.hints?.length,
+        problem?.samples?.length,
+        problem?.solutionApproach,
+        problem?.solutionSnippets?.length,
+        problem?.starterCodes?.length,
+        problem?.inputFormat,
+        problem?.outputFormat,
+        sanitizedEditorial,
+        sanitizedStatement,
+    ]);
 
     const [activeTab, setActiveTab] = useState(availableTabs[0]?.id ?? 'statement');
 
@@ -118,6 +136,22 @@ export default function ProblemWorkspace({ problem }) {
 
     const renderExamplesTab = () => <ProblemSampleTests samples={problem?.samples} />;
 
+    const renderStarterTab = () => (
+        <div className="space-y-4">
+            <SectionHeadline
+                title="Language-specific starter code"
+                description="Pick the skeleton that matches your preferred language and build on top of it."
+            />
+            <ProblemStarterCodeTabs starterCodes={problem?.starterCodes} />
+            <div className="rounded-2xl border border-cyan-200 bg-cyan-50/60 p-4 text-sm text-cyan-800 dark:border-cyan-500/40 dark:bg-cyan-900/20 dark:text-cyan-100">
+                <p>
+                    These templates follow the structure used on platforms like GeeksforGeeks—feel free to adapt imports, I/O
+                    helpers, or helper functions as needed before coding your solution.
+                </p>
+            </div>
+        </div>
+    );
+
     const renderHintsTab = () => (
         <div className="space-y-4">
             <SectionHeadline title="Hints" description="Reveal one clue at a time before diving into the code." />
@@ -147,6 +181,8 @@ export default function ProblemWorkspace({ problem }) {
 
     const renderActiveTab = () => {
         switch (activeTab) {
+            case 'starter':
+                return renderStarterTab();
             case 'examples':
                 return renderExamplesTab();
             case 'hints':
