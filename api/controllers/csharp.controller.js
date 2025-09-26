@@ -104,6 +104,8 @@ export const runCSharpCode = async (req, res, next) => {
 
         const { stdout } = await execFileAsync(runner.command, runner.buildArgs(filePath), {
             timeout: 5000,
+            encoding: 'utf8',
+            maxBuffer: 1024 * 1024, // 1 MB to capture compiler diagnostics comfortably
         });
 
         res.status(200).json({ output: stdout, error: false });
@@ -113,7 +115,12 @@ export const runCSharpCode = async (req, res, next) => {
             return res.status(200).json({ output: missingRuntimeMessage, error: true });
         }
 
-        const output = error?.stderr || error?.stdout || error?.message || String(error);
+        const stderr = typeof error?.stderr === 'string' ? error.stderr : error?.stderr?.toString?.();
+        const stdout = typeof error?.stdout === 'string' ? error.stdout : error?.stdout?.toString?.();
+        const outputMessage = [stderr, stdout].filter(Boolean).join('\n').trim();
+        const fallbackMessage = error?.message || String(error);
+        const runtimeFailurePattern = /(dotnet-script|dotnet script|csi|scriptcs)/i;
+        const output = outputMessage || (runtimeFailurePattern.test(fallbackMessage) ? missingRuntimeMessage : fallbackMessage);
         res.status(200).json({ output, error: true });
     } finally {
         try {
