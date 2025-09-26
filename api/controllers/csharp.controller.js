@@ -10,7 +10,46 @@ const execFileAsync = promisify(execFile);
 const __dirname = path.resolve();
 const TEMP_DIR = path.join(__dirname, 'temp');
 
+const projectFileTemplate = `<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
+`;
+
 const runnerCandidates = [
+    {
+        name: 'dotnet (build & run)',
+        async detect() {
+            await execFileAsync('dotnet', ['--version']);
+            return {
+                async run(code, uniqueId) {
+                    const projectDir = path.join(TEMP_DIR, uniqueId);
+                    const projectPath = path.join(projectDir, 'App.csproj');
+                    const programPath = path.join(projectDir, 'Program.cs');
+
+                    await fs.promises.mkdir(projectDir, { recursive: true });
+                    await fs.promises.writeFile(programPath, code);
+                    await fs.promises.writeFile(projectPath, projectFileTemplate);
+
+                    try {
+                        return await execFileAsync('dotnet', ['run', '--project', projectPath], {
+                            cwd: projectDir,
+                            timeout: 10000,
+                            encoding: 'utf8',
+                            maxBuffer: 1024 * 1024,
+                        });
+                    } finally {
+                        await fs.promises.rm(projectDir, { recursive: true, force: true });
+                    }
+                },
+            };
+        },
+    },
     {
         name: 'dotnet-script',
         async detect() {
@@ -80,7 +119,7 @@ const findCSharpRunner = async () => {
 };
 
 const missingRuntimeMessage =
-    'C# runtime is not available on the server. Install dotnet-script, dotnet script, csi, or scriptcs to enable C# execution.';
+    'C# runtime is not available on the server. Install the .NET SDK (dotnet CLI), dotnet-script, dotnet script, csi, or scriptcs to enable C# execution.';
 
 export const runCSharpCode = async (req, res, next) => {
     const { code } = req.body;
@@ -97,16 +136,30 @@ export const runCSharpCode = async (req, res, next) => {
     }
 
     const uniqueId = uuidv4();
-    const filePath = path.join(TEMP_DIR, `${uniqueId}${runner.extension || '.csx'}`);
 
     try {
-        await fs.promises.writeFile(filePath, code);
+        const executionResult =
+            typeof runner.run === 'function'
+                ? await runner.run(code, uniqueId)
+                : await (async () => {
+                      const filePath = path.join(TEMP_DIR, `${uniqueId}${runner.extension || '.csx'}`);
+                      await fs.promises.writeFile(filePath, code);
+                      try {
+                          return await execFileAsync(runner.command, runner.buildArgs(filePath), {
+                              timeout: 5000,
+                              encoding: 'utf8',
+                              maxBuffer: 1024 * 1024, // 1 MB to capture compiler diagnostics comfortably
+                          });
+                      } finally {
+                          try {
+                              await fs.promises.unlink(filePath);
+                          } catch {
+                              // Ignore cleanup errors
+                          }
+                      }
+                  })();
 
-        const { stdout } = await execFileAsync(runner.command, runner.buildArgs(filePath), {
-            timeout: 5000,
-            encoding: 'utf8',
-            maxBuffer: 1024 * 1024, // 1 MB to capture compiler diagnostics comfortably
-        });
+        const { stdout } = executionResult;
 
         res.status(200).json({ output: stdout, error: false });
     } catch (error) {
@@ -119,14 +172,8 @@ export const runCSharpCode = async (req, res, next) => {
         const stdout = typeof error?.stdout === 'string' ? error.stdout : error?.stdout?.toString?.();
         const outputMessage = [stderr, stdout].filter(Boolean).join('\n').trim();
         const fallbackMessage = error?.message || String(error);
-        const runtimeFailurePattern = /(dotnet-script|dotnet script|csi|scriptcs)/i;
+        const runtimeFailurePattern = /(dotnet-script|dotnet script|csi|scriptcs|dotnet)/i;
         const output = outputMessage || (runtimeFailurePattern.test(fallbackMessage) ? missingRuntimeMessage : fallbackMessage);
         res.status(200).json({ output, error: true });
-    } finally {
-        try {
-            await fs.promises.unlink(filePath);
-        } catch {
-            // Ignore cleanup errors
-        }
     }
 };
