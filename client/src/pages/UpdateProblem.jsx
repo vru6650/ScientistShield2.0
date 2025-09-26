@@ -6,6 +6,7 @@ import { FaPlus, FaTrash } from 'react-icons/fa';
 
 import { getProblemById, updateProblem } from '../services/problemService';
 import { useSelector } from 'react-redux';
+import { STARTER_CODE_LIBRARY, getStarterTemplateById } from '../data/starterCodeLibrary';
 
 const initialSample = { label: '', input: '', output: '', explanation: '' };
 const initialHint = { title: '', body: '' };
@@ -55,6 +56,54 @@ export default function UpdateProblem() {
     const [snippets, setSnippets] = useState([initialSnippet]);
     const [starterCodes, setStarterCodes] = useState([initialStarter]);
     const [resources, setResources] = useState([initialResource]);
+    const [selectedStarterLibraryOption, setSelectedStarterLibraryOption] = useState('');
+
+    const isBlankStarterTemplate = (template) => {
+        if (!template) {
+            return false;
+        }
+
+        const language = typeof template.language === 'string' ? template.language.trim() : '';
+        const code = typeof template.code === 'string' ? template.code.trim() : '';
+        const notes = typeof template.notes === 'string' ? template.notes.trim() : '';
+
+        return !code && !notes && (!language || language === initialStarter.language);
+    };
+
+    const addStarterTemplateFromLibrary = (templateId) => {
+        const libraryTemplate = getStarterTemplateById(templateId);
+
+        if (!libraryTemplate) {
+            setSelectedStarterLibraryOption('');
+            return;
+        }
+
+        const preparedTemplate = {
+            language: libraryTemplate.language,
+            code: libraryTemplate.code,
+            notes: libraryTemplate.notes ?? '',
+        };
+
+        setStarterCodes((prev) => {
+            if (prev.length === 1 && isBlankStarterTemplate(prev[0])) {
+                return [preparedTemplate];
+            }
+
+            return [...prev, preparedTemplate];
+        });
+
+        setSelectedStarterLibraryOption('');
+    };
+
+    const handleStarterTemplateSelect = (templateId) => {
+        if (!templateId) {
+            setSelectedStarterLibraryOption('');
+            return;
+        }
+
+        setSelectedStarterLibraryOption(templateId);
+        addStarterTemplateFromLibrary(templateId);
+    };
 
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['problem-edit', problemId],
@@ -83,7 +132,15 @@ export default function UpdateProblem() {
         setSamples(data.samples?.length ? data.samples : [initialSample]);
         setHints(data.hints?.length ? data.hints : [initialHint]);
         setSnippets(data.solutionSnippets?.length ? data.solutionSnippets : [initialSnippet]);
-        setStarterCodes(data.starterCodes?.length ? data.starterCodes : [initialStarter]);
+        setStarterCodes(
+            data.starterCodes?.length
+                ? data.starterCodes.map((template) => ({
+                      language: template.language ?? '',
+                      code: template.code ?? '',
+                      notes: template.notes ?? '',
+                  }))
+                : [initialStarter]
+        );
         setResources(data.resources?.length ? data.resources : [initialResource]);
     }, [data]);
 
@@ -284,16 +341,33 @@ export default function UpdateProblem() {
                 </section>
 
                 <section className="space-y-4 rounded-3xl border border-gray-200 bg-white/80 p-8 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-2">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Starter code templates</h2>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Maintain language skeletons so solvers can jump straight into implementation, GeeksforGeeks style.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                            <div className="min-w-[220px]">
+                                <Label htmlFor="starter-template-library-update" value="Add starter template" className="sr-only" />
+                                <Select
+                                    id="starter-template-library-update"
+                                    value={selectedStarterLibraryOption}
+                                    onChange={(event) => handleStarterTemplateSelect(event.target.value)}
+                                >
+                                    <option value="">Add language starter…</option>
+                                    {STARTER_CODE_LIBRARY.map((template) => (
+                                        <option key={template.id} value={template.id}>
+                                            {template.label}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
                             <Button type="button" size="xs" outline onClick={() => setStarterCodes((prev) => [...prev, initialStarter])}>
-                                <FaPlus className="mr-2 h-3 w-3" /> Add template
+                                <FaPlus className="mr-2 h-3 w-3" /> Add blank template
                             </Button>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Maintain language skeletons so solvers can jump straight into implementation, GeeksforGeeks style.
-                        </p>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                         {starterCodes.map((template, index) => (
