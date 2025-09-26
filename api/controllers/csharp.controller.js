@@ -118,62 +118,72 @@ const findCSharpRunner = async () => {
     return null;
 };
 
-const missingRuntimeMessage =
+export const missingRuntimeMessage =
     'C# runtime is not available on the server. Install the .NET SDK (dotnet CLI), dotnet-script, dotnet script, csi, or scriptcs to enable C# execution.';
 
-export const runCSharpCode = async (req, res, next) => {
-    const { code } = req.body;
+export const createRunCSharpCode = ({
+    findRunner = findCSharpRunner,
+    fs: fsModule = fs,
+    execFile: exec = execFileAsync,
+    tempDir = TEMP_DIR,
+} = {}) => {
+    return async (req, res, next) => {
+        const { code } = req.body ?? {};
 
-    if (typeof code !== 'string' || !code.trim()) {
-        return next(errorHandler(400, 'C# code is required.'));
-    }
+        if (typeof code !== 'string' || !code.trim()) {
+            return next(errorHandler(400, 'C# code is required.'));
+        }
 
-    await fs.promises.mkdir(TEMP_DIR, { recursive: true });
+        await fsModule.promises.mkdir(tempDir, { recursive: true });
 
-    const runner = await findCSharpRunner();
-    if (!runner) {
-        return res.status(200).json({ output: missingRuntimeMessage, error: true });
-    }
-
-    const uniqueId = uuidv4();
-
-    try {
-        const executionResult =
-            typeof runner.run === 'function'
-                ? await runner.run(code, uniqueId)
-                : await (async () => {
-                      const filePath = path.join(TEMP_DIR, `${uniqueId}${runner.extension || '.csx'}`);
-                      await fs.promises.writeFile(filePath, code);
-                      try {
-                          return await execFileAsync(runner.command, runner.buildArgs(filePath), {
-                              timeout: 5000,
-                              encoding: 'utf8',
-                              maxBuffer: 1024 * 1024, // 1 MB to capture compiler diagnostics comfortably
-                          });
-                      } finally {
-                          try {
-                              await fs.promises.unlink(filePath);
-                          } catch {
-                              // Ignore cleanup errors
-                          }
-                      }
-                  })();
-
-        const { stdout } = executionResult;
-
-        res.status(200).json({ output: stdout, error: false });
-    } catch (error) {
-        if (error?.code === 'ENOENT') {
-            cachedRunner = null;
+        const runner = await findRunner();
+        if (!runner) {
             return res.status(200).json({ output: missingRuntimeMessage, error: true });
         }
 
-        const stderr = typeof error?.stderr === 'string' ? error.stderr : error?.stderr?.toString?.();
-        const stdout = typeof error?.stdout === 'string' ? error.stdout : error?.stdout?.toString?.();
-        const outputMessage = [stderr, stdout].filter(Boolean).join('\n').trim();
-        const fallbackMessage = error?.message || String(error);
-        const runtimeFailurePattern = /(dotnet-script|dotnet script|csi|scriptcs|dotnet)/i;
-        const output = outputMessage || (runtimeFailurePattern.test(fallbackMessage) ? missingRuntimeMessage : fallbackMessage);
-        res.status(200).json({ output, error: true });
-    }
+        const uniqueId = uuidv4();
+
+        try {
+            const executionResult =
+                typeof runner.run === 'function'
+                    ? await runner.run(code, uniqueId)
+                    : await (async () => {
+                          const filePath = path.join(tempDir, `${uniqueId}${runner.extension || '.csx'}`);
+                          await fsModule.promises.writeFile(filePath, code);
+                          try {
+                              return await exec(runner.command, runner.buildArgs(filePath), {
+                                  timeout: 5000,
+                                  encoding: 'utf8',
+                                  maxBuffer: 1024 * 1024, // 1 MB to capture compiler diagnostics comfortably
+                              });
+                          } finally {
+                              try {
+                                  await fsModule.promises.unlink(filePath);
+                              } catch {
+                                  // Ignore cleanup errors
+                              }
+                          }
+                      })();
+
+            const { stdout } = executionResult ?? {};
+
+            res.status(200).json({ output: stdout, error: false });
+        } catch (error) {
+            if (error?.code === 'ENOENT') {
+                cachedRunner = null;
+                return res.status(200).json({ output: missingRuntimeMessage, error: true });
+            }
+
+            const stderr = typeof error?.stderr === 'string' ? error.stderr : error?.stderr?.toString?.();
+            const stdout = typeof error?.stdout === 'string' ? error.stdout : error?.stdout?.toString?.();
+            const outputMessage = [stderr, stdout].filter(Boolean).join('\n').trim();
+            const fallbackMessage = error?.message || String(error);
+            const runtimeFailurePattern = /(dotnet-script|dotnet script|csi|scriptcs|dotnet)/i;
+            const output =
+                outputMessage || (runtimeFailurePattern.test(fallbackMessage) ? missingRuntimeMessage : fallbackMessage);
+            res.status(200).json({ output, error: true });
+        }
+    };
 };
+
+export const runCSharpCode = createRunCSharpCode();
