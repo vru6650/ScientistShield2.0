@@ -80,7 +80,7 @@ const findCSharpRunner = async () => {
 };
 
 const missingRuntimeMessage =
-    'C# runtime is not available on the server. Install dotnet-script, dotnet script, or csi to enable C# execution.';
+    'C# runtime is not available on the server. Install dotnet-script, dotnet script, csi, or scriptcs to enable C# execution.';
 
 export const runCSharpCode = async (req, res, next) => {
     const { code } = req.body;
