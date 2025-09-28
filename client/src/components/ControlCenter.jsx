@@ -107,6 +107,32 @@ export default function ControlCenter() {
     const [energySaverEnabled, setEnergySaverEnabled] = useState(false);
     const [currentMoment, setCurrentMoment] = useState(() => new Date());
     const [searchQuery, setSearchQuery] = useState('');
+    const [notifications, setNotifications] = useState([
+        {
+            id: 'lab-monitor',
+            title: 'Lab Monitor',
+            message: 'Sample batch #42 is ready for review.',
+            time: '2m ago',
+            read: false,
+            snoozedUntil: null,
+        },
+        {
+            id: 'safety-update',
+            title: 'Safety Update',
+            message: 'New PPE protocol acknowledged by your team.',
+            time: '12m ago',
+            read: false,
+            snoozedUntil: null,
+        },
+        {
+            id: 'shipment',
+            title: 'Shipment Incoming',
+            message: 'Cryogenic storage replenishment arrives tomorrow 09:00.',
+            time: '1h ago',
+            read: true,
+            snoozedUntil: null,
+        },
+    ]);
 
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
@@ -224,6 +250,42 @@ export default function ControlCenter() {
         });
     }, [brightness, nightShift]);
 
+    const unreadNotifications = useMemo(
+        () => notifications.filter((notification) => !notification.read).length,
+        [notifications],
+    );
+
+    const notificationsPreview = useMemo(() => notifications.slice(0, 3), [notifications]);
+
+    const handleNotificationAction = useCallback((notificationId, action) => {
+        setNotifications((previous) =>
+            previous
+                .map((notification) => {
+                    if (notification.id !== notificationId) {
+                        return notification;
+                    }
+
+                    switch (action) {
+                        case 'read':
+                            return { ...notification, read: true, snoozedUntil: null };
+                        case 'snooze':
+                            return { ...notification, read: true, snoozedUntil: '1 hr' };
+                        case 'dismiss':
+                            return { ...notification, dismissed: true };
+                        default:
+                            return notification;
+                    }
+                })
+                .filter((notification) => !notification.dismissed),
+        );
+    }, []);
+
+    const handleClearNotifications = useCallback(() => {
+        setNotifications((previous) =>
+            previous.map((notification) => ({ ...notification, read: true, snoozedUntil: null })),
+        );
+    }, []);
+
     const searchItems = useMemo(
         () => [
             {
@@ -330,6 +392,14 @@ export default function ControlCenter() {
                 icon: HiOutlineSquares2X2,
                 action: handleReset,
             },
+            {
+                id: 'notification-clear',
+                label: 'Clear Notifications',
+                description: 'Mark all notifications as read',
+                keywords: ['notifications', 'clear'],
+                icon: HiOutlineBellAlert,
+                action: handleClearNotifications,
+            },
         ],
         [
             wifiEnabled,
@@ -345,6 +415,7 @@ export default function ControlCenter() {
             handleFocusSelection,
             handleEnergySaverToggle,
             handleReset,
+            handleClearNotifications,
         ],
     );
 
@@ -604,6 +675,120 @@ export default function ControlCenter() {
                                         </button>
                                     </div>
                                 </ModuleCard>
+                                <ModuleCard
+                                    icon={HiOutlineBellAlert}
+                                    title="Notifications"
+                                    detail={
+                                        unreadNotifications
+                                            ? `${unreadNotifications} pending`
+                                            : 'All caught up'
+                                    }
+                                    action={
+                                        <button
+                                            type="button"
+                                            onClick={handleClearNotifications}
+                                            disabled={unreadNotifications === 0}
+                                            className={`rounded-full px-3 py-1 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                                                unreadNotifications === 0
+                                                    ? 'cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600'
+                                                    : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/20'
+                                            }`}
+                                        >
+                                            Clear
+                                        </button>
+                                    }
+                                >
+                                    {notifications.length > 0 ? (
+                                        <ul className="space-y-2">
+                                            {notificationsPreview.map((notification) => {
+                                                const isUnread = !notification.read;
+                                                return (
+                                                    <li key={notification.id}>
+                                                        <div
+                                                            className={`rounded-2xl border px-3 py-3 transition ${
+                                                                isUnread
+                                                                    ? 'border-blue-200 bg-blue-50 text-blue-900 shadow-sm dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-50'
+                                                                    : 'border-white/60 bg-white/70 text-gray-700 dark:border-gray-700/60 dark:bg-gray-800/70 dark:text-gray-200'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div className="space-y-1">
+                                                                    <p
+                                                                        className={`text-sm font-semibold ${
+                                                                            isUnread
+                                                                                ? 'text-blue-900 dark:text-blue-50'
+                                                                                : 'text-gray-700 dark:text-gray-100'
+                                                                        }`}
+                                                                    >
+                                                                        {notification.title}
+                                                                    </p>
+                                                                    <p
+                                                                        className={`text-xs ${
+                                                                            isUnread
+                                                                                ? 'text-blue-800/80 dark:text-blue-100/80'
+                                                                                : 'text-gray-500 dark:text-gray-400'
+                                                                        }`}
+                                                                    >
+                                                                        {notification.message}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                                                    {notification.time}
+                                                                </span>
+                                                            </div>
+                                                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wide">
+                                                                <span
+                                                                    className={`rounded-full px-2 py-1 ${
+                                                                        notification.snoozedUntil
+                                                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200'
+                                                                            : isUnread
+                                                                            ? 'bg-blue-500 text-white dark:bg-blue-500 dark:text-white'
+                                                                            : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                                                    }`}
+                                                                >
+                                                                    {notification.snoozedUntil
+                                                                        ? `Snoozed • ${notification.snoozedUntil}`
+                                                                        : isUnread
+                                                                        ? 'New alert'
+                                                                        : 'Read'}
+                                                                </span>
+                                                                {isUnread ? (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleNotificationAction(notification.id, 'read')}
+                                                                            className="rounded-full border border-blue-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-600 transition hover:bg-blue-500 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:border-blue-400/50 dark:text-blue-200 dark:hover:bg-blue-500/20"
+                                                                        >
+                                                                            Mark read
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleNotificationAction(notification.id, 'snooze')}
+                                                                            className="rounded-full border border-amber-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-600 transition hover:bg-amber-500 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 dark:border-amber-400/50 dark:text-amber-200 dark:hover:bg-amber-500/20"
+                                                                        >
+                                                                            Snooze 1 hr
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-gray-400 dark:text-gray-500">Up to date</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    ) : (
+                                        <p className="rounded-2xl border border-dashed border-white/60 bg-white/60 px-4 py-6 text-center text-xs text-gray-500 dark:border-gray-700/60 dark:bg-gray-800/60 dark:text-gray-400">
+                                            You're all caught up. New alerts will appear here.
+                                        </p>
+                                    )}
+                                    {notifications.length > notificationsPreview.length ? (
+                                        <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+                                            Showing latest {notificationsPreview.length} of {notifications.length} notifications.
+                                        </p>
+                                    ) : null}
+                                </ModuleCard>
                             </div>
 
                             <div className="space-y-3">
@@ -653,7 +838,11 @@ export default function ControlCenter() {
                             <div className="flex items-center justify-between rounded-3xl border border-white/60 bg-white/80 px-4 py-3 text-xs text-gray-500 backdrop-blur-xl dark:border-gray-700/60 dark:bg-gray-900/70 dark:text-gray-400">
                                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                                     <HiOutlineBellAlert className="h-5 w-5" />
-                                    {doNotDisturb ? 'Notifications silenced' : 'Alerts enabled'}
+                                    {doNotDisturb
+                                        ? 'Notifications silenced'
+                                        : unreadNotifications > 0
+                                        ? `${unreadNotifications} notification${unreadNotifications > 1 ? 's' : ''} pending`
+                                        : 'Alerts enabled'}
                                 </div>
                                 <button
                                     type="button"
