@@ -1,24 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Tooltip, ToggleSwitch } from 'flowbite-react';
+import { Tooltip } from 'flowbite-react';
 import {
     HiOutlineSquares2X2,
     HiWifi,
     HiSignal,
-    HiOutlineSparkles,
     HiOutlineMoon,
     HiSpeakerWave,
     HiOutlineSun,
     HiOutlineComputerDesktop,
     HiOutlinePaperAirplane,
     HiOutlineDevicePhoneMobile,
-    HiOutlineArrowPath,
-    HiOutlineGlobeAlt,
-    HiOutlineBellAlert,
     HiOutlineBolt,
-    HiOutlineAdjustmentsHorizontal,
     HiOutlineCloud,
-    HiOutlineClock,
+    HiOutlineGlobeAlt,
+    HiOutlineSparkles,
+    HiChevronDown,
 } from 'react-icons/hi2';
 import { PiMonitorLight } from 'react-icons/pi';
 import ThemeToggle from './ThemeToggle.jsx';
@@ -73,8 +70,8 @@ const ambientScenes = [
 
 function StatusPill({ icon: Icon, label, description }) {
     return (
-        <div className="flex items-center gap-2 rounded-full border border-gray-200/70 bg-white/80 px-3 py-1.5 text-xs text-gray-600 shadow-sm dark:border-gray-700/70 dark:bg-gray-900/60 dark:text-gray-300">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100/90 text-gray-600 dark:bg-gray-800/70 dark:text-gray-200">
+        <div className="flex items-center gap-2 rounded-full border border-gray-200/70 bg-white/80 px-3 py-1.5 text-xs text-gray-600 shadow-inner dark:border-gray-700/70 dark:bg-gray-900/60 dark:text-gray-300">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 <Icon className="h-3.5 w-3.5" />
             </span>
             <span className="font-medium">{label}</span>
@@ -83,131 +80,311 @@ function StatusPill({ icon: Icon, label, description }) {
     );
 }
 
-function QuickActionButton({ icon: Icon, label, description, onClick }) {
+function ControlToggle({ icon: Icon, label, detail, active, onClick }) {
     return (
         <button
             type="button"
             onClick={onClick}
-            className="group flex flex-col gap-1.5 rounded-2xl border border-gray-200/70 bg-white/80 p-3 text-left text-sm transition-colors hover:border-cyan-200 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 dark:border-gray-700/70 dark:bg-gray-900/60 dark:hover:border-cyan-500/40"
+            className={`flex flex-col gap-2 rounded-2xl border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                active
+                    ? 'border-transparent bg-gradient-to-br from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30'
+                    : 'border-gray-200/70 bg-white/80 text-gray-700 hover:bg-white dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-200'
+            }`}
         >
-            <span className="flex items-center gap-2 font-semibold text-gray-700 dark:text-gray-200">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-100/90 text-gray-600 transition-colors group-hover:bg-cyan-500 group-hover:text-white dark:bg-gray-800/70 dark:text-gray-300 dark:group-hover:bg-cyan-500">
-                    <Icon className="h-4 w-4" />
-                </span>
-                {label}
+            <span
+                className={`flex h-9 w-9 items-center justify-center rounded-2xl ${
+                    active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                }`}
+            >
+                <Icon className="h-5 w-5" />
             </span>
-            {description ? <span className="text-xs text-gray-500 dark:text-gray-400">{description}</span> : null}
+            <div className="flex flex-col">
+                <span className="text-sm font-semibold">{label}</span>
+                <span className={`text-xs ${active ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>{detail}</span>
+            </div>
         </button>
     );
 }
 
-function ControlTile({ icon: Icon, label, description, active, onClick, accent = 'from-cyan-500 to-blue-500' }) {
+function MiniToggleButton({ icon: Icon, label, active, onClick }) {
     return (
         <button
             type="button"
             onClick={onClick}
-            className={`group flex flex-col gap-2 rounded-2xl border px-4 py-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-900 ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                 active
-                    ? `bg-gradient-to-br ${accent} text-white shadow-lg shadow-cyan-500/30 border-transparent`
-                    : 'bg-white/80 text-gray-700 dark:bg-gray-900/50 dark:text-gray-200 border-gray-200/70 dark:border-gray-700/70 hover:bg-white dark:hover:bg-gray-900'
+                    ? 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/40'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
         >
-            <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-sm font-semibold">
+            {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+            {label}
+        </button>
+    );
+}
+
+function FocusCard({
+    focusMode,
+    focusModes,
+    focusSummary,
+    doNotDisturb,
+    onToggle,
+    onSelect,
+    isMenuOpen,
+    onMenuToggle,
+}) {
+    return (
+        <div
+            className={`relative rounded-3xl border p-4 transition ${
+                doNotDisturb
+                    ? 'border-transparent bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-500 text-white shadow-lg shadow-indigo-500/30'
+                    : 'border-gray-200/70 bg-white/90 text-gray-700 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-200'
+            }`}
+        >
+            <div className="flex items-start justify-between gap-3">
+                <button
+                    type="button"
+                    onClick={onToggle}
+                    className="flex flex-1 flex-col items-start gap-1 text-left focus:outline-none"
+                >
                     <span
-                        className={`flex h-9 w-9 items-center justify-center rounded-2xl transition-colors ${
-                            active
-                                ? 'bg-white/20 text-white'
-                                : 'bg-gray-100/80 text-gray-600 dark:bg-gray-800/70 dark:text-gray-300'
+                        className={`flex h-9 w-9 items-center justify-center rounded-2xl ${
+                            doNotDisturb ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
                         }`}
                     >
-                        <Icon className="h-5 w-5" />
+                        <HiOutlineMoon className="h-5 w-5" />
                     </span>
-                    {label}
+                    <span className="text-sm font-semibold">Focus</span>
+                    <span className={`text-xs ${doNotDisturb ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {doNotDisturb ? focusSummary : 'Off'}
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    onClick={onMenuToggle}
+                    className={`rounded-full p-1 transition ${
+                        doNotDisturb
+                            ? 'bg-white/20 text-white hover:bg-white/30'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                    }`}
+                    aria-label="Choose focus"
+                >
+                    <HiChevronDown className={`h-4 w-4 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.18 }}
+                        className={`mt-4 overflow-hidden rounded-2xl border ${
+                            doNotDisturb
+                                ? 'border-white/20 bg-white/80 text-gray-700'
+                                : 'border-gray-200/70 bg-white/90 text-gray-600 dark:border-gray-700/70 dark:bg-gray-900/80 dark:text-gray-200'
+                        }`}
+                    >
+                        <ul className="divide-y divide-gray-100 text-sm dark:divide-gray-800">
+                            {focusModes.map((mode) => (
+                                <li key={mode.id}>
+                                    <button
+                                        type="button"
+                                        onClick={() => onSelect(mode.id)}
+                                        className={`flex w-full items-center justify-between px-3 py-2 text-left transition ${
+                                            focusMode === mode.id
+                                                ? 'text-cyan-600 dark:text-cyan-300'
+                                                : 'hover:bg-gray-100 dark:hover:bg-gray-800/70'
+                                        }`}
+                                    >
+                                        <span>{mode.label}</span>
+                                        {focusMode === mode.id ? (
+                                            <span className="text-xs font-medium uppercase">Active</span>
+                                        ) : null}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+function LargeActionTile({ icon: Icon, label, description, active, onClick }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`flex h-full flex-col justify-between rounded-3xl border p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                active
+                    ? 'border-transparent bg-gradient-to-br from-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-500/30'
+                    : 'border-gray-200/70 bg-white/90 text-gray-700 hover:bg-white dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-200'
+            }`}
+        >
+            <div className="flex items-center justify-between">
+                <span
+                    className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
+                        active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                    }`}
+                >
+                    <Icon className="h-5 w-5" />
                 </span>
                 <span
                     className={`text-xs font-medium uppercase tracking-wide ${
-                        active ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'
+                        active ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'
                     }`}
                 >
                     {active ? 'On' : 'Off'}
                 </span>
             </div>
-            <p
-                className={`text-xs leading-relaxed ${
-                    active ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'
-                }`}
-            >
-                {description}
-            </p>
+            <div className="mt-4">
+                <p className="text-sm font-semibold">{label}</p>
+                <p className={`mt-1 text-xs leading-relaxed ${active ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {description}
+                </p>
+            </div>
         </button>
     );
 }
 
-function AmbientSceneButton({ icon: Icon, label, description, active, onClick }) {
+function SoundSceneButton({ icon: Icon, label, description, active, onClick }) {
     return (
         <button
             type="button"
             onClick={onClick}
-            className={`flex flex-col gap-1 rounded-2xl border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+            className={`flex flex-col gap-1.5 rounded-2xl border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                 active
-                    ? 'border-transparent bg-gradient-to-br from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30'
-                    : 'border-gray-200/70 bg-white/80 text-gray-700 hover:bg-white dark:border-gray-700/70 dark:bg-gray-900/50 dark:text-gray-200'
+                    ? 'border-transparent bg-gradient-to-br from-sky-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                    : 'border-gray-200/70 bg-white/80 text-gray-700 hover:bg-white dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-200'
             }`}
         >
             <span
                 className={`flex h-9 w-9 items-center justify-center rounded-2xl ${
-                    active
-                        ? 'bg-white/20 text-white'
-                        : 'bg-gray-100/80 text-gray-600 dark:bg-gray-800/70 dark:text-gray-300'
+                    active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
                 }`}
             >
                 <Icon className="h-5 w-5" />
             </span>
             <span className="text-sm font-semibold">{label}</span>
-            <span className={`text-xs ${active ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>{description}</span>
+            <span className={`text-xs leading-relaxed ${active ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                {description}
+            </span>
         </button>
     );
 }
 
-function SliderControl({
-    icon: Icon,
-    label,
-    value,
-    onChange,
-    accent = 'bg-cyan-500',
-    min = 0,
-    max = 100,
-    step = 1,
+function DisplayModule({
+    brightness,
+    onBrightnessChange,
+    nightShift,
+    onNightShiftToggle,
+    energySaverEnabled,
+    onEnergySaverToggle,
 }) {
     return (
-        <div className="rounded-2xl border border-gray-200/70 bg-white/80 p-4 dark:border-gray-700/70 dark:bg-gray-900/50">
-            <div className="flex items-center justify-between text-sm font-semibold text-gray-700 dark:text-gray-200">
-                <span className="flex items-center gap-2">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gray-100/90 text-gray-600 dark:bg-gray-800/70 dark:text-gray-300">
-                        <Icon className="h-5 w-5" />
+        <div className="rounded-3xl border border-gray-200/70 bg-white/90 p-4 shadow-inner dark:border-gray-700/70 dark:bg-gray-900/70">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-200">
+                        <PiMonitorLight className="h-5 w-5" />
                     </span>
-                    {label}
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{value}</span>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Display</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{brightness}% brightness</p>
+                    </div>
+                </div>
+                <MiniToggleButton
+                    icon={HiOutlineBolt}
+                    label={energySaverEnabled ? 'Saver On' : 'Energy Saver'}
+                    active={energySaverEnabled}
+                    onClick={onEnergySaverToggle}
+                />
             </div>
-            <div className="mt-3">
+            <div className="mt-4">
                 <input
                     type="range"
-                    min={min}
-                    max={max}
-                    step={step}
-                    value={value}
-                    onChange={(event) => onChange(Number(event.target.value))}
-                    className={`h-2 w-full appearance-none rounded-full bg-gray-200 dark:bg-gray-700 accent-cyan-500`}
-                    aria-label={label}
+                    min={0}
+                    max={100}
+                    value={brightness}
+                    onChange={(event) => onBrightnessChange(Number(event.target.value))}
+                    className="h-2 w-full appearance-none bg-transparent"
+                    aria-label="Display brightness"
                 />
-                <div className="mt-1 h-1 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                     <div
-                        className={`h-full rounded-full ${accent}`}
-                        style={{ width: `${((value - min) / (max - min)) * 100}%` }}
+                        className="h-full bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500"
+                        style={{ width: `${brightness}%` }}
                     />
                 </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+                <MiniToggleButton
+                    icon={HiOutlineSun}
+                    label={nightShift ? 'Night Shift On' : 'Night Shift'}
+                    active={nightShift}
+                    onClick={onNightShiftToggle}
+                />
+                <div className="flex items-center gap-2 rounded-full border border-gray-200/70 bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-600 shadow-sm dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300">
+                    <ThemeToggle className="h-8 w-8 !bg-transparent !text-gray-600 dark:!bg-transparent dark:!text-gray-300" />
+                    <span>Dark Mode</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SoundModule({ volume, onVolumeChange, ambientScene, onAmbientSelect }) {
+    const activeScene = ambientScenes.find((scene) => scene.id === ambientScene);
+
+    return (
+        <div className="rounded-3xl border border-gray-200/70 bg-white/90 p-4 shadow-inner dark:border-gray-700/70 dark:bg-gray-900/70">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-200">
+                        <HiSpeakerWave className="h-5 w-5" />
+                    </span>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Sound</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{volume}% volume</p>
+                    </div>
+                </div>
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    {activeScene ? activeScene.label : 'Custom'}
+                </span>
+            </div>
+            <div className="mt-4">
+                <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={volume}
+                    onChange={(event) => onVolumeChange(Number(event.target.value))}
+                    className="h-2 w-full appearance-none bg-transparent"
+                    aria-label="System volume"
+                />
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div
+                        className="h-full bg-gradient-to-r from-sky-400 to-cyan-500"
+                        style={{ width: `${volume}%` }}
+                    />
+                </div>
+            </div>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                Ambient soundscapes
+            </p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+                {ambientScenes.map((scene) => (
+                    <SoundSceneButton
+                        key={scene.id}
+                        icon={scene.icon}
+                        label={scene.label}
+                        description={scene.description}
+                        active={ambientScene === scene.id}
+                        onClick={() => onAmbientSelect(scene)}
+                    />
+                ))}
             </div>
         </div>
     );
@@ -225,34 +402,40 @@ export default function ControlCenter() {
     const [volume, setVolume] = useState(60);
     const [airdropEnabled, setAirdropEnabled] = useState(true);
     const [hotspotEnabled, setHotspotEnabled] = useState(false);
-    const [hasCustomAdjustments, setHasCustomAdjustments] = useState(false);
     const [energySaverEnabled, setEnergySaverEnabled] = useState(false);
     const [ambientScene, setAmbientScene] = useState('rain');
     const [currentMoment, setCurrentMoment] = useState(() => new Date());
+    const [isFocusMenuOpen, setIsFocusMenuOpen] = useState(false);
 
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
     const energySaverSnapshotRef = useRef(null);
 
-    const focusSummary = useMemo(() => {
-        if (hasCustomAdjustments) {
-            return 'Custom tweaks active';
-        }
+    const wifiNetworkName = 'ScientistNet';
+    const bluetoothDeviceName = 'Studio Buds';
 
-        switch (focusMode) {
-            case 'deep':
-                return doNotDisturb ? 'Deep Work • DND on' : 'Deep Work preset';
-            case 'break':
-                return 'Break Timer • Relaxed settings';
-            default:
-                return doNotDisturb ? 'Manual • DND on' : 'Manual controls';
+    const focusSummary = useMemo(() => {
+        if (!doNotDisturb) {
+            return 'Off';
         }
-    }, [focusMode, doNotDisturb, hasCustomAdjustments]);
+        const activeFocus = focusModes.find((mode) => mode.id === focusMode);
+        return activeFocus ? activeFocus.label : 'Custom';
+    }, [focusMode, doNotDisturb]);
 
     const ambientSceneLabel = useMemo(() => {
         const activeScene = ambientScenes.find((scene) => scene.id === ambientScene);
         return activeScene ? activeScene.label : 'Custom ambience';
     }, [ambientScene]);
+
+    const connectivitySummary = useMemo(() => {
+        const activeConnections = [
+            wifiEnabled ? 'Wi-Fi' : null,
+            bluetoothEnabled ? 'Bluetooth' : null,
+            airdropEnabled ? 'AirDrop' : null,
+            hotspotEnabled ? 'Hotspot' : null,
+        ].filter(Boolean);
+        return activeConnections.length > 0 ? activeConnections.join(' · ') : 'All connections off';
+    }, [wifiEnabled, bluetoothEnabled, airdropEnabled, hotspotEnabled]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -292,6 +475,12 @@ export default function ControlCenter() {
         return () => clearInterval(interval);
     }, []);
 
+    useEffect(() => {
+        if (!isOpen) {
+            setIsFocusMenuOpen(false);
+        }
+    }, [isOpen]);
+
     const handleFocusSelection = (modeId) => {
         setFocusMode(modeId);
         const preset = focusPresets[modeId];
@@ -299,40 +488,27 @@ export default function ControlCenter() {
             setBrightness(preset.brightness);
             setVolume(preset.volume);
             setDoNotDisturb(preset.doNotDisturb);
-            setHasCustomAdjustments(false);
+        } else {
+            setDoNotDisturb(modeId !== 'off');
         }
+        setIsFocusMenuOpen(false);
     };
 
-    const handleDoNotDisturbChange = (value) => {
-        setDoNotDisturb(value);
-        setHasCustomAdjustments(true);
+    const handleFocusToggle = () => {
+        if (doNotDisturb) {
+            handleFocusSelection('off');
+        } else {
+            const nextMode = focusMode === 'off' ? 'deep' : focusMode;
+            handleFocusSelection(nextMode);
+        }
     };
 
     const handleBrightnessChange = (value) => {
         setBrightness(value);
-        setHasCustomAdjustments(true);
     };
 
     const handleVolumeChange = (value) => {
         setVolume(value);
-        setHasCustomAdjustments(true);
-    };
-
-    const handleReset = () => {
-        setWifiEnabled(true);
-        setBluetoothEnabled(false);
-        setFocusMode('off');
-        setDoNotDisturb(false);
-        setScreenMirroring(false);
-        setNightShift(false);
-        setBrightness(focusPresets.off.brightness);
-        setVolume(focusPresets.off.volume);
-        setAirdropEnabled(true);
-        setHotspotEnabled(false);
-        setHasCustomAdjustments(false);
-        setEnergySaverEnabled(false);
-        setAmbientScene('rain');
-        energySaverSnapshotRef.current = null;
     };
 
     const handleEnergySaverToggle = () => {
@@ -342,14 +518,11 @@ export default function ControlCenter() {
                 energySaverSnapshotRef.current = { brightness, nightShift };
                 setNightShift(true);
                 setBrightness((value) => Math.min(value, 60));
-            } else {
-                if (energySaverSnapshotRef.current) {
-                    setBrightness(energySaverSnapshotRef.current.brightness);
-                    setNightShift(energySaverSnapshotRef.current.nightShift);
-                    energySaverSnapshotRef.current = null;
-                }
+            } else if (energySaverSnapshotRef.current) {
+                setBrightness(energySaverSnapshotRef.current.brightness);
+                setNightShift(energySaverSnapshotRef.current.nightShift);
+                energySaverSnapshotRef.current = null;
             }
-            setHasCustomAdjustments(true);
             return next;
         });
     };
@@ -357,7 +530,6 @@ export default function ControlCenter() {
     const handleAmbientSceneSelection = (scene) => {
         setAmbientScene(scene.id);
         setVolume(scene.volume);
-        setHasCustomAdjustments(true);
     };
 
     return (
@@ -386,275 +558,133 @@ export default function ControlCenter() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -12, scale: 0.97 }}
                         transition={{ duration: 0.18, ease: 'easeOut' }}
-                        className="absolute right-0 z-50 mt-3 w-80 rounded-3xl border border-gray-200/70 bg-white/90 p-5 shadow-2xl backdrop-blur-xl dark:border-gray-700/70 dark:bg-gray-900/90"
+                        className="absolute right-0 z-50 mt-3 w-[22rem] rounded-3xl border border-gray-200/70 bg-white/90 p-5 shadow-2xl backdrop-blur-xl dark:border-gray-700/70 dark:bg-gray-900/90"
                     >
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Control Center</h2>
-                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Quick actions</span>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                            <div className="rounded-2xl border border-gray-200/70 bg-gradient-to-br from-white to-gray-50 p-4 dark:border-gray-700/70 dark:from-gray-900/80 dark:to-gray-900">
-                                <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                                    <span className="flex items-center gap-1">
-                                        <HiOutlineClock className="h-4 w-4" />
-                                        Now
-                                    </span>
-                                    <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-200">
-                                        {focusMode === 'deep' ? 'Deep session' : focusMode === 'break' ? 'Recharge' : 'Manual'}
-                                    </span>
-                                </div>
-                                <div className="mt-3 text-2xl font-semibold text-gray-800 dark:text-gray-100">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                    Control Center
+                                </p>
+                                <p className="mt-1 text-2xl font-semibold text-gray-800 dark:text-gray-100">
                                     {currentMoment.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {currentMoment.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
-                                </div>
-                                <div className="mt-4 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                    <HiOutlineGlobeAlt className="h-4 w-4 text-cyan-500" />
-                                    <span>{ambientSceneLabel}</span>
-                                </div>
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {currentMoment.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
+                                </p>
                             </div>
-                            <div className="flex flex-col justify-between rounded-2xl border border-gray-200/70 bg-white/90 p-4 text-xs text-gray-600 shadow-inner dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300">
-                                <div className="flex items-start gap-2">
-                                    <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-500">
-                                        <HiOutlineAdjustmentsHorizontal className="h-4 w-4" />
-                                    </span>
-                                    <div>
-                                        <p className="font-semibold text-gray-700 dark:text-gray-200">Session health</p>
-                                        <p>Controls tuned for {hasCustomAdjustments ? 'your custom flow' : 'a balanced workflow'}.</p>
-                                    </div>
-                                </div>
-                                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-medium">
-                                    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                        <HiOutlineSun className="h-4 w-4" /> {brightness}%
-                                    </span>
-                                    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                        <HiSpeakerWave className="h-4 w-4" /> {volume}%
-                                    </span>
-                                    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                        <HiOutlineBellAlert className="h-4 w-4" /> {doNotDisturb ? 'DND on' : 'Alerts on'}
-                                    </span>
-                                    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                        <HiOutlineBolt className="h-4 w-4" /> {energySaverEnabled ? 'Energy saver' : 'Performance'}
-                                    </span>
-                                </div>
+                            <div className="flex flex-col items-end gap-2">
+                                <StatusPill
+                                    icon={HiWifi}
+                                    label={wifiEnabled ? 'Wi-Fi On' : 'Wi-Fi Off'}
+                                    description={wifiEnabled ? wifiNetworkName : 'Disabled'}
+                                />
+                                <StatusPill
+                                    icon={HiSignal}
+                                    label={bluetoothEnabled ? 'Bluetooth On' : 'Bluetooth Off'}
+                                    description={bluetoothEnabled ? bluetoothDeviceName : 'Disabled'}
+                                />
+                                <StatusPill icon={HiOutlineMoon} label="Focus" description={focusSummary} />
                             </div>
                         </div>
 
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            <StatusPill
-                                icon={HiWifi}
-                                label={wifiEnabled ? 'Wi-Fi connected' : 'Wi-Fi off'}
-                                description={wifiEnabled ? 'ScientistNet' : undefined}
-                            />
-                            <StatusPill
-                                icon={HiSignal}
-                                label={bluetoothEnabled ? 'Bluetooth on' : 'Bluetooth off'}
-                                description={bluetoothEnabled ? 'Discoverable' : undefined}
-                            />
-                            <StatusPill icon={HiOutlineSparkles} label="Focus" description={focusSummary} />
-                            <StatusPill icon={HiOutlineCloud} label="Ambience" description={ambientSceneLabel} />
-                            <StatusPill
-                                icon={HiOutlineBolt}
-                                label={energySaverEnabled ? 'Energy saver on' : 'Energy saver off'}
-                                description={energySaverEnabled ? 'Brightness moderated' : 'Full performance'}
-                            />
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                            <ControlTile
-                                icon={HiWifi}
-                                label="Wi-Fi"
-                                description={wifiEnabled ? 'Connected to ScientistNet' : 'Turn on to connect networks'}
-                                active={wifiEnabled}
-                                onClick={() => setWifiEnabled((prev) => !prev)}
-                            />
-                            <ControlTile
-                                icon={HiSignal}
-                                label="Bluetooth"
-                                description={bluetoothEnabled ? 'Discoverable nearby' : 'Devices will appear here'}
-                                active={bluetoothEnabled}
-                                onClick={() => setBluetoothEnabled((prev) => !prev)}
-                                accent="from-indigo-500 to-purple-500"
-                            />
-                        </div>
-
-                        <div className="mt-4 space-y-3 rounded-3xl border border-gray-200/70 bg-white/80 p-4 dark:border-gray-700/70 dark:bg-gray-900/60">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Focus</h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        Craft the perfect environment for your next session.
-                                    </p>
+                        <div className="mt-5 space-y-4">
+                            <div className="rounded-3xl border border-gray-200/70 bg-white/90 p-4 dark:border-gray-700/70 dark:bg-gray-900/70">
+                                <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                    <span>Connectivity</span>
+                                    <span className="text-[11px] normal-case text-gray-500 dark:text-gray-400">{connectivitySummary}</span>
                                 </div>
-                                <ToggleSwitch checked={doNotDisturb} onChange={handleDoNotDisturbChange} label={undefined} />
+                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                    <ControlToggle
+                                        icon={HiWifi}
+                                        label="Wi-Fi"
+                                        detail={wifiEnabled ? wifiNetworkName : 'Off'}
+                                        active={wifiEnabled}
+                                        onClick={() => setWifiEnabled((prev) => !prev)}
+                                    />
+                                    <ControlToggle
+                                        icon={HiSignal}
+                                        label="Bluetooth"
+                                        detail={bluetoothEnabled ? bluetoothDeviceName : 'Off'}
+                                        active={bluetoothEnabled}
+                                        onClick={() => setBluetoothEnabled((prev) => !prev)}
+                                    />
+                                    <ControlToggle
+                                        icon={HiOutlinePaperAirplane}
+                                        label="AirDrop"
+                                        detail={airdropEnabled ? 'Contacts Only' : 'Receiving Off'}
+                                        active={airdropEnabled}
+                                        onClick={() => setAirdropEnabled((prev) => !prev)}
+                                    />
+                                    <ControlToggle
+                                        icon={HiOutlineDevicePhoneMobile}
+                                        label="Hotspot"
+                                        detail={hotspotEnabled ? 'Sharing connection' : 'Off'}
+                                        active={hotspotEnabled}
+                                        onClick={() => setHotspotEnabled((prev) => !prev)}
+                                    />
+                                </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
-                                {focusModes.map((mode) => (
-                                    <button
-                                        key={mode.id}
-                                        type="button"
-                                        onClick={() => handleFocusSelection(mode.id)}
-                                        className={`rounded-full px-3 py-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
-                                            focusMode === mode.id
-                                                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-sm'
-                                                : 'bg-white/70 text-gray-600 hover:bg-white dark:bg-gray-800/70 dark:text-gray-300 dark:hover:bg-gray-800'
-                                        }`}
-                                        aria-pressed={focusMode === mode.id}
-                                    >
-                                        {mode.label}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="flex items-center gap-3 rounded-2xl border border-dashed border-gray-200/80 bg-white/70 p-3 text-sm text-gray-600 dark:border-gray-700/70 dark:bg-gray-900/40 dark:text-gray-300">
-                                <HiOutlineSparkles className="h-5 w-5 text-cyan-500" />
-                                {doNotDisturb
-                                    ? 'Do Not Disturb enabled — notifications will be muted.'
-                                    : 'Enable Do Not Disturb to stay focused without interruptions.'}
-                            </div>
-                        </div>
 
-                        <div className="mt-4 space-y-3">
-                            <SliderControl
-                                icon={HiOutlineSun}
-                                label="Display Brightness"
-                                value={brightness}
-                                onChange={handleBrightnessChange}
-                                accent="bg-gradient-to-r from-amber-400 to-orange-500"
+                            <div className="grid grid-cols-2 gap-3">
+                                <FocusCard
+                                    focusMode={focusMode}
+                                    focusModes={focusModes}
+                                    focusSummary={focusSummary}
+                                    doNotDisturb={doNotDisturb}
+                                    onToggle={handleFocusToggle}
+                                    onSelect={handleFocusSelection}
+                                    isMenuOpen={isFocusMenuOpen}
+                                    onMenuToggle={() => setIsFocusMenuOpen((prev) => !prev)}
+                                />
+                                <LargeActionTile
+                                    icon={HiOutlineComputerDesktop}
+                                    label="Screen Mirroring"
+                                    description={
+                                        screenMirroring
+                                            ? 'Streaming to meeting room display'
+                                            : 'Connect to share this screen'
+                                    }
+                                    active={screenMirroring}
+                                    onClick={() => setScreenMirroring((prev) => !prev)}
+                                />
+                            </div>
+
+                            <DisplayModule
+                                brightness={brightness}
+                                onBrightnessChange={handleBrightnessChange}
+                                nightShift={nightShift}
+                                onNightShiftToggle={() => setNightShift((prev) => !prev)}
+                                energySaverEnabled={energySaverEnabled}
+                                onEnergySaverToggle={handleEnergySaverToggle}
                             />
-                            <SliderControl
-                                icon={HiSpeakerWave}
-                                label="System Volume"
-                                value={volume}
-                                onChange={handleVolumeChange}
-                                accent="bg-gradient-to-r from-sky-400 to-cyan-500"
+
+                            <SoundModule
+                                volume={volume}
+                                onVolumeChange={handleVolumeChange}
+                                ambientScene={ambientScene}
+                                onAmbientSelect={handleAmbientSceneSelection}
                             />
-                            <div className="flex items-center justify-between rounded-2xl border border-gray-200/70 bg-white/80 p-4 text-sm text-gray-700 dark:border-gray-700/70 dark:bg-gray-900/60 dark:text-gray-200">
+
+                            <div className="rounded-3xl border border-gray-200/70 bg-white/90 p-4 dark:border-gray-700/70 dark:bg-gray-900/70">
                                 <div className="flex items-center gap-3">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gray-100/90 text-gray-600 dark:bg-gray-800/70 dark:text-gray-300">
-                                        <PiMonitorLight className="h-5 w-5" />
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-200">
+                                        <HiOutlineCloud className="h-5 w-5" />
                                     </span>
                                     <div>
-                                        <p className="font-semibold">Appearance</p>
+                                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Environment</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            Toggle between light and dark experiences.
+                                            {ambientSceneLabel} ambience and wellness reminders
                                         </p>
                                     </div>
                                 </div>
-                                <ThemeToggle className="h-10 w-12" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                                    Ambient soundscapes
-                                </p>
-                                <div className="mt-2 grid grid-cols-3 gap-2">
-                                    {ambientScenes.map((scene) => (
-                                        <AmbientSceneButton
-                                            key={scene.id}
-                                            icon={scene.icon}
-                                            label={scene.label}
-                                            description={scene.description}
-                                            active={ambientScene === scene.id}
-                                            onClick={() => handleAmbientSceneSelection(scene)}
-                                        />
-                                    ))}
+                                <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                    <span className="rounded-full bg-gray-100 px-3 py-1 dark:bg-gray-800">
+                                        Energy saver {energySaverEnabled ? 'enabled' : 'off'}
+                                    </span>
+                                    <span className="rounded-full bg-gray-100 px-3 py-1 dark:bg-gray-800">
+                                        Focus {doNotDisturb ? 'active' : 'idle'}
+                                    </span>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                            <ControlTile
-                                icon={HiOutlineComputerDesktop}
-                                label="Screen Mirroring"
-                                description={screenMirroring ? 'Streaming to external display' : 'Connect to share your screen'}
-                                active={screenMirroring}
-                                onClick={() => setScreenMirroring((prev) => !prev)}
-                                accent="from-sky-500 to-cyan-500"
-                            />
-                            <ControlTile
-                                icon={HiOutlineMoon}
-                                label="Night Shift"
-                                description={nightShift ? 'Warmer tones for evening' : 'Automatically shift colors after dark'}
-                                active={nightShift}
-                                onClick={() => setNightShift((prev) => !prev)}
-                                accent="from-amber-500 to-rose-500"
-                            />
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                            <ControlTile
-                                icon={HiOutlinePaperAirplane}
-                                label="AirDrop"
-                                description={airdropEnabled ? 'Receiving from contacts only' : 'Tap to accept incoming files'}
-                                active={airdropEnabled}
-                                onClick={() => setAirdropEnabled((prev) => !prev)}
-                                accent="from-emerald-500 to-teal-500"
-                            />
-                            <ControlTile
-                                icon={HiOutlineDevicePhoneMobile}
-                                label="Personal Hotspot"
-                                description={hotspotEnabled ? 'Sharing connection' : 'Share your connection with others'}
-                                active={hotspotEnabled}
-                                onClick={() => setHotspotEnabled((prev) => !prev)}
-                                accent="from-violet-500 to-indigo-500"
-                            />
-                            <ControlTile
-                                icon={HiOutlineBolt}
-                                label="Energy Saver"
-                                description={energySaverEnabled ? 'Keeping things efficient' : 'Maximize performance & brightness'}
-                                active={energySaverEnabled}
-                                onClick={handleEnergySaverToggle}
-                                accent="from-emerald-500 to-cyan-500"
-                            />
-                        </div>
-
-                        <div className="mt-4 space-y-3 rounded-3xl border border-gray-200/70 bg-white/80 p-4 dark:border-gray-700/70 dark:bg-gray-900/60">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Quick automations</h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        Instantly tailor the space for how you work.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <QuickActionButton
-                                    icon={HiOutlineSparkles}
-                                    label="Deep focus"
-                                    description="Dim screen, lower distractions"
-                                    onClick={() => handleFocusSelection('deep')}
-                                />
-                                <QuickActionButton
-                                    icon={HiOutlineSun}
-                                    label="Break burst"
-                                    description="Brighten display, pump up volume"
-                                    onClick={() => handleFocusSelection('break')}
-                                />
-                                <QuickActionButton
-                                    icon={HiOutlineSquares2X2}
-                                    label="Everything off"
-                                    description="Return to manual controls"
-                                    onClick={() => handleFocusSelection('off')}
-                                />
-                                <QuickActionButton
-                                    icon={HiOutlineArrowPath}
-                                    label="Reset panel"
-                                    description="Restore default toggles"
-                                    onClick={handleReset}
-                                />
-                                <QuickActionButton
-                                    icon={HiOutlineBolt}
-                                    label={energySaverEnabled ? 'Disable saver' : 'Enable saver'}
-                                    description={energySaverEnabled ? 'Return to performance' : 'Extend your session'}
-                                    onClick={handleEnergySaverToggle}
-                                />
-                                <QuickActionButton
-                                    icon={HiOutlineCloud}
-                                    label="Calm ambience"
-                                    description="Switch to gentle rain soundscape"
-                                    onClick={() => handleAmbientSceneSelection(ambientScenes[0])}
-                                />
                             </div>
                         </div>
                     </motion.div>
