@@ -1,15 +1,13 @@
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import {
     FaBook,
-    FaChevronDown,
     FaProjectDiagram,
     FaQuestionCircle,
     FaLightbulb,
     FaSignInAlt,
-    FaTachometerAlt,
     FaPlus,
     FaRegBell,
     FaRegFileAlt,
@@ -94,84 +92,6 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }) => (
     </Tooltip>
 );
 
-const CollapsibleNavItem = ({ icon: Icon, label, isCollapsed, children }) => {
-    const [isInlineOpen, setIsInlineOpen] = useState(true);
-    const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-    const ref = useRef(null);
-    const location = useLocation();
-
-    // Check if any child link is the active route
-    const isActive = React.Children.toArray(children).some(child =>
-        child.props.to && location.pathname.startsWith(child.props.to.split('?')[0])
-    );
-
-    return (
-        <div
-            ref={ref}
-            onMouseEnter={() => isCollapsed && setIsPopoverOpen(true)}
-            onMouseLeave={() => isCollapsed && setIsPopoverOpen(false)}
-            className="relative"
-        >
-            <Tooltip content={label} placement="right" animation="duration-300" disabled={!isCollapsed}>
-                <motion.button
-                    whileHover={!isCollapsed ? { x: 6 } : { scale: 1.05 }}
-                    transition={{ type: 'spring', stiffness: 320, damping: 22 }}
-                    onClick={() => !isCollapsed && setIsInlineOpen(!isInlineOpen)}
-                    className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200 ${
-                        (isActive || (isInlineOpen && !isCollapsed)) ? 'text-white' : 'text-neutral-400 hover:text-white'
-                    } ${isCollapsed ? 'justify-center px-0' : ''}`}
-                >
-                    <AnimatePresence>
-                        {(isActive || (isInlineOpen && !isCollapsed)) && (
-                            <motion.div
-                                layoutId="active-nav-item-indicator"
-                                className="absolute inset-0 rounded-xl border border-sky-300/30 bg-gradient-to-r from-sky-500/15 via-transparent to-transparent shadow-[0_12px_32px_-16px_rgba(15,23,42,0.65)]"
-                            />
-                        )}
-                    </AnimatePresence>
-                    <motion.div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/10 text-white shadow-inner dark:border-slate-600/40 dark:bg-slate-900/40" whileHover={{ scale: 1.08 }}>
-                        <Icon className="h-4 w-4" />
-                    </motion.div>
-                    {!isCollapsed && <span className="relative z-10 flex-1 whitespace-nowrap">{label}</span>}
-                    {!isCollapsed && (
-                        <motion.div className="relative z-10" animate={{ rotate: isInlineOpen ? 0 : -90 }} transition={{ duration: 0.2 }}>
-                            <FaChevronDown size={12} />
-                        </motion.div>
-                    )}
-                </motion.button>
-            </Tooltip>
-
-            <AnimatePresence>
-                {!isCollapsed && isInlineOpen && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        className="ml-4 overflow-hidden rounded-xl border border-white/5 bg-white/5 pl-[1.1rem] shadow-inner dark:border-slate-700/40 dark:bg-slate-900/30"
-                    >
-                        <div className="flex flex-col gap-1 py-2">{children}</div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {isCollapsed && isPopoverOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, x: -10 }}
-                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, x: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute left-full top-0 z-50 ml-3 w-48 rounded-xl border border-white/10 bg-slate-900/90 p-3 shadow-2xl backdrop-blur"
-                    >
-                        <div className="flex flex-col gap-1 text-sm text-neutral-300">{children}</div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-    );
-};
-
 const MessageItem = ({ name, avatar, isCollapsed }) => (
     <Link to="#">
         <motion.div
@@ -229,32 +149,6 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
         { name: 'Emily Smith', avatar: 'https://i.pravatar.cc/150?u=emily' },
         { name: 'Arthur Adell', avatar: 'https://i.pravatar.cc/150?u=arthur' },
     ];
-
-    // FIX: This component now correctly handles not having an icon.
-    const SubItem = ({ to, label }) => (
-        <Tooltip content={label} placement="right" animation="duration-300" disabled={!isCollapsed}>
-            <NavLink to={to}>
-                {({ isActive }) => (
-                    <motion.div
-                        whileHover={{ x: 6 }}
-                        transition={{ type: 'spring', stiffness: 320, damping: 22 }}
-                        className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-200 ${
-                            isActive ? 'text-white' : 'text-neutral-400 hover:text-white'
-                        }`}
-                    >
-                        {isActive && (
-                            <motion.div
-                                layoutId="active-nav-item-indicator"
-                                className="absolute inset-0 rounded-lg border border-sky-300/20 bg-white/5 shadow-[0_10px_25px_-18px_rgba(15,23,42,0.7)] dark:bg-slate-900/30"
-                            />
-                        )}
-                        {!isCollapsed && <span className="relative z-10">{label}</span>}
-                    </motion.div>
-                )}
-            </NavLink>
-        </Tooltip>
-    );
-
 
     return (
         <motion.aside
@@ -327,23 +221,12 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
                     <div className={`${isCollapsed ? 'space-y-1' : 'space-y-2 rounded-2xl border border-white/10 bg-white/10 p-3 shadow-inner dark:border-slate-700/40 dark:bg-slate-900/35'}`}>
                         <SectionHeader label="Main" isCollapsed={isCollapsed} />
                         {currentUser?.isAdmin && (
-                            <>
-                                <NavItem
-                                    to="/admin"
-                                    icon={FaShieldAlt}
-                                    label="Admin Panel"
-                                    isCollapsed={isCollapsed}
-                                />
-                                <CollapsibleNavItem icon={FaTachometerAlt} label="Dashboard" isCollapsed={isCollapsed}>
-                                    <SubItem to="/dashboard?tab=dash" label="Overview" />
-                                    <SubItem to="/dashboard?tab=posts" label="Posts" />
-                                    <SubItem to="/dashboard?tab=tutorials" label="Tutorials" />
-                                    <SubItem to="/dashboard?tab=quizzes" label="Quizzes" />
-                                    <SubItem to="/dashboard?tab=content" label="Content" />
-                                    <SubItem to="/dashboard?tab=comments" label="Comments" />
-                                    <SubItem to="/dashboard?tab=users" label="Users" />
-                                </CollapsibleNavItem>
-                            </>
+                            <NavItem
+                                to="/admin"
+                                icon={FaShieldAlt}
+                                label="Admin Panel"
+                                isCollapsed={isCollapsed}
+                            />
                         )}
 
                         {mainNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
