@@ -1,7 +1,7 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import {
     FaBook, FaProjectDiagram, FaQuestionCircle, FaPlus,
@@ -187,57 +187,82 @@ const MenuItem = ({ icon: Icon, label, onClick, isDestructive = false }) => (
 );
 MenuItem.propTypes = { icon: PropTypes.elementType.isRequired, label: PropTypes.string.isRequired, onClick: PropTypes.func.isRequired, isDestructive: PropTypes.bool };
 
-const NavItem = ({ to, icon: Icon, label, description, isCollapsed, variants }) => (
-    <motion.div variants={variants}>
-        <Tooltip content={label} placement="right" disabled={!isCollapsed}>
-            <NavLink to={to} className="group relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent">
-                {({ isActive }) => (
-                    <>
-                        <AnimatePresence>
-                            {isActive && (
-                                <motion.span
-                                    layoutId="sidebar-active-card"
-                                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-sky-500/25 via-sky-500/15 to-transparent"
-                                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                                />
-                            )}
-                        </AnimatePresence>
-                        <div
-                            className={`relative flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'gap-3 p-2.5 pl-3'} rounded-xl transition-all duration-200 ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white'}`}
-                        >
-                            <span
-                                className={`flex items-center justify-center rounded-xl transition-all duration-200 ${isCollapsed ? 'h-11 w-11' : 'h-10 w-10'} ${isActive ? 'bg-gradient-to-br from-sky-400 via-sky-500 to-blue-500 text-white shadow-lg shadow-sky-500/40' : 'bg-white/5 text-sky-200/80 group-hover:bg-white/10 group-hover:text-white/90'}`}
-                            >
-                                <Icon size={isCollapsed ? 22 : 18} />
-                            </span>
+const NavItem = ({ to, icon: Icon, label, description, isCollapsed, variants, onHover, onLeave }) => {
+    const itemRef = useRef(null);
+
+    const handleHover = useCallback(() => {
+        if (isCollapsed && onHover && itemRef.current) {
+            onHover({ label, description, icon: Icon }, itemRef.current);
+        }
+    }, [Icon, description, isCollapsed, label, onHover]);
+
+    const handleLeave = useCallback(() => {
+        if (onLeave) {
+            onLeave();
+        }
+    }, [onLeave]);
+
+    return (
+        <motion.div
+            ref={itemRef}
+            variants={variants}
+            onMouseEnter={handleHover}
+            onFocus={handleHover}
+            onMouseLeave={handleLeave}
+            onBlur={handleLeave}
+        >
+            <Tooltip content={label} placement="right" disabled={!isCollapsed}>
+                <NavLink to={to} className="group relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent">
+                    {({ isActive }) => (
+                        <>
                             <AnimatePresence>
-                                {!isCollapsed && (
-                                    <motion.div
-                                        initial={{ opacity: 0, x: -8 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -8 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="flex flex-col"
-                                    >
-                                        <span className="font-medium leading-tight">{label}</span>
-                                        {description && <span className="text-xs text-neutral-400/90 group-hover:text-neutral-200/90 transition-colors">{description}</span>}
-                                    </motion.div>
+                                {isActive && (
+                                    <motion.span
+                                        layoutId="sidebar-active-card"
+                                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-sky-500/25 via-sky-500/15 to-transparent"
+                                        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                                    />
                                 )}
                             </AnimatePresence>
-                        </div>
-                    </>
-                )}
-            </NavLink>
-        </Tooltip>
-    </motion.div>
-);
+                            <div
+                                className={`relative flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'gap-3 p-2.5 pl-3'} rounded-xl transition-all duration-200 ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white'}`}
+                            >
+                                <span
+                                    className={`flex items-center justify-center rounded-xl transition-all duration-200 ${isCollapsed ? 'h-11 w-11' : 'h-10 w-10'} ${isActive ? 'bg-gradient-to-br from-sky-400 via-sky-500 to-blue-500 text-white shadow-lg shadow-sky-500/40' : 'bg-white/5 text-sky-200/80 group-hover:bg-white/10 group-hover:text-white/90'}`}
+                                >
+                                    <Icon size={isCollapsed ? 22 : 18} />
+                                </span>
+                                <AnimatePresence>
+                                    {!isCollapsed && (
+                                        <motion.div
+                                            initial={{ opacity: 0, x: -8 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -8 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="flex flex-col"
+                                        >
+                                            <span className="font-medium leading-tight">{label}</span>
+                                            {description && <span className="text-xs text-neutral-400/90 group-hover:text-neutral-200/90 transition-colors">{description}</span>}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </>
+                    )}
+                </NavLink>
+            </Tooltip>
+        </motion.div>
+    );
+};
 NavItem.propTypes = {
     to: PropTypes.string.isRequired,
     icon: PropTypes.elementType.isRequired,
     label: PropTypes.string.isRequired,
     description: PropTypes.string,
     isCollapsed: PropTypes.bool.isRequired,
-    variants: PropTypes.object
+    variants: PropTypes.object,
+    onHover: PropTypes.func,
+    onLeave: PropTypes.func
 };
 
 const QuickAction = ({ to, icon: Icon, label, description }) => (
@@ -268,13 +293,60 @@ QuickAction.propTypes = {
 };
 
 
+const CollapsedPreview = ({ preview }) => (
+    <AnimatePresence>
+        {preview && (
+            <motion.div
+                key={preview.label}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ duration: 0.18 }}
+                className="pointer-events-none fixed left-28 z-[60] w-60 max-w-xs overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-4 shadow-[0_30px_80px_-40px_rgba(14,116,144,0.6)] backdrop-blur-xl"
+                style={{ top: preview.top }}
+            >
+                <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 via-blue-500 to-indigo-500 text-white shadow-lg shadow-sky-500/30">
+                        {preview.icon && React.createElement(preview.icon, { size: 18 })}
+                    </span>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-white">{preview.label}</span>
+                        {preview.description && (
+                            <span className="text-xs text-neutral-300/80">
+                                {preview.description}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </motion.div>
+        )}
+    </AnimatePresence>
+);
+CollapsedPreview.propTypes = {
+    preview: PropTypes.shape({
+        label: PropTypes.string,
+        description: PropTypes.string,
+        icon: PropTypes.elementType,
+        top: PropTypes.number
+    })
+};
+
+
 // --- Main Sidebar Component ---
-const AdvancedSidebar = () => {
+const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlledPinned, setIsPinned: externalSetIsPinned }) => {
     const { currentUser } = useSelector((state) => state.user);
-    const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 768);
-    const [isPinned, setIsPinned] = useState(true);
+    const [internalCollapsed, setInternalCollapsed] = useState(() => window.innerWidth < 768);
+    const [internalPinned, setInternalPinned] = useState(true);
     const [isCommandMenuOpen, setCommandMenuOpen] = useState(false);
+    const [collapsedPreview, setCollapsedPreview] = useState(null);
     const dragControls = useDragControls();
+
+    const isCollapseControlled = typeof controlledCollapsed === 'boolean';
+    const isPinnedControlled = typeof controlledPinned === 'boolean';
+
+    const isCollapsed = isCollapseControlled ? controlledCollapsed : internalCollapsed;
+    const isPinned = isPinnedControlled ? controlledPinned : internalPinned;
+    const setIsPinned = externalSetIsPinned || setInternalPinned;
     const quickActions = [
         {
             to: '/dashboard',
@@ -298,14 +370,78 @@ const AdvancedSidebar = () => {
             : [])
     ];
 
-    const handleMouseEnter = () => !isPinned && setIsCollapsed(false);
-    const handleMouseLeave = () => !isPinned && setIsCollapsed(true);
+    const updateCollapsed = useCallback((value) => {
+        if (!isCollapseControlled) {
+            setInternalCollapsed(value);
+        }
+    }, [isCollapseControlled]);
+
+    const handleMouseEnter = useCallback(() => {
+        if (!isPinned && !isCollapseControlled) {
+            updateCollapsed(false);
+        }
+    }, [isPinned, isCollapseControlled, updateCollapsed]);
+
+    const handleMouseLeave = useCallback(() => {
+        if (!isPinned && !isCollapseControlled) {
+            updateCollapsed(true);
+        }
+    }, [isPinned, isCollapseControlled, updateCollapsed]);
 
     useEffect(() => {
-        const handleResize = () => { if (window.innerWidth < 768) { setIsCollapsed(true); setIsPinned(true); } };
+        const handleResize = () => {
+            if (window.innerWidth < 768) {
+                if (!isCollapseControlled) {
+                    setInternalCollapsed(true);
+                }
+                if (!isPinnedControlled) {
+                    setInternalPinned(true);
+                }
+            }
+        };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
+    }, [isCollapseControlled, isPinnedControlled]);
+
+    useEffect(() => {
+        if (!isCollapsed) {
+            setCollapsedPreview(null);
+        }
+    }, [isCollapsed]);
+
+    useEffect(() => {
+        if (!collapsedPreview) return;
+        const handleScroll = () => setCollapsedPreview(null);
+        window.addEventListener('scroll', handleScroll, true);
+        window.addEventListener('resize', handleScroll);
+        return () => {
+            window.removeEventListener('scroll', handleScroll, true);
+            window.removeEventListener('resize', handleScroll);
+        };
+    }, [collapsedPreview]);
+
+    const showCollapsedPreview = useCallback((item, node) => {
+        if (!node || !isCollapsed) return;
+        const rect = node.getBoundingClientRect();
+        const verticalCenter = rect.top + rect.height / 2;
+        const top = Math.min(
+            window.innerHeight - 140,
+            Math.max(96, verticalCenter - 36)
+        );
+
+        setCollapsedPreview({
+            label: item.label,
+            description: item.description,
+            icon: item.icon,
+            top
+        });
+    }, [isCollapsed]);
+
+    const clearCollapsedPreview = useCallback(() => {
+        setCollapsedPreview(null);
     }, []);
+
+    const overlayActive = !isPinned && !isCollapsed;
 
     const containerVariants = {
         open: { width: '18rem', transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } },
@@ -325,7 +461,16 @@ const AdvancedSidebar = () => {
     return (
         <>
             <CommandMenu isOpen={isCommandMenuOpen} setIsOpen={setCommandMenuOpen} />
-            {!isPinned && !isCollapsed && <motion.div className="fixed inset-0 bg-black/30 z-30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />}
+            {overlayActive && (
+                <motion.div
+                    className="fixed inset-0 z-30 bg-black/30"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                />
+            )}
+
+            <CollapsedPreview preview={isCollapsed ? collapsedPreview : null} />
 
             <motion.aside
                 drag={!isPinned}
@@ -339,6 +484,19 @@ const AdvancedSidebar = () => {
                 onMouseLeave={handleMouseLeave}
                 className="sidebar group fixed top-6 left-6 z-40 flex h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950/80 via-slate-900/70 to-slate-900/90 p-0 shadow-[0px_40px_80px_-50px_rgba(14,116,144,0.7)] backdrop-blur-2xl"
             >
+                <AnimatePresence>
+                    {isCollapsed && (
+                        <motion.div
+                            key="collapsed-rail"
+                            initial={{ opacity: 0, x: -6 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -6 }}
+                            transition={{ duration: 0.25 }}
+                            className="pointer-events-none absolute inset-y-5 left-2 w-[3px] rounded-full bg-gradient-to-b from-sky-400/70 via-sky-500/40 to-transparent"
+                        />
+                    )}
+                </AnimatePresence>
+
                 <div className="pointer-events-none absolute inset-0 opacity-80">
                     <div className="absolute -left-24 top-24 h-64 w-64 rounded-full bg-sky-500/15 blur-3xl" />
                     <div className="absolute -right-28 top-1/3 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl" />
@@ -415,7 +573,14 @@ const AdvancedSidebar = () => {
                                 </AnimatePresence>
                                 <div className="space-y-1.5">
                                     {section.items.map(item => (
-                                        <NavItem key={item.to} {...item} isCollapsed={isCollapsed} variants={navItemVariant} />
+                                        <NavItem
+                                            key={item.to}
+                                            {...item}
+                                            isCollapsed={isCollapsed}
+                                            variants={navItemVariant}
+                                            onHover={showCollapsedPreview}
+                                            onLeave={clearCollapsedPreview}
+                                        />
                                     ))}
                                 </div>
                             </div>
@@ -435,8 +600,26 @@ const AdvancedSidebar = () => {
                                     )}
                                 </AnimatePresence>
                                 <div className="space-y-1.5">
-                                    <NavItem to="/create-post" icon={FaPlus} label="New Post" description="Publish fresh knowledge" isCollapsed={isCollapsed} variants={navItemVariant} />
-                                    <NavItem to="/dashboard?tab=users" icon={FaShieldAlt} label="Manage Users" description="Moderate members & roles" isCollapsed={isCollapsed} variants={navItemVariant} />
+                                    <NavItem
+                                        to="/create-post"
+                                        icon={FaPlus}
+                                        label="New Post"
+                                        description="Publish fresh knowledge"
+                                        isCollapsed={isCollapsed}
+                                        variants={navItemVariant}
+                                        onHover={showCollapsedPreview}
+                                        onLeave={clearCollapsedPreview}
+                                    />
+                                    <NavItem
+                                        to="/dashboard?tab=users"
+                                        icon={FaShieldAlt}
+                                        label="Manage Users"
+                                        description="Moderate members & roles"
+                                        isCollapsed={isCollapsed}
+                                        variants={navItemVariant}
+                                        onHover={showCollapsedPreview}
+                                        onLeave={clearCollapsedPreview}
+                                    />
                                 </div>
                             </div>
                         )}
@@ -474,6 +657,12 @@ const AdvancedSidebar = () => {
             </motion.aside>
         </>
     );
+};
+
+AdvancedSidebar.propTypes = {
+    isCollapsed: PropTypes.bool,
+    isPinned: PropTypes.bool,
+    setIsPinned: PropTypes.func
 };
 
 export default AdvancedSidebar;
