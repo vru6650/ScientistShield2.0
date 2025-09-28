@@ -8,8 +8,16 @@ export const createCodeSnippet = async (req, res, next) => {
     if (!req.user.isAdmin) {
         return next(errorHandler(403, 'You are not allowed to create a code snippet'));
     }
-    const { html = '', css = '', js = '' } = req.body;
-    const newSnippet = new CodeSnippet({ html, css, js });
+    const {
+        html = '',
+        css = '',
+        js = '',
+        cpp = '',
+        python = '',
+        java = '',
+        csharp = '',
+    } = req.body;
+    const newSnippet = new CodeSnippet({ html, css, js, cpp, python, java, csharp });
 
     try {
         const savedSnippet = await newSnippet.save();

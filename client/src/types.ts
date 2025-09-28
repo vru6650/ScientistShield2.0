@@ -111,6 +111,12 @@ export interface ProblemSolutionSnippet {
     spaceComplexity?: string;
 }
 
+export interface ProblemStarterCode {
+    language: string;
+    code: string;
+    notes?: string;
+}
+
 export interface ProblemResourceLink {
     label: string;
     url: string;
@@ -149,6 +155,7 @@ export interface Problem extends ProblemSummary {
     solutionApproach?: string;
     editorial?: string;
     solutionSnippets: ProblemSolutionSnippet[];
+    starterCodes: ProblemStarterCode[];
     resources: ProblemResourceLink[];
     createdBy?: {
         _id?: string;

@@ -1,373 +1,284 @@
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
-import React, { useState, useEffect, useRef } from 'react';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import {
-    FaBook,
-    FaChevronDown,
-    FaProjectDiagram,
-    FaQuestionCircle,
-    FaLightbulb,
-    FaSignInAlt,
-    FaTachometerAlt,
-    FaPlus,
-    FaRegBell,
-    FaRegFileAlt,
-    FaRegCreditCard,
-    FaThumbtack,
-    FaShieldAlt,
-    FaLaptopCode,
+    FaBook, FaProjectDiagram, FaQuestionCircle, FaPlus,
+    FaThumbtack, FaShieldAlt, FaArrowsAlt, FaLaptopCode,
+    FaTools, FaSearch, FaSignOutAlt, FaUser, FaCog, FaMoon, FaSun
 } from 'react-icons/fa';
-import { Avatar, Tooltip, Button } from 'flowbite-react';
+import { Avatar, Tooltip } from 'flowbite-react';
 
-// --- Reusable UI Sub-components ---
+// --- Configuration ---
+const navConfig = [
+    {
+        title: 'Main',
+        items: [
+            { to: '/tutorials', label: 'Tutorials', icon: FaBook },
+            { to: '/quizzes', label: 'Quizzes', icon: FaQuestionCircle },
+            { to: '/projects', label: 'Projects', icon: FaProjectDiagram },
+        ]
+    },
+    {
+        title: 'Workspace',
+        items: [
+            { to: '/tools', label: 'Tools Hub', icon: FaTools },
+            { to: '/visualizer', label: 'Code Visualizer', icon: FaLaptopCode },
+        ]
+    },
+];
 
-const SectionHeader = ({ label, isCollapsed }) => (
-    <AnimatePresence>
-        {!isCollapsed && (
-            <motion.h3
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1, transition: { delay: 0.2 } }}
-                exit={{ opacity: 0 }}
-                className="px-3 mt-6 mb-2 text-xs font-medium tracking-wider uppercase text-neutral-500 dark:text-neutral-400 flex justify-between items-center"
-            >
-                {label}
-                <Tooltip content={`Add New ${label}`} placement="right">
-                    <button className="text-neutral-500 hover:text-white transition-colors">
-                        <FaPlus size={10} />
-                    </button>
-                </Tooltip>
-            </motion.h3>
-        )}
-    </AnimatePresence>
-);
+// --- Child Components ---
 
-const NavItem = ({ to, icon: Icon, label, isCollapsed }) => (
-    <Tooltip content={label} placement="right" animation="duration-300" disabled={!isCollapsed}>
-        <NavLink to={to}>
-            {({ isActive }) => (
-                <motion.div
-                    whileHover={{ x: 5, backgroundColor: 'rgba(100, 116, 139, 0.1)' }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                    className={`
-                        flex items-center gap-3 w-full px-3 py-2.5 rounded-lg font-medium text-left transition-colors duration-200 relative
-                        ${isActive
-                        ? 'bg-neutral-700/60 text-white'
-                        : 'text-neutral-400 group-hover:text-white'
-                    }
-                        ${isCollapsed ? 'justify-center px-0' : ''}
-                    `}
-                >
-                    <AnimatePresence>
-                        {isActive && (
-                            <motion.div
-                                layoutId="active-nav-item-indicator"
-                                className="absolute left-0 top-2 bottom-2 w-1 bg-accent-teal rounded-r-full"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                            />
-                        )}
-                    </AnimatePresence>
+const CommandMenu = ({ isOpen, setIsOpen }) => {
+    const [searchTerm, setSearchTerm] = useState('');
 
-                    {Icon && (
-                        <motion.div whileHover={{ scale: 1.1 }}>
-                            <Icon className="h-5 w-5 flex-shrink-0" />
-                        </motion.div>
-                    )}
+    const commands = [
+        { type: 'link', to: '/tutorials', label: 'Tutorials', icon: FaBook },
+        { type: 'link', to: '/quizzes', label: 'Quizzes', icon: FaQuestionCircle },
+        { type: 'link', to: '/projects', label: 'Projects', icon: FaProjectDiagram },
+        { type: 'action', label: 'Create New Post', icon: FaPlus, action: () => console.log('Create Post') },
+    ];
 
-                    <AnimatePresence>
-                        {!isCollapsed && (
-                            <motion.span
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1, transition: { delay: 0.1 } }}
-                                exit={{ opacity: 0 }}
-                                className="whitespace-nowrap"
-                            >
-                                {label}
-                            </motion.span>
-                        )}
-                    </AnimatePresence>
-                </motion.div>
-            )}
-        </NavLink>
-    </Tooltip>
-);
-
-const CollapsibleNavItem = ({ icon: Icon, label, isCollapsed, children }) => {
-    const [isInlineOpen, setIsInlineOpen] = useState(true);
-    const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-    const ref = useRef(null);
-    const location = useLocation();
-
-    // Check if any child link is the active route
-    const isActive = React.Children.toArray(children).some(child =>
-        child.props.to && location.pathname.startsWith(child.props.to.split('?')[0])
+    const filteredCommands = commands.filter(cmd =>
+        cmd.label?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const onKeyDown = useCallback((e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+        } else if (e.key === 'Escape') {
+            setIsOpen(false);
+        }
+    }, [isOpen, setIsOpen]);
+
+    useEffect(() => {
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [onKeyDown]);
+
     return (
-        <div
-            ref={ref}
-            onMouseEnter={() => isCollapsed && setIsPopoverOpen(true)}
-            onMouseLeave={() => isCollapsed && setIsPopoverOpen(false)}
-            className="relative"
-        >
-            <Tooltip content={label} placement="right" animation="duration-300" disabled={!isCollapsed}>
-                <motion.button
-                    whileHover={!isCollapsed ? { x: 5, backgroundColor: 'rgba(100, 116, 139, 0.1)' } : {}}
-                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                    onClick={() => !isCollapsed && setIsInlineOpen(!isInlineOpen)}
-                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg font-medium text-left transition-colors duration-200 text-base relative ${
-                        (isActive || isInlineOpen && !isCollapsed) ? 'bg-neutral-700/30 text-white' : 'text-neutral-400 hover:text-white'
-                    } ${isCollapsed ? 'justify-center px-0' : ''}`}
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/50"
+                    onClick={() => setIsOpen(false)}
                 >
-                    <AnimatePresence>
-                        {isActive && (
-                            <motion.div
-                                layoutId="active-nav-item-indicator"
-                                className="absolute left-0 top-2 bottom-2 w-1 bg-accent-teal rounded-r-full"
+                    <motion.div
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20 }}
+                        className="relative w-full max-w-lg bg-neutral-800/80 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center gap-3 border-b border-white/10 p-4">
+                            <FaSearch className="text-neutral-400" />
+                            <input
+                                type="text"
+                                placeholder="Search for pages or actions..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-transparent text-white placeholder-neutral-400 focus:ring-0 border-0"
+                                autoFocus
                             />
-                        )}
-                    </AnimatePresence>
-                    <motion.div whileHover={{ scale: 1.1 }}>
-                        <Icon className="h-5 w-5 flex-shrink-0" />
+                        </div>
+                        <div className="p-2 max-h-80 overflow-y-auto">
+                            {filteredCommands.map((cmd, i) => (
+                                <Link to={cmd.to || '#'} key={i} className="block" onClick={() => setIsOpen(false)}>
+                                    <motion.div
+                                        whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                                        className="flex items-center gap-4 p-3 rounded-lg text-sm text-neutral-200"
+                                    >
+                                        {cmd.icon && <cmd.icon />}
+                                        <span>{cmd.label}</span>
+                                    </motion.div>
+                                </Link>
+                            ))}
+                        </div>
                     </motion.div>
-                    {!isCollapsed && <span className="flex-1 whitespace-nowrap">{label}</span>}
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+CommandMenu.propTypes = { isOpen: PropTypes.bool.isRequired, setIsOpen: PropTypes.func.isRequired };
+
+
+const UserProfile = ({ isCollapsed }) => {
+    const { currentUser } = useSelector((state) => state.user);
+    const [isOpen, setIsOpen] = useState(false);
+    const navigate = useNavigate();
+
+    const handleSignOut = () => { navigate('/sign-in'); };
+
+    const menuVariants = {
+        open: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
+        closed: { opacity: 0, y: -20, transition: { duration: 0.2 } }
+    };
+
+    return (
+        <div className="relative">
+            <motion.div whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }} onClick={() => setIsOpen(!isOpen)} className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer ${isCollapsed ? 'justify-center' : ''}`}>
+                <div className="relative">
+                    <Avatar img={currentUser?.profilePicture} rounded size="sm" />
+                    <motion.div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-neutral-800" initial={{ scale: 0 }} animate={{ scale: 1, transition: { delay: 0.5, type: 'spring' } }} />
+                </div>
+                <AnimatePresence>
                     {!isCollapsed && (
-                        <motion.div animate={{ rotate: isInlineOpen ? 0 : -90 }} transition={{ duration: 0.2 }}>
-                            <FaChevronDown size={12} />
+                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0, transition: { delay: 0.2 } }} exit={{ opacity: 0, x: -10 }} className="text-sm leading-tight">
+                            <p className="font-semibold text-white truncate">{currentUser?.username || 'Guest'}</p>
+                            <p className="text-xs text-neutral-400">{currentUser ? (currentUser.isAdmin ? 'Admin' : 'Member') : 'Sign In'}</p>
                         </motion.div>
                     )}
-                </motion.button>
-            </Tooltip>
-
+                </AnimatePresence>
+            </motion.div>
             <AnimatePresence>
-                {!isCollapsed && isInlineOpen && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        className="overflow-hidden ml-4 pl-[1.1rem] border-l border-neutral-700"
-                    >
-                        <div className="pt-1 flex flex-col gap-1">{children}</div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {isCollapsed && isPopoverOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, x: -10 }}
-                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, x: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute left-full top-0 ml-2 bg-neutral-800/90 backdrop-blur-sm p-2 rounded-lg shadow-xl w-40 border border-neutral-700 z-50"
-                    >
-                        {children}
-                    </motion.div>
+                {isOpen && (
+                    <motion.ul variants={menuVariants} initial="closed" animate="open" exit="closed" className="absolute bottom-full left-0 mb-2 w-48 bg-neutral-800/80 backdrop-blur-md border border-white/10 rounded-lg shadow-xl overflow-hidden">
+                        <li className="p-2 text-xs text-neutral-400 border-b border-white/10">Signed in as <span className="font-semibold text-white">{currentUser?.username || 'Guest'}</span></li>
+                        <MenuItem icon={FaUser} label="View Profile" onClick={() => navigate('/dashboard?tab=profile')} />
+                        <MenuItem icon={FaCog} label="Settings" onClick={() => navigate('/settings')} />
+                        <MenuItem icon={FaSignOutAlt} label="Sign Out" onClick={handleSignOut} isDestructive />
+                    </motion.ul>
                 )}
             </AnimatePresence>
         </div>
     );
 };
+UserProfile.propTypes = { isCollapsed: PropTypes.bool.isRequired };
 
-const MessageItem = ({ name, avatar, isCollapsed }) => (
-    <Link to="#">
-        <motion.div
-            whileHover={!isCollapsed ? { x: 5, backgroundColor: 'rgba(100, 116, 139, 0.1)' } : {}}
-            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-400 hover:text-white transition-colors">
-            <Avatar img={avatar} rounded size="xs" />
-            <AnimatePresence>
-                {!isCollapsed && (
-                    <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="whitespace-nowrap text-sm"
-                    >
-                        {name}
-                    </motion.span>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    </Link>
+
+const MenuItem = ({ icon: Icon, label, onClick, isDestructive = false }) => (
+    <li onClick={onClick} className={`flex items-center gap-3 p-2 text-sm cursor-pointer transition-colors ${isDestructive ? 'text-red-400 hover:bg-red-500/20' : 'text-neutral-200 hover:bg-white/10'}`}>
+        <Icon /><span>{label}</span>
+    </li>
 );
+MenuItem.propTypes = { icon: PropTypes.elementType.isRequired, label: PropTypes.string.isRequired, onClick: PropTypes.func.isRequired, isDestructive: PropTypes.bool };
 
-
-// --- Main Sidebar Component ---
-const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
-    const { currentUser } = useSelector((state) => state.user);
-    const mouseX = useMotionValue(0);
-    const mouseY = useMotionValue(0);
-
-    const handleMouseMove = (e) => {
-        const { currentTarget, clientX, clientY } = e;
-        const { left, top } = currentTarget.getBoundingClientRect();
-        mouseX.set(clientX - left);
-        mouseY.set(clientY - top);
-    };
-
-    const mainNavItems = [
-        { to: '/tutorials', label: 'Tutorials', icon: FaBook },
-        { to: '/quizzes', label: 'Quizzes', icon: FaQuestionCircle },
-        { to: '/problems', label: 'Problem Solving', icon: FaLightbulb },
-        { to: '/projects', label: 'Projects', icon: FaProjectDiagram },
-        { to: '/visualizer', label: 'Code Visualizer', icon: FaLaptopCode },
-        { to: '/invoices', label: 'Invoices', icon: FaRegFileAlt },
-        { to: '/wallet', label: 'Wallet', icon: FaRegCreditCard },
-        { to: '/notification', label: 'Notification', icon: FaRegBell },
-    ];
-
-    const messages = [
-        { name: 'Erik Gunsel', avatar: 'https://i.pravatar.cc/150?u=erik' },
-        { name: 'Emily Smith', avatar: 'https://i.pravatar.cc/150?u=emily' },
-        { name: 'Arthur Adell', avatar: 'https://i.pravatar.cc/150?u=arthur' },
-    ];
-
-    // FIX: This component now correctly handles not having an icon.
-    const SubItem = ({ to, label }) => (
-        <Tooltip content={label} placement="right" animation="duration-300" disabled={!isCollapsed}>
-            <NavLink to={to}>
+const NavItem = ({ to, icon: Icon, label, isCollapsed, variants }) => (
+    <motion.div variants={variants}>
+        <Tooltip content={label} placement="right" disabled={!isCollapsed}>
+            <NavLink to={to} className={({ isActive }) => `relative flex items-center gap-4 p-2.5 rounded-lg transition-colors text-sm ${isActive ? 'bg-sky-500/20 text-sky-300' : 'text-neutral-400 hover:bg-white/10 hover:text-white'} ${isCollapsed ? 'justify-center' : ''}`}>
                 {({ isActive }) => (
-                    <motion.div
-                        whileHover={{ x: 5, backgroundColor: 'rgba(100, 116, 139, 0.1)' }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-200 relative ${
-                            isActive ? 'bg-neutral-700/50 text-white' : 'text-neutral-400 hover:text-white'
-                        }`}
-                    >
-                        {isActive && <motion.div layoutId="active-nav-item-indicator" className="absolute left-0 top-1 bottom-1 w-0.5 bg-accent-teal rounded-r-full" />}
-                        {!isCollapsed && <span>{label}</span>}
-                    </motion.div>
+                    <>
+                        <AnimatePresence>{isActive && <motion.div layoutId="active-nav-indicator" className="absolute left-0 top-2 bottom-2 w-1 bg-sky-400 rounded-r-full" />}</AnimatePresence>
+                        <motion.div whileHover={{ scale: 1.1, rotate: 5 }}><Icon size={isCollapsed ? 22 : 18} /></motion.div>
+                        <AnimatePresence>{!isCollapsed && <span className="whitespace-nowrap">{label}</span>}</AnimatePresence>
+                    </>
                 )}
             </NavLink>
         </Tooltip>
-    );
+    </motion.div>
+);
+NavItem.propTypes = { to: PropTypes.string.isRequired, icon: PropTypes.elementType.isRequired, label: PropTypes.string.isRequired, isCollapsed: PropTypes.bool.isRequired, variants: PropTypes.object };
 
+
+// --- Main Sidebar Component ---
+const AdvancedSidebar = () => {
+    const { currentUser } = useSelector((state) => state.user);
+    const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 768);
+    const [isPinned, setIsPinned] = useState(true);
+    const [isCommandMenuOpen, setCommandMenuOpen] = useState(false);
+    const dragControls = useDragControls();
+
+    const handleMouseEnter = () => !isPinned && setIsCollapsed(false);
+    const handleMouseLeave = () => !isPinned && setIsCollapsed(true);
+
+    useEffect(() => {
+        const handleResize = () => { if (window.innerWidth < 768) { setIsCollapsed(true); setIsPinned(true); } };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const containerVariants = {
+        open: { width: '18rem', transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } },
+        closed: { width: '5.5rem', transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }
+    };
+
+    const navItemsVariants = {
+        open: { transition: { staggerChildren: 0.07, delayChildren: 0.2 } },
+        closed: { transition: { staggerChildren: 0.05, staggerDirection: -1 } }
+    };
+
+    const navItemVariant = {
+        open: { y: 0, opacity: 1, transition: { y: { stiffness: 1000, velocity: -100 } } },
+        closed: { y: 50, opacity: 0, transition: { y: { stiffness: 1000 } } }
+    };
 
     return (
-        <motion.aside
-            animate={{ width: isCollapsed ? '5rem' : '16rem' }}
-            transition={{ duration: 0.3, ease: [0.42, 0, 0.58, 1] }}
-            className="sidebar hidden md:flex flex-col fixed top-0 left-0 z-40 h-[calc(100vh-2rem)] my-4 ml-4 rounded-2xl border backdrop-blur-lg bg-white/60 dark:bg-slate-900/60 shadow-lg"
-            onMouseMove={handleMouseMove}
-        >
-            <motion.div
-                className="absolute inset-0 z-0 pointer-events-none"
-                style={{
-                    background: `radial-gradient(circle at ${mouseX}px ${mouseY}px, rgba(148, 163, 184, 0.05), transparent 40%)`
-                }}
-            />
-            <div className="relative z-10">
-                <div className={`flex items-center p-4 border-b ${isCollapsed ? 'justify-center' : 'justify-between'}`} style={{ borderColor: 'var(--color-sidebar-border)' }}>
-                    <AnimatePresence>
-                        {!isCollapsed && (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2 } }} exit={{ opacity: 0 }}>
-                                <Link to="/" className="text-xl font-bold">ScientistShield</Link>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    <Tooltip content={isPinned ? "Unpin Sidebar" : "Pin Sidebar"} placement="right" animation="duration-300">
-                        <motion.button
-                            whileHover={{ scale: 1.1, rotate: 15 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => setIsPinned(!isPinned)}
-                            className="p-2 rounded-full hover:bg-neutral-700 transition-colors"
-                        >
-                            <motion.div animate={{ rotate: isPinned ? 0 : 45 }}>
-                                <FaThumbtack className={isPinned ? 'text-white' : 'text-neutral-500'} />
-                            </motion.div>
-                        </motion.button>
-                    </Tooltip>
-                </div>
+        <>
+            <CommandMenu isOpen={isCommandMenuOpen} setIsOpen={setCommandMenuOpen} />
+            {!isPinned && !isCollapsed && <motion.div className="fixed inset-0 bg-black/30 z-30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />}
 
-                <motion.div
-                    whileHover={{ backgroundColor: 'rgba(100, 116, 139, 0.1)' }}
-                    className={`p-4 border-b`}
-                    style={{ borderColor: 'var(--color-sidebar-border)' }}
-                >
-                    {currentUser ? (
-                        <Link to="/dashboard?tab=profile">
-                            <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-                                <Avatar img={currentUser.profilePicture} rounded size="md" />
-                                <AnimatePresence>
-                                    {!isCollapsed && (
-                                        <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto', transition: { delay: 0.2 } }} exit={{ opacity: 0, width: 0 }} className="text-sm overflow-hidden">
-                                            <p className="font-semibold text-white truncate">{currentUser.username}</p>
-                                            <p className="text-neutral-400 text-xs">Account Designer</p>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+            <motion.aside
+                drag={!isPinned}
+                dragControls={dragControls}
+                dragConstraints={{ top: 16, left: 16, right: window.innerWidth - 300, bottom: window.innerHeight - 500 }}
+                dragElastic={0.1}
+                variants={containerVariants}
+                initial={false}
+                animate={isCollapsed ? 'closed' : 'open'}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                className="sidebar fixed top-4 left-4 z-40 h-[calc(100vh-2rem)] flex flex-col bg-neutral-900/60 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden"
+            >
+                <div className="aurora-bg" />
+
+                <div className="relative z-10 flex flex-col h-full p-4">
+                    <header className={`flex items-center gap-3 shrink-0 ${isCollapsed ? 'justify-center' : 'justify-between'} py-2`}>
+                        <AnimatePresence>{!isCollapsed && <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0, transition: { delay: 0.2 } }} exit={{ opacity: 0, x: -20 }}><Link to="/" className="text-lg font-bold text-white">Scientist<span className="text-sky-400">Shield</span></Link></motion.div>}</AnimatePresence>
+                        <div className="flex items-center">
+                            {!isPinned && (
+                                <Tooltip content="Drag to Move">
+                                    <motion.div onPointerDown={(e) => dragControls.start(e)} className="p-2 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 cursor-grab active:cursor-grabbing"><FaArrowsAlt /></motion.div>
+                                </Tooltip>
+                            )}
+                            <Tooltip content={isPinned ? "Unpin to Move" : "Pin Sidebar"} placement="right">
+                                <motion.button onClick={() => setIsPinned(!isPinned)} className="p-2 rounded-full text-neutral-400 hover:text-white hover:bg-white/10" whileTap={{ scale: 0.9 }}><FaThumbtack className={`transition-colors ${isPinned ? 'text-sky-400' : ''}`} /></motion.button>
+                            </Tooltip>
+                        </div>
+                    </header>
+
+                    <div className="py-4 shrink-0">
+                        <button onClick={() => setCommandMenuOpen(true)} className={`flex items-center gap-3 w-full p-2.5 rounded-xl text-neutral-400 hover:text-white hover:bg-white/10 ${isCollapsed ? 'justify-center' : ''}`}>
+                            <FaSearch />
+                            <AnimatePresence>
+                                {!isCollapsed && <motion.span initial={{opacity:0}} animate={{opacity:1, transition: {delay: 0.2}}} exit={{opacity:0}} className="text-sm">Search...</motion.span>}
+                            </AnimatePresence>
+                            <AnimatePresence>
+                                {!isCollapsed && <motion.kbd initial={{opacity:0}} animate={{opacity:1, transition: {delay: 0.3}}} exit={{opacity:0}} className="ml-auto text-xs border rounded px-1.5 py-0.5 border-white/20">⌘K</motion.kbd>}
+                            </AnimatePresence>
+                        </button>
+                    </div>
+
+                    <motion.nav variants={navItemsVariants} className="flex-1 flex flex-col gap-2 overflow-y-auto py-2 custom-scrollbar">
+                        {navConfig.map(section => (
+                            <div key={section.title} className="space-y-2">
+                                <AnimatePresence>{!isCollapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2 } }} exit={{ opacity: 0 }} className="px-2.5 text-xs font-bold uppercase text-neutral-500 tracking-wider">{section.title}</motion.span>}</AnimatePresence>
+                                {section.items.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} variants={navItemVariant} />)}
                             </div>
-                        </Link>
-                    ) : (
-                        <NavItem to="/sign-in" icon={FaSignInAlt} label="Sign In" isCollapsed={isCollapsed} />
-                    )}
-                </motion.div>
-            </div>
+                        ))}
+                        {currentUser?.isAdmin && (
+                            <div className="space-y-2">
+                                <AnimatePresence>{!isCollapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2 } }} exit={{ opacity: 0 }} className="px-2.5 text-xs font-bold uppercase text-neutral-500 tracking-wider">Admin</motion.span>}</AnimatePresence>
+                                <NavItem to="/create-post" icon={FaPlus} label="New Post" isCollapsed={isCollapsed} variants={navItemVariant}/>
+                                <NavItem to="/dashboard?tab=users" icon={FaShieldAlt} label="Manage Users" isCollapsed={isCollapsed} variants={navItemVariant}/>
+                            </div>
+                        )}
+                    </motion.nav>
 
-            <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-                <SectionHeader label="Main" isCollapsed={isCollapsed} />
-                {currentUser?.isAdmin && (
-                    <>
-                        <NavItem
-                            to="/admin"
-                            icon={FaShieldAlt}
-                            label="Admin Panel"
-                            isCollapsed={isCollapsed}
-                        />
-                        <CollapsibleNavItem icon={FaTachometerAlt} label="Dashboard" isCollapsed={isCollapsed}>
-                            <SubItem to="/dashboard?tab=dash" label="Overview" />
-                            <SubItem to="/dashboard?tab=posts" label="Posts" />
-                            <SubItem to="/dashboard?tab=tutorials" label="Tutorials" />
-                            <SubItem to="/dashboard?tab=quizzes" label="Quizzes" />
-                            <SubItem to="/dashboard?tab=content" label="Content" />
-                            <SubItem to="/dashboard?tab=comments" label="Comments" />
-                            <SubItem to="/dashboard?tab=users" label="Users" />
-                        </CollapsibleNavItem>
-                    </>
-                )}
-
-                {mainNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
-
-                <SectionHeader label="Messages" isCollapsed={isCollapsed} />
-                {messages.map(msg => <MessageItem key={msg.name} {...msg} isCollapsed={isCollapsed} />)}
-            </nav>
-
-            <div className="p-4 mt-auto relative z-10">
-                <AnimatePresence>
-                    {!isCollapsed && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1, transition: { delay: 0.2 } }}
-                            exit={{ opacity: 0 }}
-                            className="bg-neutral-800/80 p-4 rounded-lg text-center border"
-                            style={{ borderColor: 'var(--color-sidebar-border)' }}
-                        >
-                            <h4 className="font-semibold text-white">Let's start!</h4>
-                            <p className="text-xs text-neutral-400 mt-1 mb-3">Creating or starting new tasks couldn't be easier.</p>
-                            <Link to="/create-post">
-                                <Button gradientDuoTone="purpleToBlue" className="w-full">
-                                    <FaPlus className="mr-2 h-3 w-3" /> Add New Task
-                                </Button>
-                            </Link>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                <AnimatePresence>
-                    {isCollapsed && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <Link to="/create-post">
-                                <Button gradientDuoTone="purpleToBlue" className="w-full h-12 flex items-center justify-center rounded-lg"><FaPlus /></Button>
-                            </Link>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-        </motion.aside>
+                    <footer className="mt-auto space-y-3 shrink-0">
+                        <UserProfile isCollapsed={isCollapsed} />
+                    </footer>
+                </div>
+            </motion.aside>
+        </>
     );
 };
 
-export default Sidebar;
+export default AdvancedSidebar;

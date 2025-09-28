@@ -6,10 +6,12 @@ import { FaPlus, FaTrash } from 'react-icons/fa';
 
 import { getProblemById, updateProblem } from '../services/problemService';
 import { useSelector } from 'react-redux';
+import { STARTER_CODE_LIBRARY, getStarterTemplateById } from '../data/starterCodeLibrary';
 
 const initialSample = { label: '', input: '', output: '', explanation: '' };
 const initialHint = { title: '', body: '' };
 const initialSnippet = { language: 'JavaScript', code: '', timeComplexity: '', spaceComplexity: '' };
+const initialStarter = { language: 'JavaScript', code: '', notes: '' };
 const initialResource = { label: '', url: '' };
 
 const parseCommaSeparated = (value) =>
@@ -52,7 +54,56 @@ export default function UpdateProblem() {
     const [samples, setSamples] = useState([initialSample]);
     const [hints, setHints] = useState([initialHint]);
     const [snippets, setSnippets] = useState([initialSnippet]);
+    const [starterCodes, setStarterCodes] = useState([initialStarter]);
     const [resources, setResources] = useState([initialResource]);
+    const [selectedStarterLibraryOption, setSelectedStarterLibraryOption] = useState('');
+
+    const isBlankStarterTemplate = (template) => {
+        if (!template) {
+            return false;
+        }
+
+        const language = typeof template.language === 'string' ? template.language.trim() : '';
+        const code = typeof template.code === 'string' ? template.code.trim() : '';
+        const notes = typeof template.notes === 'string' ? template.notes.trim() : '';
+
+        return !code && !notes && (!language || language === initialStarter.language);
+    };
+
+    const addStarterTemplateFromLibrary = (templateId) => {
+        const libraryTemplate = getStarterTemplateById(templateId);
+
+        if (!libraryTemplate) {
+            setSelectedStarterLibraryOption('');
+            return;
+        }
+
+        const preparedTemplate = {
+            language: libraryTemplate.language,
+            code: libraryTemplate.code,
+            notes: libraryTemplate.notes ?? '',
+        };
+
+        setStarterCodes((prev) => {
+            if (prev.length === 1 && isBlankStarterTemplate(prev[0])) {
+                return [preparedTemplate];
+            }
+
+            return [...prev, preparedTemplate];
+        });
+
+        setSelectedStarterLibraryOption('');
+    };
+
+    const handleStarterTemplateSelect = (templateId) => {
+        if (!templateId) {
+            setSelectedStarterLibraryOption('');
+            return;
+        }
+
+        setSelectedStarterLibraryOption(templateId);
+        addStarterTemplateFromLibrary(templateId);
+    };
 
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['problem-edit', problemId],
@@ -81,6 +132,15 @@ export default function UpdateProblem() {
         setSamples(data.samples?.length ? data.samples : [initialSample]);
         setHints(data.hints?.length ? data.hints : [initialHint]);
         setSnippets(data.solutionSnippets?.length ? data.solutionSnippets : [initialSnippet]);
+        setStarterCodes(
+            data.starterCodes?.length
+                ? data.starterCodes.map((template) => ({
+                    language: template.language ?? '',
+                    code: template.code ?? '',
+                    notes: template.notes ?? '',
+                }))
+                : [initialStarter]
+        );
         setResources(data.resources?.length ? data.resources : [initialResource]);
     }, [data]);
 
@@ -107,6 +167,7 @@ export default function UpdateProblem() {
     const handleSampleChange = updateArray(setSamples);
     const handleHintChange = updateArray(setHints);
     const handleSnippetChange = updateArray(setSnippets);
+    const handleStarterChange = updateArray(setStarterCodes);
     const handleResourceChange = updateArray(setResources);
 
     const handleSubmit = (event) => {
@@ -127,6 +188,13 @@ export default function UpdateProblem() {
             solutionApproach: formData.solutionApproach,
             editorial: formData.editorial,
             solutionSnippets: snippets.filter((snippet) => snippet.code),
+            starterCodes: starterCodes
+                .filter((template) => template.code)
+                .map((template) => ({
+                    ...template,
+                    language: template.language.trim() || 'General',
+                    notes: template.notes?.trim() ?? '',
+                })),
             resources: resources.filter((resource) => resource.label && resource.url),
             estimatedTime: Number(formData.estimatedTime) || 0,
             isPublished: formData.isPublished,
@@ -267,6 +335,69 @@ export default function UpdateProblem() {
                                     value={sample.explanation}
                                     onChange={(event) => handleSampleChange(index, 'explanation', event.target.value)}
                                 />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="space-y-4 rounded-3xl border border-gray-200 bg-white/80 p-8 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-2">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Starter code templates</h2>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Maintain language skeletons so solvers can jump straight into implementation, GeeksforGeeks style.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                            <div className="min-w-[220px]">
+                                <Label htmlFor="starter-template-library-update" value="Add starter template" className="sr-only" />
+                                <Select
+                                    id="starter-template-library-update"
+                                    value={selectedStarterLibraryOption}
+                                    onChange={(event) => handleStarterTemplateSelect(event.target.value)}
+                                >
+                                    <option value="">Add language starter…</option>
+                                    {STARTER_CODE_LIBRARY.map((template) => (
+                                        <option key={template.id} value={template.id}>
+                                            {template.label}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <Button type="button" size="xs" outline onClick={() => setStarterCodes((prev) => [...prev, initialStarter])}>
+                                <FaPlus className="mr-2 h-3 w-3" /> Add blank template
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {starterCodes.map((template, index) => (
+                            <div key={index} className="space-y-2 rounded-2xl border border-gray-200 p-4 dark:border-gray-700">
+                                <TextInput
+                                    placeholder="Language"
+                                    value={template.language}
+                                    onChange={(event) => handleStarterChange(index, 'language', event.target.value)}
+                                />
+                                <Textarea
+                                    rows={5}
+                                    placeholder="Starter code"
+                                    value={template.code}
+                                    onChange={(event) => handleStarterChange(index, 'code', event.target.value)}
+                                />
+                                <Textarea
+                                    rows={2}
+                                    placeholder="Notes (optional)"
+                                    value={template.notes ?? ''}
+                                    onChange={(event) => handleStarterChange(index, 'notes', event.target.value)}
+                                />
+                                {starterCodes.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setStarterCodes((prev) => prev.filter((_, templateIndex) => templateIndex !== index))}
+                                        className="text-sm text-red-500 hover:text-red-400"
+                                    >
+                                        <FaTrash />
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>

@@ -7,8 +7,8 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-
 import { useEffect, useState, useRef } from 'react';
 
 import { signoutSuccess } from '../redux/user/userSlice';
-import ThemeToggle from './ThemeToggle.jsx';
 import CommandMenu from './CommandMenu';
+import ControlCenter from './ControlCenter.jsx';
 
 // --- Reusable Components ---
 
@@ -44,6 +44,7 @@ const navLinks = [
   { label: 'Home', path: '/' },
   { label: 'About', path: '/about' },
   { label: 'Projects', path: '/projects' },
+  { label: 'Tools', path: '/tools' },
   { label: 'Problem Solving', path: '/problems' },
   { label: 'Code Visualizer', path: '/visualizer' },
 ];
@@ -217,9 +218,7 @@ export default function Header() {
                   </Tooltip>
                 </Magnetic>
                 <Magnetic>
-                  <Tooltip content="Toggle Theme">
-                    <ThemeToggle className="hidden sm:inline-flex w-12 h-10" />
-                  </Tooltip>
+                  <ControlCenter />
                 </Magnetic>
                 {currentUser ? (
                     <div className="relative">

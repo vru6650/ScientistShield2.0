@@ -3,7 +3,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Button from './ui/Button';
 
-const languages = ['javascript', 'cpp', 'python'];
+const languages = ['javascript', 'cpp', 'python', 'java', 'csharp'];
+const languageLabels = {
+    csharp: 'C#',
+};
 
 export default function LanguageSelector({ selectedLanguage, setSelectedLanguage }) {
     return (
@@ -24,7 +27,7 @@ export default function LanguageSelector({ selectedLanguage, setSelectedLanguage
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                 >
-                    {lang.toUpperCase()}
+                    {languageLabels[lang] || lang.toUpperCase()}
                 </Button>
             ))}
         </motion.div>
