@@ -7,7 +7,6 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-
 import { useEffect, useState, useRef } from 'react';
 
 import { signoutSuccess } from '../redux/user/userSlice';
-import ThemeToggle from './ThemeToggle.jsx';
 import CommandMenu from './CommandMenu';
 import ControlCenter from './ControlCenter.jsx';
 
@@ -220,11 +219,6 @@ export default function Header() {
                 </Magnetic>
                 <Magnetic>
                   <ControlCenter />
-                </Magnetic>
-                <Magnetic>
-                  <Tooltip content="Toggle Theme">
-                    <ThemeToggle className="hidden sm:inline-flex w-12 h-10" />
-                  </Tooltip>
                 </Magnetic>
                 {currentUser ? (
                     <div className="relative">
