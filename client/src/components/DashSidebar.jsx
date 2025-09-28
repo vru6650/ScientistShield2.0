@@ -17,7 +17,6 @@ import { signoutSuccess } from '../redux/user/userSlice';
 
 // Define sidebar links in a configuration array
 const sidebarLinks = [
-  { tab: 'dash', label: 'Dashboard', icon: HiChartPie, adminOnly: true },
   { tab: 'posts', label: 'Posts', icon: HiDocumentText, adminOnly: true },
   { tab: 'users', label: 'Users', icon: HiOutlineUserGroup, adminOnly: true },
   { tab: 'comments', label: 'Comments', icon: HiAnnotation, adminOnly: true },
