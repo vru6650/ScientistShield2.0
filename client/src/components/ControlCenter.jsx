@@ -13,6 +13,12 @@ import {
     HiOutlinePaperAirplane,
     HiOutlineDevicePhoneMobile,
     HiOutlineArrowPath,
+    HiOutlineGlobeAlt,
+    HiOutlineBellAlert,
+    HiOutlineBolt,
+    HiOutlineAdjustmentsHorizontal,
+    HiOutlineCloud,
+    HiOutlineClock,
 } from 'react-icons/hi2';
 import { PiMonitorLight } from 'react-icons/pi';
 import ThemeToggle from './ThemeToggle.jsx';
@@ -40,6 +46,30 @@ const focusPresets = {
         doNotDisturb: false,
     },
 };
+
+const ambientScenes = [
+    {
+        id: 'rain',
+        label: 'Calm Rain',
+        description: 'Muted ambience for deep work',
+        icon: HiOutlineCloud,
+        volume: 45,
+    },
+    {
+        id: 'forest',
+        label: 'Forest Air',
+        description: 'Balanced nature textures',
+        icon: HiOutlineGlobeAlt,
+        volume: 55,
+    },
+    {
+        id: 'cafe',
+        label: 'Cafe Focus',
+        description: 'Gentle bustle for energy',
+        icon: HiOutlineSparkles,
+        volume: 65,
+    },
+];
 
 function StatusPill({ icon: Icon, label, description }) {
     return (
@@ -114,6 +144,32 @@ function ControlTile({ icon: Icon, label, description, active, onClick, accent =
     );
 }
 
+function AmbientSceneButton({ icon: Icon, label, description, active, onClick }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`flex flex-col gap-1 rounded-2xl border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                active
+                    ? 'border-transparent bg-gradient-to-br from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30'
+                    : 'border-gray-200/70 bg-white/80 text-gray-700 hover:bg-white dark:border-gray-700/70 dark:bg-gray-900/50 dark:text-gray-200'
+            }`}
+        >
+            <span
+                className={`flex h-9 w-9 items-center justify-center rounded-2xl ${
+                    active
+                        ? 'bg-white/20 text-white'
+                        : 'bg-gray-100/80 text-gray-600 dark:bg-gray-800/70 dark:text-gray-300'
+                }`}
+            >
+                <Icon className="h-5 w-5" />
+            </span>
+            <span className="text-sm font-semibold">{label}</span>
+            <span className={`text-xs ${active ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>{description}</span>
+        </button>
+    );
+}
+
 function SliderControl({
     icon: Icon,
     label,
@@ -170,9 +226,13 @@ export default function ControlCenter() {
     const [airdropEnabled, setAirdropEnabled] = useState(true);
     const [hotspotEnabled, setHotspotEnabled] = useState(false);
     const [hasCustomAdjustments, setHasCustomAdjustments] = useState(false);
+    const [energySaverEnabled, setEnergySaverEnabled] = useState(false);
+    const [ambientScene, setAmbientScene] = useState('rain');
+    const [currentMoment, setCurrentMoment] = useState(() => new Date());
 
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
+    const energySaverSnapshotRef = useRef(null);
 
     const focusSummary = useMemo(() => {
         if (hasCustomAdjustments) {
@@ -188,6 +248,11 @@ export default function ControlCenter() {
                 return doNotDisturb ? 'Manual • DND on' : 'Manual controls';
         }
     }, [focusMode, doNotDisturb, hasCustomAdjustments]);
+
+    const ambientSceneLabel = useMemo(() => {
+        const activeScene = ambientScenes.find((scene) => scene.id === ambientScene);
+        return activeScene ? activeScene.label : 'Custom ambience';
+    }, [ambientScene]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -218,6 +283,14 @@ export default function ControlCenter() {
             document.removeEventListener('keydown', handleEscape);
         };
     }, [isOpen]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentMoment(new Date());
+        }, 60_000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     const handleFocusSelection = (modeId) => {
         setFocusMode(modeId);
@@ -257,6 +330,34 @@ export default function ControlCenter() {
         setAirdropEnabled(true);
         setHotspotEnabled(false);
         setHasCustomAdjustments(false);
+        setEnergySaverEnabled(false);
+        setAmbientScene('rain');
+        energySaverSnapshotRef.current = null;
+    };
+
+    const handleEnergySaverToggle = () => {
+        setEnergySaverEnabled((previous) => {
+            const next = !previous;
+            if (next) {
+                energySaverSnapshotRef.current = { brightness, nightShift };
+                setNightShift(true);
+                setBrightness((value) => Math.min(value, 60));
+            } else {
+                if (energySaverSnapshotRef.current) {
+                    setBrightness(energySaverSnapshotRef.current.brightness);
+                    setNightShift(energySaverSnapshotRef.current.nightShift);
+                    energySaverSnapshotRef.current = null;
+                }
+            }
+            setHasCustomAdjustments(true);
+            return next;
+        });
+    };
+
+    const handleAmbientSceneSelection = (scene) => {
+        setAmbientScene(scene.id);
+        setVolume(scene.volume);
+        setHasCustomAdjustments(true);
     };
 
     return (
@@ -292,6 +393,55 @@ export default function ControlCenter() {
                             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Quick actions</span>
                         </div>
 
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                            <div className="rounded-2xl border border-gray-200/70 bg-gradient-to-br from-white to-gray-50 p-4 dark:border-gray-700/70 dark:from-gray-900/80 dark:to-gray-900">
+                                <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                        <HiOutlineClock className="h-4 w-4" />
+                                        Now
+                                    </span>
+                                    <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-200">
+                                        {focusMode === 'deep' ? 'Deep session' : focusMode === 'break' ? 'Recharge' : 'Manual'}
+                                    </span>
+                                </div>
+                                <div className="mt-3 text-2xl font-semibold text-gray-800 dark:text-gray-100">
+                                    {currentMoment.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {currentMoment.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                                </div>
+                                <div className="mt-4 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                    <HiOutlineGlobeAlt className="h-4 w-4 text-cyan-500" />
+                                    <span>{ambientSceneLabel}</span>
+                                </div>
+                            </div>
+                            <div className="flex flex-col justify-between rounded-2xl border border-gray-200/70 bg-white/90 p-4 text-xs text-gray-600 shadow-inner dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300">
+                                <div className="flex items-start gap-2">
+                                    <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-500">
+                                        <HiOutlineAdjustmentsHorizontal className="h-4 w-4" />
+                                    </span>
+                                    <div>
+                                        <p className="font-semibold text-gray-700 dark:text-gray-200">Session health</p>
+                                        <p>Controls tuned for {hasCustomAdjustments ? 'your custom flow' : 'a balanced workflow'}.</p>
+                                    </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-medium">
+                                    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                        <HiOutlineSun className="h-4 w-4" /> {brightness}%
+                                    </span>
+                                    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                        <HiSpeakerWave className="h-4 w-4" /> {volume}%
+                                    </span>
+                                    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                        <HiOutlineBellAlert className="h-4 w-4" /> {doNotDisturb ? 'DND on' : 'Alerts on'}
+                                    </span>
+                                    <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                        <HiOutlineBolt className="h-4 w-4" /> {energySaverEnabled ? 'Energy saver' : 'Performance'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="mt-3 flex flex-wrap gap-2">
                             <StatusPill
                                 icon={HiWifi}
@@ -304,6 +454,12 @@ export default function ControlCenter() {
                                 description={bluetoothEnabled ? 'Discoverable' : undefined}
                             />
                             <StatusPill icon={HiOutlineSparkles} label="Focus" description={focusSummary} />
+                            <StatusPill icon={HiOutlineCloud} label="Ambience" description={ambientSceneLabel} />
+                            <StatusPill
+                                icon={HiOutlineBolt}
+                                label={energySaverEnabled ? 'Energy saver on' : 'Energy saver off'}
+                                description={energySaverEnabled ? 'Brightness moderated' : 'Full performance'}
+                            />
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -388,6 +544,23 @@ export default function ControlCenter() {
                                 </div>
                                 <ThemeToggle className="h-10 w-12" />
                             </div>
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                    Ambient soundscapes
+                                </p>
+                                <div className="mt-2 grid grid-cols-3 gap-2">
+                                    {ambientScenes.map((scene) => (
+                                        <AmbientSceneButton
+                                            key={scene.id}
+                                            icon={scene.icon}
+                                            label={scene.label}
+                                            description={scene.description}
+                                            active={ambientScene === scene.id}
+                                            onClick={() => handleAmbientSceneSelection(scene)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -426,6 +599,14 @@ export default function ControlCenter() {
                                 onClick={() => setHotspotEnabled((prev) => !prev)}
                                 accent="from-violet-500 to-indigo-500"
                             />
+                            <ControlTile
+                                icon={HiOutlineBolt}
+                                label="Energy Saver"
+                                description={energySaverEnabled ? 'Keeping things efficient' : 'Maximize performance & brightness'}
+                                active={energySaverEnabled}
+                                onClick={handleEnergySaverToggle}
+                                accent="from-emerald-500 to-cyan-500"
+                            />
                         </div>
 
                         <div className="mt-4 space-y-3 rounded-3xl border border-gray-200/70 bg-white/80 p-4 dark:border-gray-700/70 dark:bg-gray-900/60">
@@ -461,6 +642,18 @@ export default function ControlCenter() {
                                     label="Reset panel"
                                     description="Restore default toggles"
                                     onClick={handleReset}
+                                />
+                                <QuickActionButton
+                                    icon={HiOutlineBolt}
+                                    label={energySaverEnabled ? 'Disable saver' : 'Enable saver'}
+                                    description={energySaverEnabled ? 'Return to performance' : 'Extend your session'}
+                                    onClick={handleEnergySaverToggle}
+                                />
+                                <QuickActionButton
+                                    icon={HiOutlineCloud}
+                                    label="Calm ambience"
+                                    description="Switch to gentle rain soundscape"
+                                    onClick={() => handleAmbientSceneSelection(ambientScenes[0])}
                                 />
                             </div>
                         </div>
