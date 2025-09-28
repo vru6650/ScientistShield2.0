@@ -6,25 +6,52 @@ import PropTypes from 'prop-types';
 import {
     FaBook, FaProjectDiagram, FaQuestionCircle, FaPlus,
     FaThumbtack, FaShieldAlt, FaArrowsAlt, FaLaptopCode,
-    FaTools, FaSearch, FaSignOutAlt, FaUser, FaCog, FaMoon, FaSun
+    FaTools, FaSearch, FaSignOutAlt, FaUser, FaCog,
+    FaCompass, FaBolt
 } from 'react-icons/fa';
 import { Avatar, Tooltip } from 'flowbite-react';
+import ThemeToggle from './ThemeToggle';
 
 // --- Configuration ---
 const navConfig = [
     {
         title: 'Main',
         items: [
-            { to: '/tutorials', label: 'Tutorials', icon: FaBook },
-            { to: '/quizzes', label: 'Quizzes', icon: FaQuestionCircle },
-            { to: '/projects', label: 'Projects', icon: FaProjectDiagram },
+            {
+                to: '/tutorials',
+                label: 'Tutorials',
+                description: 'Curated learning paths & chapters',
+                icon: FaBook
+            },
+            {
+                to: '/quizzes',
+                label: 'Quizzes',
+                description: 'Assessments to validate progress',
+                icon: FaQuestionCircle
+            },
+            {
+                to: '/projects',
+                label: 'Projects',
+                description: 'Hands-on builds & case studies',
+                icon: FaProjectDiagram
+            },
         ]
     },
     {
         title: 'Workspace',
         items: [
-            { to: '/tools', label: 'Tools Hub', icon: FaTools },
-            { to: '/visualizer', label: 'Code Visualizer', icon: FaLaptopCode },
+            {
+                to: '/tools',
+                label: 'Tools Hub',
+                description: 'Productivity boosters & utilities',
+                icon: FaTools
+            },
+            {
+                to: '/visualizer',
+                label: 'Code Visualizer',
+                description: 'Step through algorithms in real time',
+                icon: FaLaptopCode
+            },
         ]
     },
 ];
@@ -160,22 +187,85 @@ const MenuItem = ({ icon: Icon, label, onClick, isDestructive = false }) => (
 );
 MenuItem.propTypes = { icon: PropTypes.elementType.isRequired, label: PropTypes.string.isRequired, onClick: PropTypes.func.isRequired, isDestructive: PropTypes.bool };
 
-const NavItem = ({ to, icon: Icon, label, isCollapsed, variants }) => (
+const NavItem = ({ to, icon: Icon, label, description, isCollapsed, variants }) => (
     <motion.div variants={variants}>
         <Tooltip content={label} placement="right" disabled={!isCollapsed}>
-            <NavLink to={to} className={({ isActive }) => `relative flex items-center gap-4 p-2.5 rounded-lg transition-colors text-sm ${isActive ? 'bg-sky-500/20 text-sky-300' : 'text-neutral-400 hover:bg-white/10 hover:text-white'} ${isCollapsed ? 'justify-center' : ''}`}>
+            <NavLink to={to} className="group relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent">
                 {({ isActive }) => (
                     <>
-                        <AnimatePresence>{isActive && <motion.div layoutId="active-nav-indicator" className="absolute left-0 top-2 bottom-2 w-1 bg-sky-400 rounded-r-full" />}</AnimatePresence>
-                        <motion.div whileHover={{ scale: 1.1, rotate: 5 }}><Icon size={isCollapsed ? 22 : 18} /></motion.div>
-                        <AnimatePresence>{!isCollapsed && <span className="whitespace-nowrap">{label}</span>}</AnimatePresence>
+                        <AnimatePresence>
+                            {isActive && (
+                                <motion.span
+                                    layoutId="sidebar-active-card"
+                                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-sky-500/25 via-sky-500/15 to-transparent"
+                                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                                />
+                            )}
+                        </AnimatePresence>
+                        <div
+                            className={`relative flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'gap-3 p-2.5 pl-3'} rounded-xl transition-all duration-200 ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white'}`}
+                        >
+                            <span
+                                className={`flex items-center justify-center rounded-xl transition-all duration-200 ${isCollapsed ? 'h-11 w-11' : 'h-10 w-10'} ${isActive ? 'bg-gradient-to-br from-sky-400 via-sky-500 to-blue-500 text-white shadow-lg shadow-sky-500/40' : 'bg-white/5 text-sky-200/80 group-hover:bg-white/10 group-hover:text-white/90'}`}
+                            >
+                                <Icon size={isCollapsed ? 22 : 18} />
+                            </span>
+                            <AnimatePresence>
+                                {!isCollapsed && (
+                                    <motion.div
+                                        initial={{ opacity: 0, x: -8 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -8 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="flex flex-col"
+                                    >
+                                        <span className="font-medium leading-tight">{label}</span>
+                                        {description && <span className="text-xs text-neutral-400/90 group-hover:text-neutral-200/90 transition-colors">{description}</span>}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </>
                 )}
             </NavLink>
         </Tooltip>
     </motion.div>
 );
-NavItem.propTypes = { to: PropTypes.string.isRequired, icon: PropTypes.elementType.isRequired, label: PropTypes.string.isRequired, isCollapsed: PropTypes.bool.isRequired, variants: PropTypes.object };
+NavItem.propTypes = {
+    to: PropTypes.string.isRequired,
+    icon: PropTypes.elementType.isRequired,
+    label: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    isCollapsed: PropTypes.bool.isRequired,
+    variants: PropTypes.object
+};
+
+const QuickAction = ({ to, icon: Icon, label, description }) => (
+    <Link
+        to={to}
+        className="relative flex items-center gap-3 overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-3 transition-all duration-200 hover:border-sky-400/40 hover:bg-white/10"
+    >
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500/80 via-blue-500/70 to-indigo-500/80 text-white shadow-lg shadow-sky-500/30">
+            <Icon size={18} />
+        </span>
+        <div className="flex flex-col">
+            <span className="text-sm font-semibold text-white">{label}</span>
+            {description && <span className="text-xs text-neutral-300/80">{description}</span>}
+        </div>
+        <motion.span
+            aria-hidden
+            className="pointer-events-none absolute -right-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-sky-500/10 blur-2xl"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+        />
+    </Link>
+);
+QuickAction.propTypes = {
+    to: PropTypes.string.isRequired,
+    icon: PropTypes.elementType.isRequired,
+    label: PropTypes.string.isRequired,
+    description: PropTypes.string
+};
 
 
 // --- Main Sidebar Component ---
@@ -185,6 +275,28 @@ const AdvancedSidebar = () => {
     const [isPinned, setIsPinned] = useState(true);
     const [isCommandMenuOpen, setCommandMenuOpen] = useState(false);
     const dragControls = useDragControls();
+    const quickActions = [
+        {
+            to: '/dashboard',
+            label: 'Dashboard Overview',
+            description: 'Resume where you left off',
+            icon: FaCompass
+        },
+        {
+            to: '/tryit',
+            label: 'Interactive Playground',
+            description: 'Experiment with ideas in real time',
+            icon: FaBolt
+        },
+        ...(currentUser?.isAdmin
+            ? [{
+                to: '/create-post',
+                label: 'Create New Content',
+                description: 'Launch tutorials and resources',
+                icon: FaPlus
+            }]
+            : [])
+    ];
 
     const handleMouseEnter = () => !isPinned && setIsCollapsed(false);
     const handleMouseLeave = () => !isPinned && setIsCollapsed(true);
@@ -225,14 +337,33 @@ const AdvancedSidebar = () => {
                 animate={isCollapsed ? 'closed' : 'open'}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
-                className="sidebar fixed top-4 left-4 z-40 h-[calc(100vh-2rem)] flex flex-col bg-neutral-900/60 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden"
+                className="sidebar group fixed top-6 left-6 z-40 flex h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950/80 via-slate-900/70 to-slate-900/90 p-0 shadow-[0px_40px_80px_-50px_rgba(14,116,144,0.7)] backdrop-blur-2xl"
             >
-                <div className="aurora-bg" />
+                <div className="pointer-events-none absolute inset-0 opacity-80">
+                    <div className="absolute -left-24 top-24 h-64 w-64 rounded-full bg-sky-500/15 blur-3xl" />
+                    <div className="absolute -right-28 top-1/3 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl" />
+                    <div className="absolute bottom-0 left-1/4 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+                </div>
 
-                <div className="relative z-10 flex flex-col h-full p-4">
-                    <header className={`flex items-center gap-3 shrink-0 ${isCollapsed ? 'justify-center' : 'justify-between'} py-2`}>
-                        <AnimatePresence>{!isCollapsed && <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0, transition: { delay: 0.2 } }} exit={{ opacity: 0, x: -20 }}><Link to="/" className="text-lg font-bold text-white">Scientist<span className="text-sky-400">Shield</span></Link></motion.div>}</AnimatePresence>
-                        <div className="flex items-center">
+                <div className="relative z-10 flex h-full flex-col p-5">
+                    <header className={`flex items-center gap-3 rounded-2xl border border-white/5 bg-white/5/50 px-4 py-3 backdrop-blur-sm transition-all ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+                        <AnimatePresence>
+                            {!isCollapsed && (
+                                <motion.div
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0, transition: { delay: 0.15 } }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    className="flex items-center gap-3"
+                                >
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 via-indigo-500 to-blue-600 text-lg font-bold text-white shadow-lg shadow-sky-500/40">SS</span>
+                                    <Link to="/" className="text-lg font-semibold tracking-tight text-white">
+                                        Scientist<span className="text-sky-300">Shield</span>
+                                        <span className="block text-xs font-normal uppercase tracking-[0.35em] text-neutral-300/80">Learning Hub</span>
+                                    </Link>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <div className="flex items-center gap-1.5">
                             {!isPinned && (
                                 <Tooltip content="Drag to Move">
                                     <motion.div onPointerDown={(e) => dragControls.start(e)} className="p-2 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 cursor-grab active:cursor-grabbing"><FaArrowsAlt /></motion.div>
@@ -244,36 +375,100 @@ const AdvancedSidebar = () => {
                         </div>
                     </header>
 
-                    <div className="py-4 shrink-0">
-                        <button onClick={() => setCommandMenuOpen(true)} className={`flex items-center gap-3 w-full p-2.5 rounded-xl text-neutral-400 hover:text-white hover:bg-white/10 ${isCollapsed ? 'justify-center' : ''}`}>
-                            <FaSearch />
+                    <div className="shrink-0 py-5">
+                        <button onClick={() => setCommandMenuOpen(true)} className={`group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-3 text-neutral-300 transition-all duration-200 hover:border-sky-400/40 hover:text-white ${isCollapsed ? 'justify-center' : ''}`}>
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500/80 via-blue-500/80 to-indigo-500/80 text-white shadow-lg shadow-sky-500/30">
+                                <FaSearch />
+                            </span>
                             <AnimatePresence>
-                                {!isCollapsed && <motion.span initial={{opacity:0}} animate={{opacity:1, transition: {delay: 0.2}}} exit={{opacity:0}} className="text-sm">Search...</motion.span>}
+                                {!isCollapsed && (
+                                    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} className="flex flex-col text-left">
+                                        <span className="text-sm font-semibold">Search the library</span>
+                                        <span className="text-xs text-neutral-300/80">Find tutorials, quizzes, and tools</span>
+                                    </motion.div>
+                                )}
                             </AnimatePresence>
                             <AnimatePresence>
-                                {!isCollapsed && <motion.kbd initial={{opacity:0}} animate={{opacity:1, transition: {delay: 0.3}}} exit={{opacity:0}} className="ml-auto text-xs border rounded px-1.5 py-0.5 border-white/20">⌘K</motion.kbd>}
+                                {!isCollapsed && (
+                                    <motion.kbd initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }} exit={{ opacity: 0, y: 6 }} className="ml-auto rounded-lg border border-white/20 bg-white/5 px-2 py-1 text-xs tracking-widest text-neutral-200">
+                                        ⌘K
+                                    </motion.kbd>
+                                )}
                             </AnimatePresence>
                         </button>
                     </div>
 
-                    <motion.nav variants={navItemsVariants} className="flex-1 flex flex-col gap-2 overflow-y-auto py-2 custom-scrollbar">
+                    <motion.nav variants={navItemsVariants} className="custom-scrollbar flex-1 space-y-5 overflow-y-auto py-1 pr-1">
                         {navConfig.map(section => (
-                            <div key={section.title} className="space-y-2">
-                                <AnimatePresence>{!isCollapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2 } }} exit={{ opacity: 0 }} className="px-2.5 text-xs font-bold uppercase text-neutral-500 tracking-wider">{section.title}</motion.span>}</AnimatePresence>
-                                {section.items.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} variants={navItemVariant} />)}
+                            <div key={section.title} className="space-y-3">
+                                <AnimatePresence>
+                                    {!isCollapsed && (
+                                        <motion.span
+                                            initial={{ opacity: 0, y: -6 }}
+                                            animate={{ opacity: 1, y: 0, transition: { delay: 0.1 } }}
+                                            exit={{ opacity: 0, y: -6 }}
+                                            className="px-2.5 text-xs font-semibold uppercase tracking-[0.35em] text-neutral-400"
+                                        >
+                                            {section.title}
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                                <div className="space-y-1.5">
+                                    {section.items.map(item => (
+                                        <NavItem key={item.to} {...item} isCollapsed={isCollapsed} variants={navItemVariant} />
+                                    ))}
+                                </div>
                             </div>
                         ))}
                         {currentUser?.isAdmin && (
-                            <div className="space-y-2">
-                                <AnimatePresence>{!isCollapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2 } }} exit={{ opacity: 0 }} className="px-2.5 text-xs font-bold uppercase text-neutral-500 tracking-wider">Admin</motion.span>}</AnimatePresence>
-                                <NavItem to="/create-post" icon={FaPlus} label="New Post" isCollapsed={isCollapsed} variants={navItemVariant}/>
-                                <NavItem to="/dashboard?tab=users" icon={FaShieldAlt} label="Manage Users" isCollapsed={isCollapsed} variants={navItemVariant}/>
+                            <div className="space-y-3">
+                                <AnimatePresence>
+                                    {!isCollapsed && (
+                                        <motion.span
+                                            initial={{ opacity: 0, y: -6 }}
+                                            animate={{ opacity: 1, y: 0, transition: { delay: 0.1 } }}
+                                            exit={{ opacity: 0, y: -6 }}
+                                            className="px-2.5 text-xs font-semibold uppercase tracking-[0.35em] text-neutral-400"
+                                        >
+                                            Admin
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                                <div className="space-y-1.5">
+                                    <NavItem to="/create-post" icon={FaPlus} label="New Post" description="Publish fresh knowledge" isCollapsed={isCollapsed} variants={navItemVariant} />
+                                    <NavItem to="/dashboard?tab=users" icon={FaShieldAlt} label="Manage Users" description="Moderate members & roles" isCollapsed={isCollapsed} variants={navItemVariant} />
+                                </div>
                             </div>
                         )}
                     </motion.nav>
 
-                    <footer className="mt-auto space-y-3 shrink-0">
-                        <UserProfile isCollapsed={isCollapsed} />
+                    {!isCollapsed && quickActions.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                            <span className="px-2.5 text-xs font-semibold uppercase tracking-[0.35em] text-neutral-400">Quick Access</span>
+                            <div className="space-y-2">
+                                {quickActions.map((action) => (
+                                    <QuickAction key={action.to} {...action} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <footer className="mt-auto shrink-0 space-y-4 pt-4">
+                        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-3 rounded-2xl border border-white/5 bg-white/5 p-3`}> 
+                            <UserProfile isCollapsed={isCollapsed} />
+                            <AnimatePresence>
+                                {!isCollapsed && (
+                                    <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }}>
+                                        <ThemeToggle className="h-11 w-11 border border-white/10 bg-slate-900/80 text-white shadow-lg shadow-sky-500/20" />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                        {isCollapsed && (
+                            <div className="flex justify-center">
+                                <ThemeToggle className="h-11 w-11 border border-white/10 bg-slate-900/80 text-white shadow-lg shadow-sky-500/20" />
+                            </div>
+                        )}
                     </footer>
                 </div>
             </motion.aside>
