@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Tooltip } from 'flowbite-react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
     HiOutlineSquares2X2,
     HiWifi,
     HiSignal,
     HiSpeakerWave,
     HiOutlineSun,
+    HiOutlineMoon,
     HiOutlineComputerDesktop,
     HiOutlinePaperAirplane,
     HiOutlineDevicePhoneMobile,
     HiOutlineBellAlert,
     HiOutlineBolt,
 } from 'react-icons/hi2';
+import { toggleTheme } from '../redux/theme/themeSlice';
 
 const focusModes = [
     { id: 'off', label: 'Off' },
@@ -106,6 +109,10 @@ export default function ControlCenter() {
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
     const energySaverSnapshotRef = useRef(null);
+
+    const dispatch = useDispatch();
+    const { theme } = useSelector((state) => state.theme);
+    const isDarkMode = theme === 'dark';
 
     const focusSummary = useMemo(() => {
         switch (focusMode) {
@@ -260,6 +267,13 @@ export default function ControlCenter() {
                                 active={hotspotEnabled}
                                 detail={hotspotEnabled ? 'Sharing Connection' : 'Off'}
                                 onClick={() => setHotspotEnabled((prev) => !prev)}
+                            />
+                            <QuickToggle
+                                icon={isDarkMode ? HiOutlineMoon : HiOutlineSun}
+                                label="Appearance"
+                                active={isDarkMode}
+                                detail={isDarkMode ? 'Dark theme enabled' : 'Light theme enabled'}
+                                onClick={() => dispatch(toggleTheme())}
                             />
                         </div>
 
