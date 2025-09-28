@@ -386,7 +386,7 @@ export default function ControlCenter() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -12, scale: 0.97 }}
                         transition={{ duration: 0.18, ease: 'easeOut' }}
-                        className="absolute right-0 z-50 mt-3 w-80 rounded-3xl border border-gray-200/70 bg-white/90 p-5 shadow-2xl backdrop-blur-xl dark:border-gray-700/70 dark:bg-gray-900/90"
+                        className="absolute right-0 z-50 mt-3 w-[22rem] max-h-[36rem] overflow-y-auto rounded-3xl border border-gray-200/70 bg-white/90 p-5 shadow-2xl backdrop-blur-xl dark:border-gray-700/70 dark:bg-gray-900/90"
                     >
                         <div className="flex items-center justify-between">
                             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Control Center</h2>
