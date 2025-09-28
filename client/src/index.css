@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&display=swap');
+
 /* client/src/index.css */
 @tailwind base;
 @tailwind components;
@@ -13,10 +16,6 @@
  * --- Fonts and Base Styles ---
  * Defines base font families and global rendering settings.
  */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&display=swap');
-
-
 body {
   height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -100,6 +99,12 @@ html {
   background-position: center;
   color: var(--color-text-primary);
   border-color: var(--color-sidebar-border);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-sidebar-border);
+  box-shadow: 0 40px 80px -60px rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
 }
 
 .dark .sidebar {
@@ -109,6 +114,34 @@ html {
   background-position: center;
   color: var(--color-text-primary);
   border-color: var(--color-sidebar-border);
+  box-shadow: 0 45px 90px -65px rgba(15, 23, 42, 0.95);
+}
+
+.sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.04) 45%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.dark .sidebar::before {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.15) 0%, rgba(30, 41, 59, 0.15) 45%, rgba(15, 23, 42, 0) 100%);
+  mix-blend-mode: normal;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.dark .sidebar::after {
+  border: 1px solid rgba(51, 65, 85, 0.45);
 }
 
 
