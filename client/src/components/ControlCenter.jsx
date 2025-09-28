@@ -178,6 +178,21 @@ export default function ControlCenter() {
         return () => window.removeEventListener('keydown', handleGlobalShortcut);
     }, []);
 
+    const handleFocusSelection = (modeId) => {
+        setFocusMode(modeId);
+        const presets = {
+            off: { brightness: 80, volume: 60, doNotDisturb: false },
+            deep: { brightness: 65, volume: 35, doNotDisturb: true },
+            break: { brightness: 95, volume: 75, doNotDisturb: false },
+        };
+        const preset = presets[modeId];
+        if (preset) {
+            setBrightness(preset.brightness);
+            setVolume(preset.volume);
+            setDoNotDisturb(preset.doNotDisturb);
+        }
+    };
+
     const searchItems = useMemo(
         () => [
             {
@@ -320,21 +335,6 @@ export default function ControlCenter() {
     const handleSearchSelect = (item) => {
         item.action?.();
         setSearchQuery('');
-    };
-
-    const handleFocusSelection = (modeId) => {
-        setFocusMode(modeId);
-        const presets = {
-            off: { brightness: 80, volume: 60, doNotDisturb: false },
-            deep: { brightness: 65, volume: 35, doNotDisturb: true },
-            break: { brightness: 95, volume: 75, doNotDisturb: false },
-        };
-        const preset = presets[modeId];
-        if (preset) {
-            setBrightness(preset.brightness);
-            setVolume(preset.volume);
-            setDoNotDisturb(preset.doNotDisturb);
-        }
     };
 
     const handleReset = () => {
