@@ -4,6 +4,7 @@ import { Tooltip } from 'flowbite-react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
     HiOutlineSquares2X2,
+    HiMagnifyingGlass,
     HiWifi,
     HiSignal,
     HiSpeakerWave,
@@ -105,10 +106,12 @@ export default function ControlCenter() {
     const [hotspotEnabled, setHotspotEnabled] = useState(false);
     const [energySaverEnabled, setEnergySaverEnabled] = useState(false);
     const [currentMoment, setCurrentMoment] = useState(() => new Date());
+    const [searchQuery, setSearchQuery] = useState('');
 
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
     const energySaverSnapshotRef = useRef(null);
+    const searchInputRef = useRef(null);
 
     const dispatch = useDispatch();
     const { theme } = useSelector((state) => state.theme);
@@ -159,6 +162,165 @@ export default function ControlCenter() {
         const interval = setInterval(() => setCurrentMoment(new Date()), 60_000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        const handleGlobalShortcut = (event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+                event.preventDefault();
+                setIsOpen(true);
+                requestAnimationFrame(() => {
+                    searchInputRef.current?.focus();
+                });
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalShortcut);
+        return () => window.removeEventListener('keydown', handleGlobalShortcut);
+    }, []);
+
+    const searchItems = useMemo(
+        () => [
+            {
+                id: 'wifi-toggle',
+                label: wifiEnabled ? 'Turn Wi-Fi off' : 'Turn Wi-Fi on',
+                description: wifiEnabled ? 'Disable connection to ScientistNet' : 'Enable connection to ScientistNet',
+                keywords: ['wifi', 'wireless', 'network'],
+                icon: HiWifi,
+                action: () => setWifiEnabled((prev) => !prev),
+            },
+            {
+                id: 'bluetooth-toggle',
+                label: bluetoothEnabled ? 'Turn Bluetooth off' : 'Turn Bluetooth on',
+                description: bluetoothEnabled ? 'Stop being discoverable' : 'Make device discoverable',
+                keywords: ['bluetooth', 'signal'],
+                icon: HiSignal,
+                action: () => setBluetoothEnabled((prev) => !prev),
+            },
+            {
+                id: 'airdrop-toggle',
+                label: airdropEnabled ? 'Disable AirDrop' : 'Enable AirDrop',
+                description: airdropEnabled ? 'Stop receiving nearby files' : 'Allow contacts to share files',
+                keywords: ['airdrop', 'files', 'share'],
+                icon: HiOutlinePaperAirplane,
+                action: () => setAirdropEnabled((prev) => !prev),
+            },
+            {
+                id: 'hotspot-toggle',
+                label: hotspotEnabled ? 'Disable Hotspot' : 'Enable Hotspot',
+                description: hotspotEnabled ? 'Stop sharing your connection' : 'Share your connection',
+                keywords: ['hotspot', 'tethering'],
+                icon: HiOutlineDevicePhoneMobile,
+                action: () => setHotspotEnabled((prev) => !prev),
+            },
+            {
+                id: 'appearance-toggle',
+                label: isDarkMode ? 'Switch to light appearance' : 'Switch to dark appearance',
+                description: isDarkMode ? 'Disable dark theme' : 'Enable dark theme',
+                keywords: ['appearance', 'theme', 'dark mode', 'light mode'],
+                icon: isDarkMode ? HiOutlineMoon : HiOutlineSun,
+                action: () => dispatch(toggleTheme()),
+            },
+            {
+                id: 'focus-dnd',
+                label: doNotDisturb ? 'Disable Do Not Disturb' : 'Enable Do Not Disturb',
+                description: 'Quickly toggle focus notifications',
+                keywords: ['focus', 'dnd', 'notifications'],
+                icon: HiOutlineBellAlert,
+                action: () => setDoNotDisturb((prev) => !prev),
+            },
+            {
+                id: 'focus-mode-deep',
+                label: 'Focus • Deep Work',
+                description: 'Preset brightness, volume, and DND for deep work',
+                keywords: ['focus', 'deep work'],
+                icon: HiOutlineBolt,
+                action: () => handleFocusSelection('deep'),
+            },
+            {
+                id: 'focus-mode-break',
+                label: 'Focus • Break Timer',
+                description: 'Preset settings for downtime breaks',
+                keywords: ['focus', 'break'],
+                icon: HiSpeakerWave,
+                action: () => handleFocusSelection('break'),
+            },
+            {
+                id: 'focus-mode-off',
+                label: 'Focus • Manual',
+                description: 'Return to manual focus controls',
+                keywords: ['focus', 'manual', 'off'],
+                icon: HiOutlineSquares2X2,
+                action: () => handleFocusSelection('off'),
+            },
+            {
+                id: 'night-shift',
+                label: nightShift ? 'Disable Night Shift' : 'Enable Night Shift',
+                description: 'Adjust display warmth for evening viewing',
+                keywords: ['night shift', 'display', 'warmth'],
+                icon: HiOutlineSun,
+                action: () => setNightShift((prev) => !prev),
+            },
+            {
+                id: 'energy-saver',
+                label: energySaverEnabled ? 'Disable Energy Saver' : 'Enable Energy Saver',
+                description: 'Optimise battery life by reducing brightness',
+                keywords: ['energy saver', 'battery'],
+                icon: HiOutlineBolt,
+                action: handleEnergySaverToggle,
+            },
+            {
+                id: 'mute-toggle',
+                label: volume === 0 ? 'Unmute alerts' : 'Mute alerts',
+                description: 'Quickly toggle alert sounds',
+                keywords: ['mute', 'volume', 'sound'],
+                icon: HiSpeakerWave,
+                action: () => setVolume((value) => (value === 0 ? 45 : 0)),
+            },
+            {
+                id: 'reset-panel',
+                label: 'Reset Control Center',
+                description: 'Restore default control settings',
+                keywords: ['reset', 'defaults'],
+                icon: HiOutlineSquares2X2,
+                action: handleReset,
+            },
+        ],
+        [
+            wifiEnabled,
+            bluetoothEnabled,
+            airdropEnabled,
+            hotspotEnabled,
+            isDarkMode,
+            doNotDisturb,
+            nightShift,
+            energySaverEnabled,
+            volume,
+            dispatch,
+            handleFocusSelection,
+            handleEnergySaverToggle,
+            handleReset,
+        ],
+    );
+
+    const filteredSearchResults = useMemo(() => {
+        if (!searchQuery.trim()) {
+            return [];
+        }
+
+        const normalizedQuery = searchQuery.trim().toLowerCase();
+        return searchItems.filter((item) => {
+            if (item.label.toLowerCase().includes(normalizedQuery)) {
+                return true;
+            }
+
+            return item.keywords?.some((keyword) => keyword.toLowerCase().includes(normalizedQuery));
+        });
+    }, [searchItems, searchQuery]);
+
+    const handleSearchSelect = (item) => {
+        item.action?.();
+        setSearchQuery('');
+    };
 
     const handleFocusSelection = (modeId) => {
         setFocusMode(modeId);
@@ -237,6 +399,64 @@ export default function ControlCenter() {
                         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                             <span className="font-semibold text-gray-700 dark:text-gray-200">Control Center</span>
                             <span>{currentMoment.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+
+                        <div className="mt-3">
+                            <label htmlFor="control-center-search" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-500">
+                                Search
+                            </label>
+                            <div className="relative mt-2">
+                                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                                    <HiMagnifyingGlass className="h-4 w-4" />
+                                </span>
+                                <input
+                                    id="control-center-search"
+                                    ref={searchInputRef}
+                                    type="search"
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' && filteredSearchResults.length > 0) {
+                                            event.preventDefault();
+                                            handleSearchSelect(filteredSearchResults[0]);
+                                        }
+                                    }}
+                                    placeholder="Search controls"
+                                    className="w-full rounded-2xl border border-white/60 bg-white/80 py-2 pl-11 pr-16 text-sm text-gray-700 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-gray-700/60 dark:bg-gray-900/70 dark:text-gray-100 dark:placeholder:text-gray-500"
+                                />
+                                <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                                    <kbd className="font-sans">⌘</kbd>
+                                    <span>K</span>
+                                </span>
+                            </div>
+                            {filteredSearchResults.length > 0 && (
+                                <div className="mt-2 max-h-48 overflow-y-auto rounded-2xl border border-white/60 bg-white/90 p-2 text-sm shadow-sm dark:border-gray-700/60 dark:bg-gray-900/90">
+                                    <ul className="space-y-1">
+                                        {filteredSearchResults.map((item) => {
+                                            const ItemIcon = item.icon ?? HiOutlineSquares2X2;
+                                            return (
+                                                <li key={item.id}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSearchSelect(item)}
+                                                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-700 transition hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                                                    >
+                                                        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                                            <ItemIcon className="h-4 w-4" />
+                                                        </span>
+                                                        <span>
+                                                            <p className="text-xs font-semibold">{item.label}</p>
+                                                            {item.description ? (
+                                                                <p className="text-[11px] text-gray-500 dark:text-gray-400">{item.description}</p>
+                                                            ) : null}
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-3">
