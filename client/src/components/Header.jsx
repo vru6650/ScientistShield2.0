@@ -9,6 +9,7 @@ import { useEffect, useState, useRef } from 'react';
 import { signoutSuccess } from '../redux/user/userSlice';
 import ThemeToggle from './ThemeToggle.jsx';
 import CommandMenu from './CommandMenu';
+import ControlCenter from './ControlCenter.jsx';
 
 // --- Reusable Components ---
 
@@ -216,6 +217,9 @@ export default function Header() {
                       <AiOutlineSearch />
                     </Button>
                   </Tooltip>
+                </Magnetic>
+                <Magnetic>
+                  <ControlCenter />
                 </Magnetic>
                 <Magnetic>
                   <Tooltip content="Toggle Theme">
