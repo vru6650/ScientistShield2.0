@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Tooltip, ToggleSwitch } from 'flowbite-react';
 import {
@@ -10,6 +10,9 @@ import {
     HiSpeakerWave,
     HiOutlineSun,
     HiOutlineComputerDesktop,
+    HiOutlinePaperAirplane,
+    HiOutlineDevicePhoneMobile,
+    HiOutlineArrowPath,
 } from 'react-icons/hi2';
 import { PiMonitorLight } from 'react-icons/pi';
 import ThemeToggle from './ThemeToggle.jsx';
@@ -19,6 +22,54 @@ const focusModes = [
     { id: 'deep', label: 'Deep Work' },
     { id: 'break', label: 'Break Timer' },
 ];
+
+const focusPresets = {
+    off: {
+        brightness: 80,
+        volume: 60,
+        doNotDisturb: false,
+    },
+    deep: {
+        brightness: 65,
+        volume: 35,
+        doNotDisturb: true,
+    },
+    break: {
+        brightness: 95,
+        volume: 75,
+        doNotDisturb: false,
+    },
+};
+
+function StatusPill({ icon: Icon, label, description }) {
+    return (
+        <div className="flex items-center gap-2 rounded-full border border-gray-200/70 bg-white/80 px-3 py-1.5 text-xs text-gray-600 shadow-sm dark:border-gray-700/70 dark:bg-gray-900/60 dark:text-gray-300">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100/90 text-gray-600 dark:bg-gray-800/70 dark:text-gray-200">
+                <Icon className="h-3.5 w-3.5" />
+            </span>
+            <span className="font-medium">{label}</span>
+            {description ? <span className="text-gray-400 dark:text-gray-500">• {description}</span> : null}
+        </div>
+    );
+}
+
+function QuickActionButton({ icon: Icon, label, description, onClick }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className="group flex flex-col gap-1.5 rounded-2xl border border-gray-200/70 bg-white/80 p-3 text-left text-sm transition-colors hover:border-cyan-200 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 dark:border-gray-700/70 dark:bg-gray-900/60 dark:hover:border-cyan-500/40"
+        >
+            <span className="flex items-center gap-2 font-semibold text-gray-700 dark:text-gray-200">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-100/90 text-gray-600 transition-colors group-hover:bg-cyan-500 group-hover:text-white dark:bg-gray-800/70 dark:text-gray-300 dark:group-hover:bg-cyan-500">
+                    <Icon className="h-4 w-4" />
+                </span>
+                {label}
+            </span>
+            {description ? <span className="text-xs text-gray-500 dark:text-gray-400">{description}</span> : null}
+        </button>
+    );
+}
 
 function ControlTile({ icon: Icon, label, description, active, onClick, accent = 'from-cyan-500 to-blue-500' }) {
     return (
@@ -116,9 +167,27 @@ export default function ControlCenter() {
     const [nightShift, setNightShift] = useState(false);
     const [brightness, setBrightness] = useState(80);
     const [volume, setVolume] = useState(60);
+    const [airdropEnabled, setAirdropEnabled] = useState(true);
+    const [hotspotEnabled, setHotspotEnabled] = useState(false);
+    const [hasCustomAdjustments, setHasCustomAdjustments] = useState(false);
 
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
+
+    const focusSummary = useMemo(() => {
+        if (hasCustomAdjustments) {
+            return 'Custom tweaks active';
+        }
+
+        switch (focusMode) {
+            case 'deep':
+                return doNotDisturb ? 'Deep Work • DND on' : 'Deep Work preset';
+            case 'break':
+                return 'Break Timer • Relaxed settings';
+            default:
+                return doNotDisturb ? 'Manual • DND on' : 'Manual controls';
+        }
+    }, [focusMode, doNotDisturb, hasCustomAdjustments]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -149,6 +218,46 @@ export default function ControlCenter() {
             document.removeEventListener('keydown', handleEscape);
         };
     }, [isOpen]);
+
+    const handleFocusSelection = (modeId) => {
+        setFocusMode(modeId);
+        const preset = focusPresets[modeId];
+        if (preset) {
+            setBrightness(preset.brightness);
+            setVolume(preset.volume);
+            setDoNotDisturb(preset.doNotDisturb);
+            setHasCustomAdjustments(false);
+        }
+    };
+
+    const handleDoNotDisturbChange = (value) => {
+        setDoNotDisturb(value);
+        setHasCustomAdjustments(true);
+    };
+
+    const handleBrightnessChange = (value) => {
+        setBrightness(value);
+        setHasCustomAdjustments(true);
+    };
+
+    const handleVolumeChange = (value) => {
+        setVolume(value);
+        setHasCustomAdjustments(true);
+    };
+
+    const handleReset = () => {
+        setWifiEnabled(true);
+        setBluetoothEnabled(false);
+        setFocusMode('off');
+        setDoNotDisturb(false);
+        setScreenMirroring(false);
+        setNightShift(false);
+        setBrightness(focusPresets.off.brightness);
+        setVolume(focusPresets.off.volume);
+        setAirdropEnabled(true);
+        setHotspotEnabled(false);
+        setHasCustomAdjustments(false);
+    };
 
     return (
         <div className="relative">
@@ -183,6 +292,20 @@ export default function ControlCenter() {
                             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Quick actions</span>
                         </div>
 
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <StatusPill
+                                icon={HiWifi}
+                                label={wifiEnabled ? 'Wi-Fi connected' : 'Wi-Fi off'}
+                                description={wifiEnabled ? 'ScientistNet' : undefined}
+                            />
+                            <StatusPill
+                                icon={HiSignal}
+                                label={bluetoothEnabled ? 'Bluetooth on' : 'Bluetooth off'}
+                                description={bluetoothEnabled ? 'Discoverable' : undefined}
+                            />
+                            <StatusPill icon={HiOutlineSparkles} label="Focus" description={focusSummary} />
+                        </div>
+
                         <div className="mt-4 grid grid-cols-2 gap-3">
                             <ControlTile
                                 icon={HiWifi}
@@ -209,14 +332,14 @@ export default function ControlCenter() {
                                         Craft the perfect environment for your next session.
                                     </p>
                                 </div>
-                                <ToggleSwitch checked={doNotDisturb} onChange={setDoNotDisturb} label={undefined} />
+                                <ToggleSwitch checked={doNotDisturb} onChange={handleDoNotDisturbChange} label={undefined} />
                             </div>
                             <div className="grid grid-cols-3 gap-2">
                                 {focusModes.map((mode) => (
                                     <button
                                         key={mode.id}
                                         type="button"
-                                        onClick={() => setFocusMode(mode.id)}
+                                        onClick={() => handleFocusSelection(mode.id)}
                                         className={`rounded-full px-3 py-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                                             focusMode === mode.id
                                                 ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-sm'
@@ -241,14 +364,14 @@ export default function ControlCenter() {
                                 icon={HiOutlineSun}
                                 label="Display Brightness"
                                 value={brightness}
-                                onChange={setBrightness}
+                                onChange={handleBrightnessChange}
                                 accent="bg-gradient-to-r from-amber-400 to-orange-500"
                             />
                             <SliderControl
                                 icon={HiSpeakerWave}
                                 label="System Volume"
                                 value={volume}
-                                onChange={setVolume}
+                                onChange={handleVolumeChange}
                                 accent="bg-gradient-to-r from-sky-400 to-cyan-500"
                             />
                             <div className="flex items-center justify-between rounded-2xl border border-gray-200/70 bg-white/80 p-4 text-sm text-gray-700 dark:border-gray-700/70 dark:bg-gray-900/60 dark:text-gray-200">
@@ -284,6 +407,62 @@ export default function ControlCenter() {
                                 onClick={() => setNightShift((prev) => !prev)}
                                 accent="from-amber-500 to-rose-500"
                             />
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                            <ControlTile
+                                icon={HiOutlinePaperAirplane}
+                                label="AirDrop"
+                                description={airdropEnabled ? 'Receiving from contacts only' : 'Tap to accept incoming files'}
+                                active={airdropEnabled}
+                                onClick={() => setAirdropEnabled((prev) => !prev)}
+                                accent="from-emerald-500 to-teal-500"
+                            />
+                            <ControlTile
+                                icon={HiOutlineDevicePhoneMobile}
+                                label="Personal Hotspot"
+                                description={hotspotEnabled ? 'Sharing connection' : 'Share your connection with others'}
+                                active={hotspotEnabled}
+                                onClick={() => setHotspotEnabled((prev) => !prev)}
+                                accent="from-violet-500 to-indigo-500"
+                            />
+                        </div>
+
+                        <div className="mt-4 space-y-3 rounded-3xl border border-gray-200/70 bg-white/80 p-4 dark:border-gray-700/70 dark:bg-gray-900/60">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Quick automations</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Instantly tailor the space for how you work.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <QuickActionButton
+                                    icon={HiOutlineSparkles}
+                                    label="Deep focus"
+                                    description="Dim screen, lower distractions"
+                                    onClick={() => handleFocusSelection('deep')}
+                                />
+                                <QuickActionButton
+                                    icon={HiOutlineSun}
+                                    label="Break burst"
+                                    description="Brighten display, pump up volume"
+                                    onClick={() => handleFocusSelection('break')}
+                                />
+                                <QuickActionButton
+                                    icon={HiOutlineSquares2X2}
+                                    label="Everything off"
+                                    description="Return to manual controls"
+                                    onClick={() => handleFocusSelection('off')}
+                                />
+                                <QuickActionButton
+                                    icon={HiOutlineArrowPath}
+                                    label="Reset panel"
+                                    description="Restore default toggles"
+                                    onClick={handleReset}
+                                />
+                            </div>
                         </div>
                     </motion.div>
                 )}
