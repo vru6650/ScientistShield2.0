@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Tooltip } from 'flowbite-react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -193,6 +193,37 @@ export default function ControlCenter() {
         }
     };
 
+    const handleReset = useCallback(() => {
+        setWifiEnabled(true);
+        setBluetoothEnabled(false);
+        setFocusMode('off');
+        setDoNotDisturb(false);
+        setScreenMirroring(false);
+        setNightShift(false);
+        setBrightness(80);
+        setVolume(60);
+        setAirdropEnabled(true);
+        setHotspotEnabled(false);
+        setEnergySaverEnabled(false);
+        energySaverSnapshotRef.current = null;
+    }, []);
+
+    const handleEnergySaverToggle = useCallback(() => {
+        setEnergySaverEnabled((previous) => {
+            const next = !previous;
+            if (next) {
+                energySaverSnapshotRef.current = { brightness, nightShift };
+                setNightShift(true);
+                setBrightness((value) => Math.min(value, 60));
+            } else if (energySaverSnapshotRef.current) {
+                setBrightness(energySaverSnapshotRef.current.brightness);
+                setNightShift(energySaverSnapshotRef.current.nightShift);
+                energySaverSnapshotRef.current = null;
+            }
+            return next;
+        });
+    }, [brightness, nightShift]);
+
     const searchItems = useMemo(
         () => [
             {
@@ -335,37 +366,6 @@ export default function ControlCenter() {
     const handleSearchSelect = (item) => {
         item.action?.();
         setSearchQuery('');
-    };
-
-    const handleReset = () => {
-        setWifiEnabled(true);
-        setBluetoothEnabled(false);
-        setFocusMode('off');
-        setDoNotDisturb(false);
-        setScreenMirroring(false);
-        setNightShift(false);
-        setBrightness(80);
-        setVolume(60);
-        setAirdropEnabled(true);
-        setHotspotEnabled(false);
-        setEnergySaverEnabled(false);
-        energySaverSnapshotRef.current = null;
-    };
-
-    const handleEnergySaverToggle = () => {
-        setEnergySaverEnabled((previous) => {
-            const next = !previous;
-            if (next) {
-                energySaverSnapshotRef.current = { brightness, nightShift };
-                setNightShift(true);
-                setBrightness((value) => Math.min(value, 60));
-            } else if (energySaverSnapshotRef.current) {
-                setBrightness(energySaverSnapshotRef.current.brightness);
-                setNightShift(energySaverSnapshotRef.current.nightShift);
-                energySaverSnapshotRef.current = null;
-            }
-            return next;
-        });
     };
 
     return (
