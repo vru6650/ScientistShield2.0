@@ -16,6 +16,13 @@ import {
     FaShieldAlt,
     FaLaptopCode,
     FaTools,
+    FaRocket,
+    FaCompass,
+    FaLayerGroup,
+    FaCalendarCheck,
+    FaFire,
+    FaChartLine,
+    FaClock,
 } from 'react-icons/fa';
 import { Avatar, Tooltip, Button } from 'flowbite-react';
 
@@ -42,8 +49,21 @@ const SectionHeader = ({ label, isCollapsed }) => (
     </AnimatePresence>
 );
 
-const NavItem = ({ to, icon: Icon, label, isCollapsed }) => (
-    <Tooltip content={label} placement="right" animation="duration-300" disabled={!isCollapsed}>
+const badgeToneMap = {
+    sky: 'border-sky-300/40 bg-sky-400/20 text-sky-100 shadow-[0_8px_18px_-12px_rgba(56,189,248,0.65)]',
+    emerald: 'border-emerald-300/40 bg-emerald-400/20 text-emerald-100 shadow-[0_8px_18px_-12px_rgba(16,185,129,0.65)]',
+    amber: 'border-amber-300/40 bg-amber-400/20 text-amber-100 shadow-[0_8px_18px_-12px_rgba(251,191,36,0.6)]',
+    purple: 'border-purple-300/40 bg-purple-400/20 text-purple-100 shadow-[0_8px_18px_-12px_rgba(192,132,252,0.6)]',
+    default: 'border-white/20 bg-white/10 text-white/90',
+};
+
+const NavItem = ({ to, icon: Icon, label, description, badge, isCollapsed }) => (
+    <Tooltip
+        content={description ? `${label} – ${description}` : label}
+        placement="right"
+        animation="duration-300"
+        disabled={!isCollapsed}
+    >
         <NavLink to={to}>
             {({ isActive }) => (
                 <motion.div
@@ -69,20 +89,50 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }) => (
                     </AnimatePresence>
 
                     {Icon && (
-                        <motion.div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/10 text-white shadow-inner dark:border-slate-600/40 dark:bg-slate-900/40" whileHover={{ scale: 1.08 }}>
+                        <motion.div
+                            className="relative z-10 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white shadow-inner transition-transform dark:border-slate-600/40 dark:bg-slate-900/40"
+                            whileHover={{ scale: 1.08 }}
+                        >
                             <Icon className="h-4 w-4" />
+                            {badge && (
+                                <span
+                                    className={`absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-slate-900/50 bg-sky-400 text-[0.55rem] font-semibold text-white shadow-md dark:border-slate-700/60 ${badge.tone === 'amber' ? 'bg-amber-400' : ''} ${badge.tone === 'emerald' ? 'bg-emerald-400' : ''} ${badge.tone === 'purple' ? 'bg-purple-400' : ''}`}
+                                >
+                                    {badge.shortLabel ?? '•'}
+                                </span>
+                            )}
                         </motion.div>
                     )}
 
                     <AnimatePresence>
                         {!isCollapsed && (
-                            <motion.span
+                            <motion.div
                                 initial={{ opacity: 0, x: -6 }}
                                 animate={{ opacity: 1, x: 0, transition: { delay: 0.1 } }}
                                 exit={{ opacity: 0, x: -6 }}
-                                className="relative z-10 whitespace-nowrap"
+                                className="relative z-10 flex flex-1 flex-col gap-0.5"
                             >
-                                {label}
+                                <span className="font-semibold">{label}</span>
+                                {description && (
+                                    <span className="text-[0.7rem] font-normal text-neutral-300/80 dark:text-neutral-300/70">
+                                        {description}
+                                    </span>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <AnimatePresence>
+                        {!isCollapsed && badge && (
+                            <motion.span
+                                initial={{ opacity: 0, x: 6 }}
+                                animate={{ opacity: 1, x: 0, transition: { delay: 0.05 } }}
+                                exit={{ opacity: 0, x: 6 }}
+                                className={`relative z-10 ml-auto inline-flex items-center rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${
+                                    badgeToneMap[badge.tone] ?? badgeToneMap.default
+                                }`}
+                            >
+                                {badge.label}
                             </motion.span>
                         )}
                     </AnimatePresence>
@@ -92,7 +142,7 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }) => (
     </Tooltip>
 );
 
-const MessageItem = ({ name, avatar, isCollapsed }) => (
+const MessageItem = ({ name, avatar, isCollapsed, status }) => (
     <Link to="#">
         <motion.div
             whileHover={!isCollapsed ? { x: 6 } : { scale: 1.04 }}
@@ -101,6 +151,17 @@ const MessageItem = ({ name, avatar, isCollapsed }) => (
         >
             <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white shadow-inner dark:border-slate-600/50 dark:bg-slate-900/50">
                 <Avatar img={avatar} rounded size="xs" />
+                {status && (
+                    <span
+                        className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border border-slate-900/70 shadow-md ${
+                            status === 'online'
+                                ? 'bg-emerald-400'
+                                : status === 'away'
+                                ? 'bg-amber-400'
+                                : 'bg-neutral-400'
+                        }`}
+                    />
+                )}
             </div>
             <AnimatePresence>
                 {!isCollapsed && (
@@ -133,22 +194,192 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
     };
 
     const mainNavItems = [
-        { to: '/tutorials', label: 'Tutorials', icon: FaBook },
-        { to: '/quizzes', label: 'Quizzes', icon: FaQuestionCircle },
-        { to: '/problems', label: 'Problem Solving', icon: FaLightbulb },
-        { to: '/projects', label: 'Projects', icon: FaProjectDiagram },
-        { to: '/tools', label: 'Tools Hub', icon: FaTools },
-        { to: '/visualizer', label: 'Code Visualizer', icon: FaLaptopCode },
-        { to: '/invoices', label: 'Invoices', icon: FaRegFileAlt },
-        { to: '/wallet', label: 'Wallet', icon: FaRegCreditCard },
-        { to: '/notification', label: 'Notification', icon: FaRegBell },
+        {
+            to: '/tutorials',
+            label: 'Tutorials',
+            icon: FaBook,
+            description: 'Structured learning paths',
+            badge: { label: 'Updated', shortLabel: 'U', tone: 'sky' },
+        },
+        {
+            to: '/quizzes',
+            label: 'Quizzes',
+            icon: FaQuestionCircle,
+            description: 'Assess your retention',
+            badge: { label: '12 New', shortLabel: '12', tone: 'amber' },
+        },
+        {
+            to: '/problems',
+            label: 'Problem Solving',
+            icon: FaLightbulb,
+            description: 'Sharpen critical thinking',
+            badge: { label: 'Focus', shortLabel: '!', tone: 'purple' },
+        },
+        {
+            to: '/projects',
+            label: 'Projects',
+            icon: FaProjectDiagram,
+            description: 'Hands-on builds & labs',
+        },
+        {
+            to: '/tools',
+            label: 'Tools Hub',
+            icon: FaTools,
+            description: 'Utilities for research',
+        },
+        {
+            to: '/visualizer',
+            label: 'Code Visualizer',
+            icon: FaLaptopCode,
+            description: 'Animate your algorithms',
+            badge: { label: 'Beta', shortLabel: 'β', tone: 'emerald' },
+        },
+        {
+            to: '/invoices',
+            label: 'Invoices',
+            icon: FaRegFileAlt,
+            description: 'Keep track of purchases',
+        },
+        {
+            to: '/wallet',
+            label: 'Wallet',
+            icon: FaRegCreditCard,
+            description: 'Manage billing & plans',
+        },
+        {
+            to: '/notification',
+            label: 'Notification',
+            icon: FaRegBell,
+            description: 'Stay ahead of updates',
+        },
+    ];
+
+    const quickStats = [
+        {
+            label: 'Study Streak',
+            value: '12d',
+            trend: '+2 days vs last week',
+            accent: 'from-amber-400/90 to-orange-500/90',
+            icon: FaFire,
+        },
+        {
+            label: 'Focus Time',
+            value: '4.3h',
+            trend: '+18% vs avg',
+            accent: 'from-sky-400/90 to-cyan-500/90',
+            icon: FaClock,
+        },
+        {
+            label: 'Completion',
+            value: '76%',
+            trend: '3 modules remaining',
+            accent: 'from-emerald-400/90 to-emerald-500/90',
+            icon: FaLayerGroup,
+        },
+    ];
+
+    const quickActions = [
+        {
+            to: '/tutorials',
+            icon: FaCompass,
+            label: 'Continue Journey',
+            description: 'Jump back into your active path',
+            accent: 'from-indigo-500/80 to-sky-500/80',
+        },
+        {
+            to: '/projects',
+            icon: FaRocket,
+            label: 'Launch Project',
+            description: 'Prototype a fresh experiment',
+            accent: 'from-fuchsia-500/80 to-purple-500/80',
+        },
+        {
+            to: '/dashboard?tab=roadmap',
+            icon: FaCalendarCheck,
+            label: 'Plan Week',
+            description: 'Organize upcoming milestones',
+            accent: 'from-emerald-500/80 to-lime-500/80',
+        },
+        {
+            to: '/dashboard?tab=analytics',
+            icon: FaChartLine,
+            label: 'Review Progress',
+            description: 'Visualize performance metrics',
+            accent: 'from-sky-500/80 to-cyan-400/80',
+        },
     ];
 
     const messages = [
-        { name: 'Erik Gunsel', avatar: 'https://i.pravatar.cc/150?u=erik' },
-        { name: 'Emily Smith', avatar: 'https://i.pravatar.cc/150?u=emily' },
-        { name: 'Arthur Adell', avatar: 'https://i.pravatar.cc/150?u=arthur' },
+        { name: 'Erik Gunsel', avatar: 'https://i.pravatar.cc/150?u=erik', status: 'online' },
+        { name: 'Emily Smith', avatar: 'https://i.pravatar.cc/150?u=emily', status: 'away' },
+        { name: 'Arthur Adell', avatar: 'https://i.pravatar.cc/150?u=arthur', status: 'offline' },
     ];
+
+    const QuickStat = ({ label, value, trend, accent, icon: Icon }) => (
+        <motion.div
+            whileHover={{ y: -2 }}
+            className={`relative flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-white shadow-inner transition-colors dark:border-slate-700/60 dark:bg-slate-900/40 ${
+                isCollapsed ? 'justify-center' : ''
+            }`}
+        >
+            <div
+                className={`relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${accent} text-base font-semibold shadow-lg`}
+            >
+                {value}
+                {Icon && (
+                    <Icon className="absolute -bottom-1 -right-1 h-4 w-4 opacity-80" />
+                )}
+            </div>
+            <AnimatePresence>
+                {!isCollapsed && (
+                    <motion.div
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -6 }}
+                        className="flex flex-1 flex-col"
+                    >
+                        <span className="text-xs font-semibold uppercase tracking-wide text-white/90">{label}</span>
+                        {trend && <span className="text-[0.65rem] text-neutral-200/80">{trend}</span>}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
+    );
+
+    const QuickAction = ({ to, icon: Icon, label, description, accent }) => (
+        <Link to={to}>
+            <motion.div
+                whileHover={!isCollapsed ? { x: 6 } : { scale: 1.03 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+                className={`group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-left text-sm shadow-inner ring-1 ring-white/0 transition-all hover:ring-white/30 dark:border-slate-700/60 dark:bg-slate-900/40 ${
+                    isCollapsed ? 'justify-center' : ''
+                }`}
+            >
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${accent} text-white shadow-lg`}>
+                    <Icon className="h-4 w-4" />
+                </div>
+                <AnimatePresence>
+                    {!isCollapsed && (
+                        <motion.div
+                            initial={{ opacity: 0, x: -6 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -6 }}
+                            className="flex flex-1 flex-col"
+                        >
+                            <span className="text-sm font-semibold text-white">{label}</span>
+                            {description && (
+                                <span className="text-[0.7rem] text-neutral-300/80">{description}</span>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+                <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-white/15 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
+                />
+            </motion.div>
+        </Link>
+    );
 
     return (
         <motion.aside
@@ -218,7 +449,37 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
                 </motion.div>
 
                 <nav className={`flex-1 overflow-y-auto ${isCollapsed ? 'space-y-4 px-2 py-4' : 'space-y-6 px-5 py-6'}`}>
-                    <div className={`${isCollapsed ? 'space-y-1' : 'space-y-2 rounded-2xl border border-white/10 bg-white/10 p-3 shadow-inner dark:border-slate-700/40 dark:bg-slate-900/35'}`}>
+                    <div
+                        className={`rounded-2xl border border-white/10 bg-white/10 shadow-inner dark:border-slate-700/40 dark:bg-slate-900/35 ${
+                            isCollapsed ? 'space-y-2 p-2' : 'space-y-3 p-3'
+                        }`}
+                    >
+                        <SectionHeader label="Snapshot" isCollapsed={isCollapsed} />
+                        <div className="space-y-2">
+                            {quickStats.map((stat) => (
+                                <QuickStat key={stat.label} {...stat} />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div
+                        className={`rounded-2xl border border-white/10 bg-white/10 shadow-inner dark:border-slate-700/40 dark:bg-slate-900/35 ${
+                            isCollapsed ? 'space-y-2 p-2' : 'space-y-3 p-3'
+                        }`}
+                    >
+                        <SectionHeader label="Quick Actions" isCollapsed={isCollapsed} />
+                        <div className="space-y-2">
+                            {quickActions.map((action) => (
+                                <QuickAction key={action.label} {...action} />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div
+                        className={`rounded-2xl border border-white/10 bg-white/10 shadow-inner dark:border-slate-700/40 dark:bg-slate-900/35 ${
+                            isCollapsed ? 'space-y-1 p-2' : 'space-y-2 p-3'
+                        }`}
+                    >
                         <SectionHeader label="Main" isCollapsed={isCollapsed} />
                         {currentUser?.isAdmin && (
                             <NavItem
@@ -232,7 +493,11 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
                         {mainNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
                     </div>
 
-                    <div className={`${isCollapsed ? 'space-y-1' : 'space-y-2 rounded-2xl border border-white/10 bg-white/10 p-3 shadow-inner dark:border-slate-700/40 dark:bg-slate-900/35'}`}>
+                    <div
+                        className={`rounded-2xl border border-white/10 bg-white/10 shadow-inner dark:border-slate-700/40 dark:bg-slate-900/35 ${
+                            isCollapsed ? 'space-y-1 p-2' : 'space-y-2 p-3'
+                        }`}
+                    >
                         <SectionHeader label="Messages" isCollapsed={isCollapsed} />
                         {messages.map(msg => <MessageItem key={msg.name} {...msg} isCollapsed={isCollapsed} />)}
                     </div>
