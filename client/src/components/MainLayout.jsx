@@ -16,6 +16,9 @@ export default function MainLayout() {
     const [isPinned, setIsPinned] = useState(() =>
         JSON.parse(localStorage.getItem('sidebar-pinned')) || false
     );
+    const [isCollapsedExplicit, setIsCollapsedExplicit] = useState(() =>
+        JSON.parse(localStorage.getItem('sidebar-collapsed')) || false
+    );
     const [isHovering, setIsHovering] = useState(false);
 
     // Resizable Sidebar Hook
@@ -25,8 +28,28 @@ export default function MainLayout() {
         localStorage.setItem('sidebar-pinned', JSON.stringify(isPinned));
     }, [isPinned]);
 
-    const isSidebarCollapsed = !isPinned && !isHovering;
+    useEffect(() => {
+        localStorage.setItem('sidebar-collapsed', JSON.stringify(isCollapsedExplicit));
+    }, [isCollapsedExplicit]);
+
+    const isSidebarCollapsed = isCollapsedExplicit || (!isPinned && !isHovering);
     const currentSidebarWidth = isSidebarCollapsed ? 80 : sidebarWidth;
+
+    const handleTogglePin = () => {
+        setIsPinned(prevIsPinned => {
+            const nextIsPinned = !prevIsPinned;
+
+            if (nextIsPinned) {
+                setIsCollapsedExplicit(false);
+            }
+
+            return nextIsPinned;
+        });
+    };
+
+    const handleToggleCollapse = () => {
+        setIsCollapsedExplicit(prev => !prev);
+    };
 
     return (
         <>
@@ -36,18 +59,22 @@ export default function MainLayout() {
                 <motion.div
                     onMouseEnter={() => setIsHovering(true)}
                     onMouseLeave={() => setIsHovering(false)}
-                    className="relative z-40 hidden md:block"
+                    className="relative z-40 hidden md:block group"
                     animate={{ width: currentSidebarWidth }}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 >
                     <Sidebar
                         isCollapsed={isSidebarCollapsed}
                         isPinned={isPinned}
-                        setIsPinned={setIsPinned}
+                        onTogglePin={handleTogglePin}
+                        onToggleCollapse={handleToggleCollapse}
+                        expandedWidth={sidebarWidth}
                     />
                     <div
                         onMouseDown={startResizing}
-                        className={`absolute top-0 right-0 h-full w-2 cursor-col-resize select-none ${isResizing ? 'bg-blue-500/50' : ''}`}
+                        className={`absolute top-0 right-0 h-full w-2 cursor-col-resize select-none transition-opacity duration-200 ${
+                            isSidebarCollapsed ? 'pointer-events-none opacity-0' : 'opacity-0 group-hover:opacity-100'
+                        } ${isResizing ? 'bg-blue-500/50' : 'bg-transparent hover:bg-blue-500/30'}`}
                     />
                 </motion.div>
 

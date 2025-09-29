@@ -19,6 +19,8 @@ import {
     FaThumbtack,
     FaShieldAlt,
     FaLaptopCode,
+    FaChevronLeft,
+    FaChevronRight,
 } from 'react-icons/fa';
 import { Avatar, Tooltip, Button } from 'flowbite-react';
 
@@ -133,7 +135,7 @@ const QuickActionButton = ({ icon: Icon, label, sublabel, to }) => (
 );
 
 // --- Main Sidebar Component ---
-const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
+const Sidebar = ({ isCollapsed, isPinned, onTogglePin, onToggleCollapse, expandedWidth }) => {
     const { currentUser } = useSelector((state) => state.user);
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
@@ -166,9 +168,11 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
         { to: '/help', label: 'Help Center', icon: FaLifeRing },
     ];
 
+    const sidebarTargetWidth = expandedWidth ? `${expandedWidth}px` : '16rem';
+
     return (
         <motion.aside
-            animate={{ width: isCollapsed ? '5rem' : '16rem' }}
+            animate={{ width: isCollapsed ? '5rem' : sidebarTargetWidth }}
             transition={{ duration: 0.3, ease: [0.42, 0, 0.58, 1] }}
             className="sidebar hidden md:flex flex-col fixed top-0 left-0 z-40 h-[calc(100vh-2rem)] my-4 ml-4 rounded-2xl border backdrop-blur-lg bg-white/60 dark:bg-slate-900/60 shadow-lg"
             onMouseMove={handleMouseMove}
@@ -180,20 +184,39 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
                 }}
             />
             <div className="relative z-10">
-                <div className={`flex items-center p-4 border-b ${isCollapsed ? 'justify-center' : 'justify-between'}`} style={{ borderColor: 'var(--color-sidebar-border)' }}>
-                    <AnimatePresence>
-                        {!isCollapsed && (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2 } }} exit={{ opacity: 0 }}>
-                                <Link to="/" className="text-xl font-bold">ScientistShield</Link>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                <div
+                    className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'items-center justify-between'} p-4 border-b transition-all duration-200`}
+                    style={{ borderColor: 'var(--color-sidebar-border)' }}
+                >
+                    <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+                        <AnimatePresence>
+                            {!isCollapsed && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2 } }} exit={{ opacity: 0 }}>
+                                    <Link to="/" className="text-xl font-bold">ScientistShield</Link>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <Tooltip content={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"} placement="right" animation="duration-300">
+                            <motion.button
+                                whileHover={{ scale: 1.05, rotate: isCollapsed ? 0 : -5 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={onToggleCollapse}
+                                className="ml-0 p-2 rounded-full bg-neutral-700/30 text-neutral-200 hover:bg-neutral-700/60 transition-colors"
+                                type="button"
+                                aria-label={isCollapsed ? 'Expand sidebar navigation' : 'Collapse sidebar navigation'}
+                            >
+                                {isCollapsed ? <FaChevronRight className="h-4 w-4" /> : <FaChevronLeft className="h-4 w-4" />}
+                            </motion.button>
+                        </Tooltip>
+                    </div>
                     <Tooltip content={isPinned ? "Unpin Sidebar" : "Pin Sidebar"} placement="right" animation="duration-300">
                         <motion.button
                             whileHover={{ scale: 1.1, rotate: 15 }}
                             whileTap={{ scale: 0.9 }}
-                            onClick={() => setIsPinned(!isPinned)}
-                            className="p-2 rounded-full hover:bg-neutral-700 transition-colors"
+                            onClick={onTogglePin}
+                            className="p-2 rounded-full bg-neutral-700/20 hover:bg-neutral-700/50 transition-colors"
+                            type="button"
+                            aria-label={isPinned ? 'Unpin sidebar from workspace' : 'Pin sidebar open'}
                         >
                             <motion.div animate={{ rotate: isPinned ? 0 : 45 }}>
                                 <FaThumbtack className={isPinned ? 'text-white' : 'text-neutral-500'} />
