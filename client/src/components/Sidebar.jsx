@@ -5,15 +5,12 @@ import {
     FaBolt,
     FaBook,
     FaCrown,
-    FaCompass,
-    FaLifeRing,
     FaProjectDiagram,
     FaQuestionCircle,
     FaRocket,
     FaSignInAlt,
     FaPlus,
     FaRegBell,
-    FaRegCommentDots,
     FaRegFileAlt,
     FaRegCreditCard,
     FaThumbtack,
@@ -157,17 +154,6 @@ const Sidebar = ({ isCollapsed, isPinned, onTogglePin, onToggleCollapse, expande
         { to: '/notification', label: 'Notification', icon: FaRegBell },
     ];
 
-    const learningNavItems = [
-        { to: '/roadmaps', label: 'Learning Paths', icon: FaCompass, badge: 'New' },
-        { to: '/mentorship', label: 'Mentorship Hub', icon: FaRocket },
-        { to: '/resources', label: 'Resource Library', icon: FaBolt },
-    ];
-
-    const supportNavItems = [
-        { to: '/community', label: 'Community', icon: FaRegCommentDots },
-        { to: '/help', label: 'Help Center', icon: FaLifeRing },
-    ];
-
     const sidebarTargetWidth = expandedWidth ? `${expandedWidth}px` : '16rem';
 
     return (
@@ -280,12 +266,6 @@ const Sidebar = ({ isCollapsed, isPinned, onTogglePin, onToggleCollapse, expande
                 )}
 
                 {workspaceNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
-
-                <SectionHeader label="Learning" isCollapsed={isCollapsed} actionLabel="Add learning goal" />
-                {learningNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
-
-                <SectionHeader label="Support" isCollapsed={isCollapsed} />
-                {supportNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
             </nav>
 
             <div className="p-4 mt-auto relative z-10">
