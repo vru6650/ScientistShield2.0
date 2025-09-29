@@ -1,5 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FaBook, FaHome, FaQuestionCircle, FaUser, FaLaptopCode, FaLightbulb, FaTools } from 'react-icons/fa';
+import {
+    FaBook,
+    FaHome,
+    FaQuestionCircle,
+    FaUser,
+    FaLaptopCode,
+    FaLightbulb,
+    FaTools,
+    FaPlus,
+    FaPenFancy,
+    FaLayerGroup,
+    FaUserPlus,
+} from 'react-icons/fa';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -35,12 +47,73 @@ export default function BottomNav() {
         });
     }
 
-    const dockItems = [...navItems, { type: 'theme', label: 'Theme', key: 'theme-toggle' }];
+    const dockItems = [
+        ...navItems,
+        { type: 'quick-add', label: 'Quick Add', key: 'quick-add' },
+        { type: 'theme', label: 'Theme', key: 'theme-toggle' },
+    ];
 
     const [hoverX, setHoverX] = useState(null);
     const [focusedIndex, setFocusedIndex] = useState(null);
+    const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const iconRefs = useRef([]);
     const [iconCenters, setIconCenters] = useState([]);
+    const quickAddTriggerRef = useRef(null);
+    const quickAddMenuRef = useRef(null);
+
+    const quickAddOptions = currentUser
+        ? [
+              {
+                  to: '/create-post',
+                  label: 'Write a post',
+                  description: 'Share research updates with the community.',
+                  icon: FaPenFancy,
+              },
+              {
+                  to: '/create-tutorial',
+                  label: 'Author a tutorial',
+                  description: 'Craft step-by-step learning guides.',
+                  icon: FaBook,
+              },
+              {
+                  to: '/create-quiz',
+                  label: 'Launch a quiz',
+                  description: 'Test knowledge with interactive questions.',
+                  icon: FaQuestionCircle,
+              },
+              {
+                  to: '/create-problem',
+                  label: 'Publish a problem',
+                  description: 'Challenge peers with scenario-based tasks.',
+                  icon: FaLightbulb,
+              },
+              {
+                  to: '/create-page',
+                  label: 'Build a page',
+                  description: 'Design custom hub pages and resources.',
+                  icon: FaLayerGroup,
+              },
+          ]
+        : [
+              {
+                  to: '/sign-in',
+                  label: 'Sign in to contribute',
+                  description: 'Unlock creation tools and personalize your dock.',
+                  icon: FaUserPlus,
+              },
+              {
+                  to: '/tutorials',
+                  label: 'Explore tutorials',
+                  description: 'Learn from expert-written guides.',
+                  icon: FaBook,
+              },
+              {
+                  to: '/tools',
+                  label: 'Visit the tools hub',
+                  description: 'Discover productivity boosters for research.',
+                  icon: FaTools,
+              },
+          ];
 
     const updateIconCenters = useCallback(() => {
         const centers = iconRefs.current.map((element) => {
@@ -64,7 +137,25 @@ export default function BottomNav() {
 
     useEffect(() => {
         setHoverX(null);
+        setIsQuickAddOpen(false);
     }, [location.pathname]);
+
+    useEffect(() => {
+        if (!isQuickAddOpen) return undefined;
+
+        const handleClickOutside = (event) => {
+            if (
+                quickAddTriggerRef.current?.contains(event.target) ||
+                quickAddMenuRef.current?.contains(event.target)
+            ) {
+                return;
+            }
+            setIsQuickAddOpen(false);
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isQuickAddOpen]);
 
     const getMetrics = useCallback(
         (index, isActive) => {
@@ -108,7 +199,8 @@ export default function BottomNav() {
                 {dockItems.map((item, index) => {
                     const isTheme = item.type === 'theme';
                     const Icon = item.icon;
-                    const isActive = !isTheme && item.match ? item.match(location.pathname) : false;
+                    const isQuickAdd = item.type === 'quick-add';
+                    const isActive = !isTheme && !isQuickAdd && item.match ? item.match(location.pathname) : false;
                     let { scale, lift, proximity } = getMetrics(index, isActive);
 
                     if (focusedIndex === index) {
@@ -117,7 +209,11 @@ export default function BottomNav() {
                         proximity = Math.max(proximity, 1);
                     }
 
-                    const showLabel = isTheme ? proximity > 0.6 || focusedIndex === index : proximity > 0.55 || isActive || focusedIndex === index;
+                    const showLabel = isTheme
+                        ? proximity > 0.6 || focusedIndex === index
+                        : isQuickAdd
+                        ? isQuickAddOpen || proximity > 0.5 || focusedIndex === index
+                        : proximity > 0.55 || isActive || focusedIndex === index;
 
                     const label = item.label;
 
@@ -143,6 +239,27 @@ export default function BottomNav() {
                                                 onBlur={handleBlur}
                                             />
                                         </div>
+                                    ) : isQuickAdd ? (
+                                        <button
+                                            type="button"
+                                            ref={quickAddTriggerRef}
+                                            aria-label={label}
+                                            aria-haspopup="menu"
+                                            aria-expanded={isQuickAddOpen}
+                                            className={`group relative flex h-12 w-12 items-center justify-center rounded-3xl transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                                                isQuickAddOpen ? ACTIVE_CLASSES : INACTIVE_CLASSES
+                                            }`}
+                                            onClick={() => setIsQuickAddOpen((open) => !open)}
+                                            onFocus={() => handleFocus(index)}
+                                            onBlur={(event) => {
+                                                if (quickAddMenuRef.current?.contains(event.relatedTarget)) {
+                                                    return;
+                                                }
+                                                handleBlur();
+                                            }}
+                                        >
+                                            <FaPlus className="text-2xl" />
+                                        </button>
                                     ) : (
                                         <Link
                                             to={item.to}
@@ -185,6 +302,59 @@ export default function BottomNav() {
                                             transition={{ duration: 0.2 }}
                                         />
                                     ) : null}
+                                    <AnimatePresence>
+                                        {isQuickAdd && isQuickAddOpen ? (
+                                            <motion.div
+                                                key="quick-add-menu"
+                                                ref={quickAddMenuRef}
+                                                initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                                                animate={{ opacity: 1, y: -12, scale: 1 }}
+                                                exit={{ opacity: 0, y: 10, scale: 0.96 }}
+                                                transition={{ duration: 0.18, ease: 'easeOut' }}
+                                                className="pointer-events-auto absolute bottom-20 left-1/2 w-72 -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-[0_28px_65px_-30px_rgba(15,23,42,0.65)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95 dark:shadow-[0_28px_65px_-30px_rgba(15,118,110,0.45)]"
+                                            >
+                                                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                                                    Quick Actions
+                                                </p>
+                                                <ul className="mt-3 space-y-2">
+                                                    {quickAddOptions.map((option) => {
+                                                        const OptionIcon = option.icon;
+                                                        return (
+                                                            <li key={option.to}>
+                                                                <Link
+                                                                    to={option.to}
+                                                                    className="group flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2 transition-all hover:border-slate-200 hover:bg-slate-100/90 hover:shadow-sm focus:outline-none focus-visible:border-cyan-400 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-cyan-400 dark:hover:border-slate-700 dark:hover:bg-slate-800/70"
+                                                                    onClick={() => {
+                                                                        setIsQuickAddOpen(false);
+                                                                        handleBlur();
+                                                                    }}
+                                                                    onFocus={() => handleFocus(index)}
+                                                                    onBlur={(event) => {
+                                                                        if (quickAddTriggerRef.current?.contains(event.relatedTarget)) {
+                                                                            return;
+                                                                        }
+                                                                        handleBlur();
+                                                                    }}
+                                                                >
+                                                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900/5 text-slate-600 transition group-hover:bg-gradient-to-br group-hover:from-cyan-500 group-hover:to-blue-500 group-hover:text-white dark:bg-white/5 dark:text-slate-200">
+                                                                        <OptionIcon className="text-lg" />
+                                                                    </span>
+                                                                    <span className="flex flex-col">
+                                                                        <span className="text-sm font-semibold text-slate-800 transition group-hover:text-slate-900 dark:text-slate-100">
+                                                                            {option.label}
+                                                                        </span>
+                                                                        <span className="text-xs font-medium text-slate-500 transition group-hover:text-slate-600 dark:text-slate-400">
+                                                                            {option.description}
+                                                                        </span>
+                                                                    </span>
+                                                                </Link>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            </motion.div>
+                                        ) : null}
+                                    </AnimatePresence>
                                 </motion.div>
                             </div>
                         </motion.li>
