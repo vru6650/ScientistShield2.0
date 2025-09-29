@@ -7,15 +7,13 @@ import {
     FaBook, FaProjectDiagram, FaQuestionCircle, FaPlus,
     FaThumbtack, FaShieldAlt, FaArrowsAlt, FaLaptopCode,
     FaTools, FaSearch, FaSignOutAlt, FaUser, FaCog,
-    FaCompass, FaBolt, FaPlay, FaRegCalendarCheck,
-    FaFire, FaBullseye
+    FaPlay, FaRegCalendarCheck,
+    FaBullseye
 } from 'react-icons/fa';
 import { Avatar, Tooltip } from 'flowbite-react';
 import ThemeToggle from './ThemeToggle';
 
 const classNames = (...classes) => classes.filter(Boolean).join(' ');
-const MotionLink = motion(Link);
-
 const sidebarThemes = {
     dark: {
         container: {
@@ -40,12 +38,6 @@ const sidebarThemes = {
                 description: 'text-neutral-400/90 group-hover:text-neutral-200/90',
                 badge: 'rounded-full bg-white/15 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.3em] text-white/80 group-hover:bg-white/25 group-hover:text-white',
                 badgeDot: 'bg-[#fb923c]'
-            },
-            quickAction: {
-                container: 'border-white/10 bg-white/10 hover:border-white/20 hover:bg-white/15',
-                label: 'text-white',
-                description: 'text-neutral-200/80',
-                meta: 'bg-white/15 text-white/90'
             },
             profileCard: 'border-white/10 bg-white/10',
             tagline: 'text-neutral-300/90',
@@ -73,15 +65,6 @@ const sidebarThemes = {
                 buttonRing: 'focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
             },
             collapsedTaskButton: 'bg-gradient-to-br from-[#f97316] via-[#f43f5e] to-[#6366f1] text-white shadow-[0_22px_45px_-18px_rgba(244,114,182,0.45)]',
-            snapshot: {
-                container: 'border-white/10 bg-white/10 text-white shadow-[0_30px_80px_-40px_rgba(124,58,237,0.45)]',
-                progressBg: 'bg-white/10',
-                progressFill: 'bg-gradient-to-r from-[#f97316] via-[#f472b6] to-[#6366f1]',
-                chip: 'bg-white/15 text-white/90',
-                muted: 'text-neutral-300/90',
-                button: 'border border-white/10 bg-white/5 text-white hover:bg-white/10',
-                link: 'text-white hover:text-white/80'
-            },
             preview: {
                 container: 'bg-[#0f172a]/95 border border-white/10 text-white shadow-[0_30px_80px_-40px_rgba(124,58,237,0.6)]',
                 title: 'text-white',
@@ -117,12 +100,6 @@ const sidebarThemes = {
                 badge: 'rounded-full bg-[#fde4f2] px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.3em] text-rose-500 shadow-sm group-hover:bg-[#fbcfe8] group-hover:text-rose-600',
                 badgeDot: 'bg-[#f97316]'
             },
-            quickAction: {
-                container: 'border-white/70 bg-white/80 hover:border-[#fbcfe8] hover:bg-white',
-                label: 'text-slate-800',
-                description: 'text-slate-500',
-                meta: 'bg-[#fde4f2] text-rose-600'
-            },
             profileCard: 'border-white/70 bg-white/70',
             tagline: 'text-slate-500',
             sectionLabel: 'text-slate-500',
@@ -149,15 +126,6 @@ const sidebarThemes = {
                 buttonRing: 'focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
             },
             collapsedTaskButton: 'bg-gradient-to-br from-[#fb923c] via-[#f472b6] to-[#6366f1] text-white shadow-[0_22px_45px_-18px_rgba(244,114,182,0.45)]',
-            snapshot: {
-                container: 'border-white/70 bg-white/80 text-slate-800 shadow-[0_30px_80px_-40px_rgba(251,146,60,0.35)]',
-                progressBg: 'bg-slate-100',
-                progressFill: 'bg-gradient-to-r from-[#fb923c] via-[#f472b6] to-[#6366f1]',
-                chip: 'bg-[#fde4f2] text-rose-600',
-                muted: 'text-slate-500',
-                button: 'border border-white/70 bg-white text-slate-600 hover:text-slate-900',
-                link: 'text-rose-600 hover:text-rose-500'
-            },
             preview: {
                 container: 'bg-white/95 border border-slate-200 text-slate-700 shadow-[0_30px_80px_-40px_rgba(251,146,60,0.35)]',
                 title: 'text-slate-800',
@@ -485,119 +453,6 @@ NavItem.propTypes = {
     themeConfig: PropTypes.object.isRequired
 };
 
-const QuickAction = ({ to, icon: Icon, label, description, meta, themeConfig }) => (
-    <MotionLink
-        to={to}
-        whileHover={{ translateY: -3, scale: 1.01 }}
-        whileTap={{ scale: 0.98 }}
-        className={classNames('group relative flex items-start gap-3 overflow-hidden rounded-2xl p-3 transition-all duration-200', themeConfig.quickAction.container)}
-    >
-        <span className={classNames('flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-[0_18px_38px_-18px_rgba(244,114,182,0.45)]', themeConfig.activeTask.gradient)}>
-            <Icon size={18} />
-        </span>
-        <div className="flex flex-1 flex-col">
-            <span className={classNames('text-sm font-semibold', themeConfig.quickAction.label)}>{label}</span>
-            {description && <span className={classNames('text-xs', themeConfig.quickAction.description)}>{description}</span>}
-        </div>
-        {meta && (
-            <span className={classNames('rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.3em]', themeConfig.quickAction.meta)}>
-                {meta}
-            </span>
-        )}
-        <motion.span
-            aria-hidden
-            className="pointer-events-none absolute -right-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-sky-500/10 blur-2xl"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-        />
-    </MotionLink>
-);
-QuickAction.propTypes = {
-    to: PropTypes.string.isRequired,
-    icon: PropTypes.elementType.isRequired,
-    label: PropTypes.string.isRequired,
-    description: PropTypes.string,
-    meta: PropTypes.string,
-    themeConfig: PropTypes.object.isRequired
-};
-
-
-const LearningSnapshot = ({ isCollapsed, themeConfig }) => {
-    const snapshot = {
-        track: 'AI Safety Foundations',
-        progress: 68,
-        focus: 'Experiment design sprint',
-        streak: 5,
-        upcoming: 'Systems design lab tomorrow'
-    };
-
-    if (isCollapsed) {
-        return (
-            <Tooltip content={`Day ${snapshot.streak} streak • ${snapshot.upcoming}`} placement="right">
-                <Link
-                    to="/dashboard?tab=tasks"
-                    className={classNames('flex h-12 w-12 items-center justify-center rounded-2xl transition-colors', themeConfig.snapshot.button)}
-                >
-                    <FaRegCalendarCheck />
-                </Link>
-            </Tooltip>
-        );
-    }
-
-    return (
-        <motion.div
-            layout
-            whileHover={{ translateY: -2 }}
-            className={classNames('relative overflow-hidden rounded-3xl border p-4 text-sm', themeConfig.snapshot.container)}
-        >
-            <div className="pointer-events-none absolute inset-0 opacity-70">
-                <div className="absolute -left-6 top-0 h-24 w-24 rounded-full bg-white/10 blur-3xl" />
-                <div className="absolute -right-10 bottom-0 h-28 w-28 rounded-full bg-[#6366f1]/20 blur-3xl" />
-            </div>
-            <div className="relative z-10 space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-semibold uppercase tracking-[0.35em] opacity-80">Snapshot</span>
-                    <span className={classNames('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.3em]', themeConfig.snapshot.chip)}>
-                        <FaFire className="text-xs" />
-                        {snapshot.streak} day streak
-                    </span>
-                </div>
-                <div>
-                    <p className="text-base font-semibold leading-tight">{snapshot.track}</p>
-                    <p className={classNames('mt-1 text-xs', themeConfig.snapshot.muted)}>Focus: {snapshot.focus}</p>
-                </div>
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium">
-                        <span>Progress</span>
-                        <span>{snapshot.progress}%</span>
-                    </div>
-                    <div className={classNames('h-2 overflow-hidden rounded-full', themeConfig.snapshot.progressBg)}>
-                        <motion.div
-                            className={classNames('h-full rounded-full', themeConfig.snapshot.progressFill)}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${snapshot.progress}%` }}
-                            transition={{ duration: 0.6, ease: 'easeOut' }}
-                        />
-                    </div>
-                </div>
-                <div className={classNames('flex items-center gap-2 text-xs', themeConfig.snapshot.muted)}>
-                    <FaRegCalendarCheck />
-                    <span>{snapshot.upcoming}</span>
-                </div>
-                <Link
-                    to="/dashboard?tab=tasks"
-                    className={classNames('inline-flex items-center gap-1 text-xs font-semibold transition-colors', themeConfig.snapshot.link)}
-                >
-                    View learning plan
-                    <span aria-hidden>→</span>
-                </Link>
-            </div>
-        </motion.div>
-    );
-};
-LearningSnapshot.propTypes = { isCollapsed: PropTypes.bool.isRequired, themeConfig: PropTypes.object.isRequired };
-
-
 const ActiveTaskCard = ({ isCollapsed, themeConfig }) => {
     if (isCollapsed) {
         return (
@@ -716,32 +571,6 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
     const setIsPinned = externalSetIsPinned || setInternalPinned;
     const isDark = theme === 'dark';
     const themeConfig = sidebarThemes[isDark ? 'dark' : 'light'];
-    const quickActions = [
-        {
-            to: '/dashboard',
-            label: 'Dashboard Overview',
-            description: 'Resume where you left off',
-            icon: FaCompass,
-            meta: 'Resume'
-        },
-        {
-            to: '/tryit',
-            label: 'Interactive Playground',
-            description: 'Experiment with ideas in real time',
-            icon: FaBolt,
-            meta: 'Live'
-        },
-        ...(currentUser?.isAdmin
-            ? [{
-                to: '/create-post',
-                label: 'Create New Content',
-                description: 'Launch tutorials and resources',
-                icon: FaPlus,
-                meta: 'Admin'
-            }]
-            : [])
-    ];
-
     const updateCollapsed = useCallback((value) => {
         if (!isCollapseControlled) {
             setInternalCollapsed(value);
@@ -839,7 +668,6 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
             .filter(section => section.items.length > 0)
     ), [isFocusMode]);
 
-    const displayedQuickActions = isFocusMode ? quickActions.slice(0, 2) : quickActions;
     const focusButtonLabel = isFocusMode ? 'Disable focus mode' : 'Enable focus mode';
 
     return (
@@ -1117,21 +945,6 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
                             </div>
                         )}
                     </motion.nav>
-
-                    <div className={classNames('mt-4', isCollapsed ? 'flex justify-center' : '')}>
-                        <LearningSnapshot isCollapsed={isCollapsed} themeConfig={themeConfig} />
-                    </div>
-
-                    {!isCollapsed && displayedQuickActions.length > 0 && (
-                        <div className="mt-4 space-y-2">
-                            <span className={classNames('px-2.5 text-xs font-semibold uppercase tracking-[0.35em]', themeConfig.sectionLabel)}>Quick Access</span>
-                            <div className="space-y-2">
-                                {displayedQuickActions.map((action) => (
-                                    <QuickAction key={action.to} {...action} themeConfig={themeConfig} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     <footer className="mt-auto shrink-0 space-y-4 pt-4">
                         <div className={classNames(isCollapsed ? 'flex justify-center' : '')}>
