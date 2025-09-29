@@ -1,0 +1,20 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tutorials-gradient" x1="18" y1="12" x2="66" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F97316" />
+      <stop offset="1" stop-color="#C026D3" />
+    </linearGradient>
+    <linearGradient id="tutorials-pages" x1="24" y1="24" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.35" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#tutorials-gradient)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.5" />
+  <path d="M25 24H38C41.3137 24 44 26.6863 44 30V56C44 52.6863 41.3137 50 38 50H25V24Z" fill="url(#tutorials-pages)" />
+  <path d="M55 24H42C38.6863 24 36 26.6863 36 30V56C36 52.6863 38.6863 50 42 50H55V24Z" fill="#FFE7FF" fill-opacity="0.5" />
+  <path d="M25 24H55V28H25V24Z" fill="#0F172A" fill-opacity="0.15" />
+  <path d="M31 34H48" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-opacity="0.28" />
+  <path d="M31 40H48" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-opacity="0.24" />
+  <path d="M31 46H45" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-opacity="0.2" />
+</svg>
