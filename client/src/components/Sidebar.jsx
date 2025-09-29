@@ -1,18 +1,20 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
     FaBook, FaProjectDiagram, FaQuestionCircle, FaPlus,
     FaThumbtack, FaShieldAlt, FaArrowsAlt, FaLaptopCode,
     FaTools, FaSearch, FaSignOutAlt, FaUser, FaCog,
-    FaCompass, FaBolt, FaPlay, FaRegCalendarCheck
+    FaCompass, FaBolt, FaPlay, FaRegCalendarCheck,
+    FaFire, FaBullseye
 } from 'react-icons/fa';
 import { Avatar, Tooltip } from 'flowbite-react';
 import ThemeToggle from './ThemeToggle';
 
 const classNames = (...classes) => classes.filter(Boolean).join(' ');
+const MotionLink = motion(Link);
 
 const sidebarThemes = {
     dark: {
@@ -29,44 +31,62 @@ const sidebarThemes = {
         ],
         headerBg: 'bg-white/10',
         headerBorder: 'border border-white/10',
-        nav: {
-            activeGlow: 'bg-gradient-to-r from-[#f97316]/25 via-[#f472b6]/20 to-transparent',
-            activeText: 'text-white',
-            inactiveText: 'text-neutral-300 group-hover:text-white',
-            iconWrapper: 'bg-white/10 text-slate-200 group-hover:bg-white/20 group-hover:text-white',
-            activeIconWrapper: 'bg-gradient-to-br from-[#f97316] via-[#f43f5e] to-[#6366f1] text-white shadow-[0_18px_38px_-18px_rgba(244,114,182,0.45)]',
-            description: 'text-neutral-400/90 group-hover:text-neutral-200/90'
-        },
-        quickAction: {
-            container: 'border-white/10 bg-white/10 hover:border-white/20 hover:bg-white/15',
-            label: 'text-white',
-            description: 'text-neutral-200/80'
-        },
-        profileCard: 'border-white/10 bg-white/10',
-        tagline: 'text-neutral-300/90',
-        sectionLabel: 'text-neutral-400',
-        command: {
-            container: 'border-white/10 bg-white/10 text-neutral-200 hover:border-white/20 hover:text-white',
-            key: 'border-white/20 bg-white/5 text-neutral-100',
-            description: 'text-neutral-300/80'
-        },
-        pinButton: 'text-neutral-300 hover:text-white hover:bg-white/10',
-        dragHandle: 'text-neutral-300 hover:text-white hover:bg-white/10',
-        footerCard: 'border-white/10 bg-white/10',
-        themeToggle: 'border border-white/10 bg-slate-900/80 text-white shadow-[0_18px_38px_-18px_rgba(15,23,42,0.65)]',
-        activeTask: {
-            gradient: 'bg-gradient-to-br from-[#f97316] via-[#f43f5e] to-[#6366f1]',
-            text: 'text-white',
-            button: 'bg-white/20 text-white hover:bg-white/30',
-            iconHalo: 'bg-white/30',
-            buttonRing: 'focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
-        },
-        collapsedTaskButton: 'bg-gradient-to-br from-[#f97316] via-[#f43f5e] to-[#6366f1] text-white shadow-[0_22px_45px_-18px_rgba(244,114,182,0.45)]',
-        preview: {
-            container: 'bg-[#0f172a]/95 border border-white/10 text-white shadow-[0_30px_80px_-40px_rgba(124,58,237,0.6)]',
-            title: 'text-white',
-            description: 'text-neutral-300/80'
-        },
+            nav: {
+                activeGlow: 'bg-gradient-to-r from-[#f97316]/25 via-[#f472b6]/20 to-transparent',
+                activeText: 'text-white',
+                inactiveText: 'text-neutral-300 group-hover:text-white',
+                iconWrapper: 'bg-white/10 text-slate-200 group-hover:bg-white/20 group-hover:text-white',
+                activeIconWrapper: 'bg-gradient-to-br from-[#f97316] via-[#f43f5e] to-[#6366f1] text-white shadow-[0_18px_38px_-18px_rgba(244,114,182,0.45)]',
+                description: 'text-neutral-400/90 group-hover:text-neutral-200/90',
+                badge: 'rounded-full bg-white/15 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.3em] text-white/80 group-hover:bg-white/25 group-hover:text-white',
+                badgeDot: 'bg-[#fb923c]'
+            },
+            quickAction: {
+                container: 'border-white/10 bg-white/10 hover:border-white/20 hover:bg-white/15',
+                label: 'text-white',
+                description: 'text-neutral-200/80',
+                meta: 'bg-white/15 text-white/90'
+            },
+            profileCard: 'border-white/10 bg-white/10',
+            tagline: 'text-neutral-300/90',
+            sectionLabel: 'text-neutral-400',
+            command: {
+                container: 'border-white/10 bg-white/10 text-neutral-200 hover:border-white/20 hover:text-white',
+                key: 'border-white/20 bg-white/5 text-neutral-100',
+                description: 'text-neutral-300/80'
+            },
+            pinButton: 'text-neutral-300 hover:text-white hover:bg-white/10',
+            dragHandle: 'text-neutral-300 hover:text-white hover:bg-white/10',
+            focus: {
+                button: 'text-neutral-300 hover:text-white hover:bg-white/10',
+                buttonActive: 'bg-white/20 text-white shadow-[0_18px_38px_-18px_rgba(244,114,182,0.35)]',
+                banner: 'border border-white/10 bg-white/10 text-white',
+                bannerText: 'text-neutral-200/90'
+            },
+            footerCard: 'border-white/10 bg-white/10',
+            themeToggle: 'border border-white/10 bg-slate-900/80 text-white shadow-[0_18px_38px_-18px_rgba(15,23,42,0.65)]',
+            activeTask: {
+                gradient: 'bg-gradient-to-br from-[#f97316] via-[#f43f5e] to-[#6366f1]',
+                text: 'text-white',
+                button: 'bg-white/20 text-white hover:bg-white/30',
+                iconHalo: 'bg-white/30',
+                buttonRing: 'focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
+            },
+            collapsedTaskButton: 'bg-gradient-to-br from-[#f97316] via-[#f43f5e] to-[#6366f1] text-white shadow-[0_22px_45px_-18px_rgba(244,114,182,0.45)]',
+            snapshot: {
+                container: 'border-white/10 bg-white/10 text-white shadow-[0_30px_80px_-40px_rgba(124,58,237,0.45)]',
+                progressBg: 'bg-white/10',
+                progressFill: 'bg-gradient-to-r from-[#f97316] via-[#f472b6] to-[#6366f1]',
+                chip: 'bg-white/15 text-white/90',
+                muted: 'text-neutral-300/90',
+                button: 'border border-white/10 bg-white/5 text-white hover:bg-white/10',
+                link: 'text-white hover:text-white/80'
+            },
+            preview: {
+                container: 'bg-[#0f172a]/95 border border-white/10 text-white shadow-[0_30px_80px_-40px_rgba(124,58,237,0.6)]',
+                title: 'text-white',
+                description: 'text-neutral-300/80'
+            },
         menu: {
             background: 'bg-neutral-900/95 border border-white/10',
             text: 'text-neutral-200',
@@ -87,44 +107,62 @@ const sidebarThemes = {
         ],
         headerBg: 'bg-white/70',
         headerBorder: 'border border-white/70',
-        nav: {
-            activeGlow: 'bg-gradient-to-r from-[#fb923c]/25 via-[#f472b6]/20 to-transparent',
-            activeText: 'text-slate-900',
-            inactiveText: 'text-slate-500 group-hover:text-slate-900',
-            iconWrapper: 'bg-white/80 text-slate-500 group-hover:bg-white group-hover:text-slate-900',
-            activeIconWrapper: 'bg-gradient-to-br from-[#fb923c] via-[#f472b6] to-[#6366f1] text-white shadow-[0_18px_38px_-18px_rgba(244,114,182,0.45)]',
-            description: 'text-slate-400 group-hover:text-slate-600'
-        },
-        quickAction: {
-            container: 'border-white/70 bg-white/80 hover:border-[#fbcfe8] hover:bg-white',
-            label: 'text-slate-800',
-            description: 'text-slate-500'
-        },
-        profileCard: 'border-white/70 bg-white/70',
-        tagline: 'text-slate-500',
-        sectionLabel: 'text-slate-500',
-        command: {
-            container: 'border-white/70 bg-white/80 text-slate-600 hover:border-[#fbcfe8] hover:text-slate-900',
-            key: 'border-slate-200 bg-white text-slate-500',
-            description: 'text-slate-500'
-        },
-        pinButton: 'text-slate-500 hover:text-slate-900 hover:bg-white/70',
-        dragHandle: 'text-slate-500 hover:text-slate-900 hover:bg-white/70',
-        footerCard: 'border-white/70 bg-white/80',
-        themeToggle: 'border border-white/70 bg-white text-slate-700 shadow-[0_18px_38px_-18px_rgba(148,163,184,0.35)]',
-        activeTask: {
-            gradient: 'bg-gradient-to-br from-[#fb923c] via-[#f472b6] to-[#6366f1]',
-            text: 'text-white',
-            button: 'bg-white/30 text-white hover:bg-white/40',
-            iconHalo: 'bg-white/30',
-            buttonRing: 'focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
-        },
-        collapsedTaskButton: 'bg-gradient-to-br from-[#fb923c] via-[#f472b6] to-[#6366f1] text-white shadow-[0_22px_45px_-18px_rgba(244,114,182,0.45)]',
-        preview: {
-            container: 'bg-white/95 border border-slate-200 text-slate-700 shadow-[0_30px_80px_-40px_rgba(251,146,60,0.35)]',
-            title: 'text-slate-800',
-            description: 'text-slate-500'
-        },
+            nav: {
+                activeGlow: 'bg-gradient-to-r from-[#fb923c]/25 via-[#f472b6]/20 to-transparent',
+                activeText: 'text-slate-900',
+                inactiveText: 'text-slate-500 group-hover:text-slate-900',
+                iconWrapper: 'bg-white/80 text-slate-500 group-hover:bg-white group-hover:text-slate-900',
+                activeIconWrapper: 'bg-gradient-to-br from-[#fb923c] via-[#f472b6] to-[#6366f1] text-white shadow-[0_18px_38px_-18px_rgba(244,114,182,0.45)]',
+                description: 'text-slate-400 group-hover:text-slate-600',
+                badge: 'rounded-full bg-[#fde4f2] px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.3em] text-rose-500 shadow-sm group-hover:bg-[#fbcfe8] group-hover:text-rose-600',
+                badgeDot: 'bg-[#f97316]'
+            },
+            quickAction: {
+                container: 'border-white/70 bg-white/80 hover:border-[#fbcfe8] hover:bg-white',
+                label: 'text-slate-800',
+                description: 'text-slate-500',
+                meta: 'bg-[#fde4f2] text-rose-600'
+            },
+            profileCard: 'border-white/70 bg-white/70',
+            tagline: 'text-slate-500',
+            sectionLabel: 'text-slate-500',
+            command: {
+                container: 'border-white/70 bg-white/80 text-slate-600 hover:border-[#fbcfe8] hover:text-slate-900',
+                key: 'border-slate-200 bg-white text-slate-500',
+                description: 'text-slate-500'
+            },
+            pinButton: 'text-slate-500 hover:text-slate-900 hover:bg-white/70',
+            dragHandle: 'text-slate-500 hover:text-slate-900 hover:bg-white/70',
+            focus: {
+                button: 'text-slate-500 hover:text-slate-900 hover:bg-white/70',
+                buttonActive: 'bg-[#fde4f2] text-rose-600 shadow-[0_18px_38px_-18px_rgba(244,114,182,0.35)]',
+                banner: 'border border-white/70 bg-white/80 text-slate-700',
+                bannerText: 'text-slate-500'
+            },
+            footerCard: 'border-white/70 bg-white/80',
+            themeToggle: 'border border-white/70 bg-white text-slate-700 shadow-[0_18px_38px_-18px_rgba(148,163,184,0.35)]',
+            activeTask: {
+                gradient: 'bg-gradient-to-br from-[#fb923c] via-[#f472b6] to-[#6366f1]',
+                text: 'text-white',
+                button: 'bg-white/30 text-white hover:bg-white/40',
+                iconHalo: 'bg-white/30',
+                buttonRing: 'focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
+            },
+            collapsedTaskButton: 'bg-gradient-to-br from-[#fb923c] via-[#f472b6] to-[#6366f1] text-white shadow-[0_22px_45px_-18px_rgba(244,114,182,0.45)]',
+            snapshot: {
+                container: 'border-white/70 bg-white/80 text-slate-800 shadow-[0_30px_80px_-40px_rgba(251,146,60,0.35)]',
+                progressBg: 'bg-slate-100',
+                progressFill: 'bg-gradient-to-r from-[#fb923c] via-[#f472b6] to-[#6366f1]',
+                chip: 'bg-[#fde4f2] text-rose-600',
+                muted: 'text-slate-500',
+                button: 'border border-white/70 bg-white text-slate-600 hover:text-slate-900',
+                link: 'text-rose-600 hover:text-rose-500'
+            },
+            preview: {
+                container: 'bg-white/95 border border-slate-200 text-slate-700 shadow-[0_30px_80px_-40px_rgba(251,146,60,0.35)]',
+                title: 'text-slate-800',
+                description: 'text-slate-500'
+            },
         menu: {
             background: 'bg-white/95 border border-slate-200',
             text: 'text-slate-600',
@@ -142,19 +180,25 @@ const navConfig = [
                 to: '/tutorials',
                 label: 'Tutorials',
                 description: 'Curated learning paths & chapters',
-                icon: FaBook
+                icon: FaBook,
+                badge: 'New',
+                isEssential: true
             },
             {
                 to: '/quizzes',
                 label: 'Quizzes',
                 description: 'Assessments to validate progress',
-                icon: FaQuestionCircle
+                icon: FaQuestionCircle,
+                badge: 'Live',
+                isEssential: true
             },
             {
                 to: '/projects',
                 label: 'Projects',
                 description: 'Hands-on builds & case studies',
-                icon: FaProjectDiagram
+                icon: FaProjectDiagram,
+                badge: 'Beta',
+                isEssential: false
             },
         ]
     },
@@ -165,13 +209,15 @@ const navConfig = [
                 to: '/tools',
                 label: 'Tools Hub',
                 description: 'Productivity boosters & utilities',
-                icon: FaTools
+                icon: FaTools,
+                isEssential: false
             },
             {
                 to: '/visualizer',
                 label: 'Code Visualizer',
                 description: 'Step through algorithms in real time',
-                icon: FaLaptopCode
+                icon: FaLaptopCode,
+                isEssential: false
             },
         ]
     },
@@ -328,8 +374,9 @@ const MenuItem = ({ icon: Icon, label, onClick, isDestructive = false, isDark })
 };
 MenuItem.propTypes = { icon: PropTypes.elementType.isRequired, label: PropTypes.string.isRequired, onClick: PropTypes.func.isRequired, isDestructive: PropTypes.bool, isDark: PropTypes.bool };
 
-const NavItem = ({ to, icon: Icon, label, description, isCollapsed, variants, onHover, onLeave, themeConfig }) => {
+const NavItem = ({ to, icon: Icon, label, description, badge, isCollapsed, variants, onHover, onLeave, themeConfig }) => {
     const itemRef = useRef(null);
+    const hasBadge = Boolean(badge);
 
     const handleHover = useCallback(() => {
         if (isCollapsed && onHover && itemRef.current) {
@@ -374,12 +421,20 @@ const NavItem = ({ to, icon: Icon, label, description, isCollapsed, variants, on
                             >
                                 <span
                                     className={classNames(
-                                        'flex items-center justify-center rounded-xl transition-all duration-200',
+                                        'relative flex items-center justify-center rounded-xl transition-all duration-200',
                                         isCollapsed ? 'h-11 w-11' : 'h-10 w-10',
                                         isActive ? themeConfig.nav.activeIconWrapper : themeConfig.nav.iconWrapper
                                     )}
                                 >
                                     <Icon size={isCollapsed ? 22 : 18} />
+                                    {hasBadge && (
+                                        <span
+                                            className={classNames(
+                                                'absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-white/70',
+                                                themeConfig.nav.badgeDot
+                                            )}
+                                        />
+                                    )}
                                 </span>
                                 <AnimatePresence>
                                     {!isCollapsed && (
@@ -390,7 +445,21 @@ const NavItem = ({ to, icon: Icon, label, description, isCollapsed, variants, on
                                             transition={{ duration: 0.2 }}
                                             className="flex flex-col"
                                         >
-                                            <span className="font-medium leading-tight">{label}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium leading-tight">{label}</span>
+                                                <AnimatePresence>
+                                                    {hasBadge && (
+                                                        <motion.span
+                                                            initial={{ opacity: 0, scale: 0.9 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            exit={{ opacity: 0, scale: 0.9 }}
+                                                            className={classNames('transition-colors', themeConfig.nav.badge)}
+                                                        >
+                                                            {badge}
+                                                        </motion.span>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
                                             {description && <span className={classNames('text-xs transition-colors', themeConfig.nav.description)}>{description}</span>}
                                         </motion.div>
                                     )}
@@ -408,6 +477,7 @@ NavItem.propTypes = {
     icon: PropTypes.elementType.isRequired,
     label: PropTypes.string.isRequired,
     description: PropTypes.string,
+    badge: PropTypes.string,
     isCollapsed: PropTypes.bool.isRequired,
     variants: PropTypes.object,
     onHover: PropTypes.func,
@@ -415,33 +485,117 @@ NavItem.propTypes = {
     themeConfig: PropTypes.object.isRequired
 };
 
-const QuickAction = ({ to, icon: Icon, label, description, themeConfig }) => (
-    <Link
+const QuickAction = ({ to, icon: Icon, label, description, meta, themeConfig }) => (
+    <MotionLink
         to={to}
-        className={classNames('relative flex items-center gap-3 overflow-hidden rounded-2xl p-3 transition-all duration-200', themeConfig.quickAction.container)}
+        whileHover={{ translateY: -3, scale: 1.01 }}
+        whileTap={{ scale: 0.98 }}
+        className={classNames('group relative flex items-start gap-3 overflow-hidden rounded-2xl p-3 transition-all duration-200', themeConfig.quickAction.container)}
     >
         <span className={classNames('flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-[0_18px_38px_-18px_rgba(244,114,182,0.45)]', themeConfig.activeTask.gradient)}>
             <Icon size={18} />
         </span>
-        <div className="flex flex-col">
+        <div className="flex flex-1 flex-col">
             <span className={classNames('text-sm font-semibold', themeConfig.quickAction.label)}>{label}</span>
             {description && <span className={classNames('text-xs', themeConfig.quickAction.description)}>{description}</span>}
         </div>
+        {meta && (
+            <span className={classNames('rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.3em]', themeConfig.quickAction.meta)}>
+                {meta}
+            </span>
+        )}
         <motion.span
             aria-hidden
             className="pointer-events-none absolute -right-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-sky-500/10 blur-2xl"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
         />
-    </Link>
+    </MotionLink>
 );
 QuickAction.propTypes = {
     to: PropTypes.string.isRequired,
     icon: PropTypes.elementType.isRequired,
     label: PropTypes.string.isRequired,
     description: PropTypes.string,
+    meta: PropTypes.string,
     themeConfig: PropTypes.object.isRequired
 };
+
+
+const LearningSnapshot = ({ isCollapsed, themeConfig }) => {
+    const snapshot = {
+        track: 'AI Safety Foundations',
+        progress: 68,
+        focus: 'Experiment design sprint',
+        streak: 5,
+        upcoming: 'Systems design lab tomorrow'
+    };
+
+    if (isCollapsed) {
+        return (
+            <Tooltip content={`Day ${snapshot.streak} streak • ${snapshot.upcoming}`} placement="right">
+                <Link
+                    to="/dashboard?tab=tasks"
+                    className={classNames('flex h-12 w-12 items-center justify-center rounded-2xl transition-colors', themeConfig.snapshot.button)}
+                >
+                    <FaRegCalendarCheck />
+                </Link>
+            </Tooltip>
+        );
+    }
+
+    return (
+        <motion.div
+            layout
+            whileHover={{ translateY: -2 }}
+            className={classNames('relative overflow-hidden rounded-3xl border p-4 text-sm', themeConfig.snapshot.container)}
+        >
+            <div className="pointer-events-none absolute inset-0 opacity-70">
+                <div className="absolute -left-6 top-0 h-24 w-24 rounded-full bg-white/10 blur-3xl" />
+                <div className="absolute -right-10 bottom-0 h-28 w-28 rounded-full bg-[#6366f1]/20 blur-3xl" />
+            </div>
+            <div className="relative z-10 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-[0.35em] opacity-80">Snapshot</span>
+                    <span className={classNames('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.3em]', themeConfig.snapshot.chip)}>
+                        <FaFire className="text-xs" />
+                        {snapshot.streak} day streak
+                    </span>
+                </div>
+                <div>
+                    <p className="text-base font-semibold leading-tight">{snapshot.track}</p>
+                    <p className={classNames('mt-1 text-xs', themeConfig.snapshot.muted)}>Focus: {snapshot.focus}</p>
+                </div>
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-medium">
+                        <span>Progress</span>
+                        <span>{snapshot.progress}%</span>
+                    </div>
+                    <div className={classNames('h-2 overflow-hidden rounded-full', themeConfig.snapshot.progressBg)}>
+                        <motion.div
+                            className={classNames('h-full rounded-full', themeConfig.snapshot.progressFill)}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${snapshot.progress}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                        />
+                    </div>
+                </div>
+                <div className={classNames('flex items-center gap-2 text-xs', themeConfig.snapshot.muted)}>
+                    <FaRegCalendarCheck />
+                    <span>{snapshot.upcoming}</span>
+                </div>
+                <Link
+                    to="/dashboard?tab=tasks"
+                    className={classNames('inline-flex items-center gap-1 text-xs font-semibold transition-colors', themeConfig.snapshot.link)}
+                >
+                    View learning plan
+                    <span aria-hidden>→</span>
+                </Link>
+            </div>
+        </motion.div>
+    );
+};
+LearningSnapshot.propTypes = { isCollapsed: PropTypes.bool.isRequired, themeConfig: PropTypes.object.isRequired };
 
 
 const ActiveTaskCard = ({ isCollapsed, themeConfig }) => {
@@ -551,6 +705,7 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
     const [internalPinned, setInternalPinned] = useState(true);
     const [isCommandMenuOpen, setCommandMenuOpen] = useState(false);
     const [collapsedPreview, setCollapsedPreview] = useState(null);
+    const [isFocusMode, setIsFocusMode] = useState(false);
     const dragControls = useDragControls();
 
     const isCollapseControlled = typeof controlledCollapsed === 'boolean';
@@ -566,20 +721,23 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
             to: '/dashboard',
             label: 'Dashboard Overview',
             description: 'Resume where you left off',
-            icon: FaCompass
+            icon: FaCompass,
+            meta: 'Resume'
         },
         {
             to: '/tryit',
             label: 'Interactive Playground',
             description: 'Experiment with ideas in real time',
-            icon: FaBolt
+            icon: FaBolt,
+            meta: 'Live'
         },
         ...(currentUser?.isAdmin
             ? [{
                 to: '/create-post',
                 label: 'Create New Content',
                 description: 'Launch tutorials and resources',
-                icon: FaPlus
+                icon: FaPlus,
+                meta: 'Admin'
             }]
             : [])
     ];
@@ -671,6 +829,18 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
         open: { y: 0, opacity: 1, transition: { y: { stiffness: 1000, velocity: -100 } } },
         closed: { y: 50, opacity: 0, transition: { y: { stiffness: 1000 } } }
     };
+
+    const displayedNavConfig = useMemo(() => (
+        navConfig
+            .map(section => ({
+                ...section,
+                items: section.items.filter(item => !isFocusMode || item.isEssential)
+            }))
+            .filter(section => section.items.length > 0)
+    ), [isFocusMode]);
+
+    const displayedQuickActions = isFocusMode ? quickActions.slice(0, 2) : quickActions;
+    const focusButtonLabel = isFocusMode ? 'Disable focus mode' : 'Enable focus mode';
 
     return (
         <>
@@ -764,6 +934,18 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
                             </AnimatePresence>
                         </div>
                         <div className="flex items-center gap-1.5">
+                            <Tooltip content={focusButtonLabel}>
+                                <motion.button
+                                    type="button"
+                                    aria-pressed={isFocusMode}
+                                    aria-label={focusButtonLabel}
+                                    onClick={() => setIsFocusMode((prev) => !prev)}
+                                    className={classNames('rounded-full p-2 transition-colors', themeConfig.focus.button, isFocusMode ? themeConfig.focus.buttonActive : '')}
+                                    whileTap={{ scale: 0.95 }}
+                                >
+                                    <FaBullseye />
+                                </motion.button>
+                            </Tooltip>
                             {!isPinned && (
                                 <Tooltip content="Drag to Move">
                                     <motion.button
@@ -788,6 +970,35 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
                             </Tooltip>
                         </div>
                     </header>
+
+                    <AnimatePresence>
+                        {isFocusMode && !isCollapsed && (
+                            <motion.div
+                                key="focus-banner"
+                                initial={{ opacity: 0, y: -8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                transition={{ duration: 0.25 }}
+                                className={classNames('mt-4 flex items-start gap-3 rounded-2xl px-4 py-3 text-sm', themeConfig.focus.banner)}
+                            >
+                                <span className="mt-1 flex h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_0_4px_rgba(251,191,36,0.25)]" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold">Focus mode enabled</p>
+                                    <p className={classNames('mt-1 text-xs leading-relaxed', themeConfig.focus.bannerText)}>
+                                        Navigation is trimmed to your essentials. Pin the sidebar or exit focus to browse everything.
+                                    </p>
+                                </div>
+                                <motion.button
+                                    type="button"
+                                    onClick={() => setIsFocusMode(false)}
+                                    className={classNames('rounded-full px-3 py-1 text-[0.625rem] font-semibold uppercase tracking-[0.3em]', themeConfig.focus.buttonActive)}
+                                    whileTap={{ scale: 0.95 }}
+                                >
+                                    Exit
+                                </motion.button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <div className="shrink-0 py-5">
                         <button
@@ -834,7 +1045,7 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
                     </div>
 
                     <motion.nav variants={navItemsVariants} className="custom-scrollbar flex-1 space-y-5 overflow-y-auto py-1 pr-1">
-                        {navConfig.map(section => (
+                        {displayedNavConfig.map(section => (
                             <div key={section.title} className="space-y-3">
                                 <AnimatePresence>
                                     {!isCollapsed && (
@@ -883,6 +1094,7 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
                                         icon={FaPlus}
                                         label="New Post"
                                         description="Publish fresh knowledge"
+                                        badge="Admin"
                                         isCollapsed={isCollapsed}
                                         variants={navItemVariant}
                                         onHover={showCollapsedPreview}
@@ -894,6 +1106,7 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
                                         icon={FaShieldAlt}
                                         label="Manage Users"
                                         description="Moderate members & roles"
+                                        badge="Team"
                                         isCollapsed={isCollapsed}
                                         variants={navItemVariant}
                                         onHover={showCollapsedPreview}
@@ -905,11 +1118,15 @@ const AdvancedSidebar = ({ isCollapsed: controlledCollapsed, isPinned: controlle
                         )}
                     </motion.nav>
 
-                    {!isCollapsed && quickActions.length > 0 && (
+                    <div className={classNames('mt-4', isCollapsed ? 'flex justify-center' : '')}>
+                        <LearningSnapshot isCollapsed={isCollapsed} themeConfig={themeConfig} />
+                    </div>
+
+                    {!isCollapsed && displayedQuickActions.length > 0 && (
                         <div className="mt-4 space-y-2">
                             <span className={classNames('px-2.5 text-xs font-semibold uppercase tracking-[0.35em]', themeConfig.sectionLabel)}>Quick Access</span>
                             <div className="space-y-2">
-                                {quickActions.map((action) => (
+                                {displayedQuickActions.map((action) => (
                                     <QuickAction key={action.to} {...action} themeConfig={themeConfig} />
                                 ))}
                             </div>
