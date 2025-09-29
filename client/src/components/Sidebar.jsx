@@ -2,12 +2,18 @@ import { NavLink, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import {
+    FaBolt,
     FaBook,
+    FaCrown,
+    FaCompass,
+    FaLifeRing,
     FaProjectDiagram,
     FaQuestionCircle,
+    FaRocket,
     FaSignInAlt,
     FaPlus,
     FaRegBell,
+    FaRegCommentDots,
     FaRegFileAlt,
     FaRegCreditCard,
     FaThumbtack,
@@ -18,7 +24,7 @@ import { Avatar, Tooltip, Button } from 'flowbite-react';
 
 // --- Reusable UI Sub-components ---
 
-const SectionHeader = ({ label, isCollapsed }) => (
+const SectionHeader = ({ label, isCollapsed, actionLabel, onAction }) => (
     <AnimatePresence>
         {!isCollapsed && (
             <motion.h3
@@ -28,17 +34,23 @@ const SectionHeader = ({ label, isCollapsed }) => (
                 className="px-3 mt-6 mb-2 text-xs font-medium tracking-wider uppercase text-neutral-500 dark:text-neutral-400 flex justify-between items-center"
             >
                 {label}
-                <Tooltip content={`Add New ${label}`} placement="right">
-                    <button className="text-neutral-500 hover:text-white transition-colors">
-                        <FaPlus size={10} />
-                    </button>
-                </Tooltip>
+                {actionLabel && (
+                    <Tooltip content={actionLabel} placement="right">
+                        <button
+                            className="text-neutral-500 hover:text-white transition-colors"
+                            onClick={onAction}
+                            type="button"
+                        >
+                            <FaPlus size={10} />
+                        </button>
+                    </Tooltip>
+                )}
             </motion.h3>
         )}
     </AnimatePresence>
 );
 
-const NavItem = ({ to, icon: Icon, label, isCollapsed }) => (
+const NavItem = ({ to, icon: Icon, label, isCollapsed, badge }) => (
     <Tooltip content={label} placement="right" animation="duration-300" disabled={!isCollapsed}>
         <NavLink to={to}>
             {({ isActive }) => (
@@ -51,7 +63,7 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }) => (
                         ? 'bg-neutral-700/60 text-white'
                         : 'text-neutral-400 group-hover:text-white'
                     }
-                        ${isCollapsed ? 'justify-center px-0' : ''}
+                        ${isCollapsed ? 'justify-center px-0' : 'justify-between'}
                     `}
                 >
                     <AnimatePresence>
@@ -66,21 +78,36 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }) => (
                         )}
                     </AnimatePresence>
 
-                    {Icon && (
-                        <motion.div whileHover={{ scale: 1.1 }}>
-                            <Icon className="h-5 w-5 flex-shrink-0" />
-                        </motion.div>
-                    )}
+                    <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+                        {Icon && (
+                            <motion.div whileHover={{ scale: 1.1 }} className={`rounded-lg p-2 ${isActive ? 'bg-neutral-800/60 text-white' : 'bg-neutral-700/30 text-neutral-300'} ${isCollapsed ? 'p-2.5' : ''}`}>
+                                <Icon className="h-5 w-5 flex-shrink-0" />
+                            </motion.div>
+                        )}
+
+                        <AnimatePresence>
+                            {!isCollapsed && (
+                                <motion.span
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1, transition: { delay: 0.1 } }}
+                                    exit={{ opacity: 0 }}
+                                    className="whitespace-nowrap"
+                                >
+                                    {label}
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     <AnimatePresence>
-                        {!isCollapsed && (
+                        {!isCollapsed && badge && (
                             <motion.span
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1, transition: { delay: 0.1 } }}
-                                exit={{ opacity: 0 }}
-                                className="whitespace-nowrap"
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0, transition: { delay: 0.15 } }}
+                                exit={{ opacity: 0, y: -4 }}
+                                className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200"
                             >
-                                {label}
+                                {badge}
                             </motion.span>
                         )}
                     </AnimatePresence>
@@ -88,6 +115,21 @@ const NavItem = ({ to, icon: Icon, label, isCollapsed }) => (
             )}
         </NavLink>
     </Tooltip>
+);
+
+const QuickActionButton = ({ icon: Icon, label, sublabel, to }) => (
+    <Link
+        to={to}
+        className="group flex items-center gap-3 rounded-xl border border-white/5 bg-gradient-to-r from-slate-800/40 to-slate-900/40 px-3 py-3 transition-all duration-200 hover:from-slate-800/80 hover:to-slate-900/80"
+    >
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-300 group-hover:bg-emerald-500/30">
+            <Icon className="h-4 w-4" />
+        </span>
+        <span className="flex flex-col text-left">
+            <span className="text-sm font-semibold text-white">{label}</span>
+            <span className="text-xs text-neutral-400 group-hover:text-neutral-200/80">{sublabel}</span>
+        </span>
+    </Link>
 );
 
 // --- Main Sidebar Component ---
@@ -103,14 +145,25 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
         mouseY.set(clientY - top);
     };
 
-    const mainNavItems = [
-        { to: '/tutorials', label: 'Tutorials', icon: FaBook },
+    const workspaceNavItems = [
+        { to: '/tutorials', label: 'Tutorials', icon: FaBook, badge: 'Focus' },
         { to: '/quizzes', label: 'Quizzes', icon: FaQuestionCircle },
         { to: '/projects', label: 'Projects', icon: FaProjectDiagram },
-        { to: '/visualizer', label: 'Code Visualizer', icon: FaLaptopCode },
+        { to: '/visualizer', label: 'Code Visualizer', icon: FaLaptopCode, badge: 'Beta' },
         { to: '/invoices', label: 'Invoices', icon: FaRegFileAlt },
         { to: '/wallet', label: 'Wallet', icon: FaRegCreditCard },
         { to: '/notification', label: 'Notification', icon: FaRegBell },
+    ];
+
+    const learningNavItems = [
+        { to: '/roadmaps', label: 'Learning Paths', icon: FaCompass, badge: 'New' },
+        { to: '/mentorship', label: 'Mentorship Hub', icon: FaRocket },
+        { to: '/resources', label: 'Resource Library', icon: FaBolt },
+    ];
+
+    const supportNavItems = [
+        { to: '/community', label: 'Community', icon: FaRegCommentDots },
+        { to: '/help', label: 'Help Center', icon: FaLifeRing },
     ];
 
     return (
@@ -123,7 +176,7 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
             <motion.div
                 className="absolute inset-0 z-0 pointer-events-none"
                 style={{
-                    background: `radial-gradient(circle at ${mouseX}px ${mouseY}px, rgba(148, 163, 184, 0.05), transparent 40%)`
+                    background: `radial-gradient(circle at ${mouseX}px ${mouseY}px, rgba(148, 163, 184, 0.08), transparent 50%)`
                 }}
             />
             <div className="relative z-10">
@@ -171,24 +224,68 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
                     ) : (
                         <NavItem to="/sign-in" icon={FaSignInAlt} label="Sign In" isCollapsed={isCollapsed} />
                     )}
+
+                    {currentUser && !isCollapsed && (
+                        <div className="mt-4 space-y-2">
+                            <QuickActionButton
+                                to="/tutorials"
+                                icon={FaRocket}
+                                label="Continue learning"
+                                sublabel="Jump back into your last tutorial"
+                            />
+                            <QuickActionButton
+                                to="/projects"
+                                icon={FaBolt}
+                                label="Create a new project"
+                                sublabel="Spin up an idea in seconds"
+                            />
+                        </div>
+                    )}
                 </motion.div>
             </div>
 
             <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-                <SectionHeader label="Main" isCollapsed={isCollapsed} />
+                <SectionHeader label="Workspace" isCollapsed={isCollapsed} actionLabel="Add quick shortcut" />
                 {currentUser?.isAdmin && (
                     <NavItem
                         to="/admin"
                         icon={FaShieldAlt}
                         label="Admin Panel"
                         isCollapsed={isCollapsed}
+                        badge="Admin"
                     />
                 )}
 
-                {mainNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
+                {workspaceNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
+
+                <SectionHeader label="Learning" isCollapsed={isCollapsed} actionLabel="Add learning goal" />
+                {learningNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
+
+                <SectionHeader label="Support" isCollapsed={isCollapsed} />
+                {supportNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
             </nav>
 
-            <div className="p-4 mt-auto relative z-10" />
+            <div className="p-4 mt-auto relative z-10">
+                {!isCollapsed && (
+                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/20 via-emerald-600/10 to-slate-900/40 p-4">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.45),_transparent_55%)]" />
+                        <div className="relative flex flex-col gap-3">
+                            <span className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+                                <FaCrown className="h-4 w-4 text-amber-300" />
+                                Upgrade to Pro
+                            </span>
+                            <p className="text-xs text-neutral-200/80">
+                                Unlock personalized mentorship, advanced analytics, and priority support to accelerate your learning journey.
+                            </p>
+                            <Link to="/pricing" className="self-start">
+                                <Button color="light" size="xs" className="bg-white/90 text-slate-900 hover:bg-white">
+                                    Explore plans
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+                )}
+            </div>
         </motion.aside>
     );
 };
