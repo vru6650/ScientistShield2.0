@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
  * Usage:
  * <ThemeToggle className="w-10 h-10" />
  */
-export default function ThemeToggle({ className = '' }) {
+export default function ThemeToggle({ className = '', ...props }) {
     const dispatch = useDispatch();
     const { theme } = useSelector((state) => state.theme);
 
@@ -20,6 +20,7 @@ export default function ThemeToggle({ className = '' }) {
             onClick={() => dispatch(toggleTheme())}
             className={`flex items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 focus:outline-none ${className}`}
             aria-label="Toggle theme"
+            {...props}
         >
             {theme === 'light' ? <FaMoon /> : <FaSun />}
         </motion.button>
