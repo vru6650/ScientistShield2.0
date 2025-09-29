@@ -138,7 +138,7 @@ export default function BottomNav() {
     return (
         <nav className="fixed bottom-6 left-1/2 z-50 flex w-full max-w-4xl -translate-x-1/2 justify-center px-4">
             <motion.ul
-                className="flex items-end gap-3 rounded-[50px] border border-white/40 bg-white/70 px-5 py-3 backdrop-blur-2xl shadow-[0_18px_40px_-25px_rgba(15,23,42,0.75)] dark:border-white/10 dark:bg-slate-900/70 dark:shadow-[0_18px_40px_-25px_rgba(15,118,110,0.55)]"
+                className="flex items-end gap-3 rounded-full border bg-white/70 px-5 py-3 backdrop-blur-2xl shadow-lg dark:bg-slate-900/70"
                 initial={{ opacity: 0, y: 45 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -181,9 +181,9 @@ export default function BottomNav() {
                                     transition={{ type: 'spring', stiffness: 320, damping: 22 }}
                                 >
                                     {isTheme ? (
-                                        <div className={`flex h-12 w-12 items-center justify-center rounded-3xl transition-colors duration-300 ${INACTIVE_CLASSES}`}>
+                                        <div className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 ${INACTIVE_CLASSES}`}>
                                             <ThemeToggle
-                                                className="h-10 w-10 rounded-[18px] !bg-transparent !p-0 !text-gray-700 dark:!text-gray-200"
+                                                className="h-10 w-10 rounded-full !bg-transparent !p-0 !text-gray-700 dark:!text-gray-200"
                                                 onFocus={() => handleFocus(index)}
                                                 onBlur={handleBlur}
                                             />
@@ -195,7 +195,7 @@ export default function BottomNav() {
                                             aria-label={label}
                                             aria-haspopup="menu"
                                             aria-expanded={isQuickAddOpen}
-                                            className={`group relative flex h-12 w-12 items-center justify-center rounded-3xl transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                                            className={`group relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                                                 isQuickAddOpen ? ACTIVE_CLASSES : INACTIVE_CLASSES
                                             }`}
                                             onClick={() => setIsQuickAddOpen((open) => !open)}
@@ -219,7 +219,7 @@ export default function BottomNav() {
                                             onBlur={handleBlur}
                                         >
                                             <div
-                                                className={`flex h-12 w-12 items-center justify-center rounded-3xl transition-colors duration-300 ${
+                                                className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 ${
                                                     isActive ? ACTIVE_CLASSES : INACTIVE_CLASSES
                                                 }`}
                                             >
@@ -244,7 +244,7 @@ export default function BottomNav() {
                                     {!isTheme && isActive ? (
                                         <motion.span
                                             layoutId="dock-indicator"
-                                            className="absolute -bottom-2 h-1.5 w-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 shadow-[0_0_0_3px_rgba(255,255,255,0.65)] dark:from-cyan-300 dark:to-sky-400 dark:shadow-[0_0_0_3px_rgba(14,116,144,0.35)]"
+                                            className="absolute -bottom-2 h-1.5 w-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 shadow-lg dark:from-cyan-300 dark:to-sky-400"
                                             initial={{ opacity: 0, scale: 0.4 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.4 }}
@@ -260,46 +260,10 @@ export default function BottomNav() {
                                                 animate={{ opacity: 1, y: -12, scale: 1 }}
                                                 exit={{ opacity: 0, y: 10, scale: 0.96 }}
                                                 transition={{ duration: 0.18, ease: 'easeOut' }}
-                                                className="pointer-events-auto absolute bottom-20 left-1/2 w-72 -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-[0_28px_65px_-30px_rgba(15,23,42,0.65)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95 dark:shadow-[0_28px_65px_-30px_rgba(15,118,110,0.45)]"
+                                                className="absolute bottom-20 left-1/2 w-72 -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-lg dark:bg-slate-900/95"
                                             >
-                                                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                                                    Quick Actions
-                                                </p>
-                                                <ul className="mt-3 space-y-2">
-                                                    {quickAddOptions.map((option) => {
-                                                        const OptionIcon = option.icon;
-                                                        return (
-                                                            <li key={option.to}>
-                                                                <Link
-                                                                    to={option.to}
-                                                                    className="group flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2 transition-all hover:border-slate-200 hover:bg-slate-100/90 hover:shadow-sm focus:outline-none focus-visible:border-cyan-400 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-cyan-400 dark:hover:border-slate-700 dark:hover:bg-slate-800/70"
-                                                                    onClick={() => {
-                                                                        setIsQuickAddOpen(false);
-                                                                        handleBlur();
-                                                                    }}
-                                                                    onFocus={() => handleFocus(index)}
-                                                                    onBlur={(event) => {
-                                                                        if (quickAddTriggerRef.current?.contains(event.relatedTarget)) {
-                                                                            return;
-                                                                        }
-                                                                        handleBlur();
-                                                                    }}
-                                                                >
-                                                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900/5 text-slate-600 transition group-hover:bg-gradient-to-br group-hover:from-cyan-500 group-hover:to-blue-500 group-hover:text-white dark:bg-white/5 dark:text-slate-200">
-                                                                        <OptionIcon className="text-lg" />
-                                                                    </span>
-                                                                    <span className="flex flex-col">
-                                                                        <span className="text-sm font-semibold text-slate-800 transition group-hover:text-slate-900 dark:text-slate-100">
-                                                                            {option.label}
-                                                                        </span>
-                                                                        <span className="text-xs font-medium text-slate-500 transition group-hover:text-slate-600 dark:text-slate-400">
-                                                                            {option.description}
-                                                                        </span>
-                                                                    </span>
-                                                                </Link>
-                                                            </li>
-                                                        );
-                                                    })}
+                                                <ul className="space-y-2">
+                                                    {/* Quick Add Options */}
                                                 </ul>
                                             </motion.div>
                                         ) : null}
