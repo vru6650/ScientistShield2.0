@@ -1,22 +1,33 @@
 <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="theme-gradient" x1="24" y1="12" x2="56" y2="68" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#22D3EE" />
-      <stop offset="1" stop-color="#3B82F6" />
+    <linearGradient id="theme-base" x1="18" y1="12" x2="62" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#94A3B8" />
+      <stop offset="1" stop-color="#475569" />
     </linearGradient>
-    <linearGradient id="theme-sun" x1="32" y1="24" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FDE68A" />
-      <stop offset="1" stop-color="#FBBF24" />
+    <linearGradient id="theme-sun" x1="33" y1="27" x2="45" y2="41" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FCD34D" />
+      <stop offset="1" stop-color="#F59E0B" />
     </linearGradient>
-    <linearGradient id="theme-moon" x1="44" y1="28" x2="52" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#E0E7FF" />
-      <stop offset="1" stop-color="#A5B4FC" />
+    <linearGradient id="theme-moon" x1="42" y1="36" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#CBD5F5" />
+      <stop offset="1" stop-color="#6366F1" stop-opacity="0.7" />
     </linearGradient>
   </defs>
-  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#theme-gradient)" />
-  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.5" />
-  <circle cx="36" cy="36" r="10" fill="url(#theme-sun)" />
-  <path d="M36 24C29.3726 24 24 29.3726 24 36C24 42.6274 29.3726 48 36 48C30.4772 44.4857 30.4772 27.5143 36 24Z" fill="#F8FAFC" fill-opacity="0.6" />
-  <path d="M44.5 30C46.9853 30 49 32.0147 49 34.5C49 39.1944 45.1944 43 40.5 43C38.0147 43 36 40.9853 36 38.5C36 33.8056 39.8056 30 44.5 30Z" fill="url(#theme-moon)" />
-  <circle cx="36" cy="36" r="14" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2" stroke-dasharray="6 6" />
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#theme-base)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.22" stroke-width="1.4" />
+  <circle cx="36.5" cy="34.5" r="9.5" fill="url(#theme-sun)" />
+  <path d="M36.5 22.5V25.5" stroke="#FDE68A" stroke-width="2" stroke-linecap="round" stroke-opacity="0.8" />
+  <path d="M36.5 43.5V46.5" stroke="#FDE68A" stroke-width="2" stroke-linecap="round" stroke-opacity="0.8" />
+  <path d="M24.5 34.5H27.5" stroke="#FDE68A" stroke-width="2" stroke-linecap="round" stroke-opacity="0.8" />
+  <path d="M45.5 34.5H48.5" stroke="#FDE68A" stroke-width="2" stroke-linecap="round" stroke-opacity="0.8" />
+  <path d="M27.6 27.6L29.7 29.7" stroke="#FDE68A" stroke-width="2" stroke-linecap="round" stroke-opacity="0.8" />
+  <path d="M43.3 43.3L45.4 45.4" stroke="#FDE68A" stroke-width="2" stroke-linecap="round" stroke-opacity="0.8" />
+  <path d="M29.7 43.4L27.6 45.5" stroke="#FDE68A" stroke-width="2" stroke-linecap="round" stroke-opacity="0.8" />
+  <path d="M45.3 27.5L43.2 29.6" stroke="#FDE68A" stroke-width="2" stroke-linecap="round" stroke-opacity="0.8" />
+  <path
+    d="M45.5 32.5C50.4706 32.5 54.5 36.5294 54.5 41.5C54.5 46.4706 50.4706 50.5 45.5 50.5C42.8125 50.5 40.3945 49.3738 38.6936 47.5723C42.4023 46.754 45.254 43.9023 46.0723 40.1936C46.8906 36.485 45.1411 32.5 45.1411 32.5H45.5Z"
+    fill="url(#theme-moon)"
+  />
+  <circle cx="43" cy="38" r="1.4" fill="#E0E7FF" fill-opacity="0.85" />
+  <circle cx="48" cy="42.5" r="1.6" fill="#A5B4FC" fill-opacity="0.75" />
 </svg>

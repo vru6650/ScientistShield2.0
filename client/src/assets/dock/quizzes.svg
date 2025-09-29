@@ -1,17 +1,29 @@
 <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="quizzes-gradient" x1="18" y1="14" x2="64" y2="68" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FACC15" />
-      <stop offset="1" stop-color="#0EA5E9" />
+    <linearGradient id="quizzes-base" x1="18" y1="10" x2="66" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A855F7" />
+      <stop offset="1" stop-color="#2563EB" />
     </linearGradient>
-    <linearGradient id="quizzes-mark" x1="32" y1="22" x2="48" y2="58" gradientUnits="userSpaceOnUse">
+    <linearGradient id="quizzes-ring" x1="40" y1="22" x2="40" y2="58" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9" />
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.25" />
     </linearGradient>
+    <linearGradient id="quizzes-question" x1="40" y1="28" x2="40" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAFC" stop-opacity="0.95" />
+      <stop offset="1" stop-color="#E0E7FF" stop-opacity="0.45" />
+    </linearGradient>
   </defs>
-  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#quizzes-gradient)" />
-  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.5" />
-  <path d="M40 22C33.9249 22 29 26.5483 29 32.2C29 34.5974 30.1002 37.0523 31.9719 38.6485C34.2558 40.5722 35.2 42.0995 35.2 44.8V46.4H44.8V44.8C44.8 41.9694 43.6491 39.806 41.4534 37.994C39.4865 36.3797 38.8 35.2391 38.8 33.6C38.8 31.6122 40.5242 30 42.6 30C44.6758 30 46.4 31.6122 46.4 33.6C46.4 35.1123 45.5725 36.4983 44.0863 37.3948L47.6 41.2C50.3597 39.4621 52 36.5601 52 33.6C52 27.454 46.5104 22 40 22Z" fill="url(#quizzes-mark)" />
-  <circle cx="40" cy="55" r="4" fill="#FFFFFF" fill-opacity="0.85" />
-  <circle cx="40" cy="55" r="4" fill="#0F172A" fill-opacity="0.12" />
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#quizzes-base)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.28" stroke-width="1.4" />
+  <circle cx="40" cy="40" r="18" fill="url(#quizzes-ring)" />
+  <circle cx="40" cy="40" r="14" fill="url(#quizzes-question)" />
+  <path
+    d="M40 32C36.9624 32 34.5 34.4624 34.5 37.5C34.5 38.7029 35.4747 39.6776 36.6776 39.6776H37.55C39.4589 39.6776 41 41.2187 41 43.1276V44.3"
+    stroke="#312E81"
+    stroke-width="2.2"
+    stroke-linecap="round"
+    stroke-opacity="0.45"
+  />
+  <path d="M40 48.6C38.818 48.6 37.86 47.642 37.86 46.46C37.86 45.278 38.818 44.32 40 44.32C41.182 44.32 42.14 45.278 42.14 46.46C42.14 47.642 41.182 48.6 40 48.6Z" fill="#1E293B" fill-opacity="0.45" />
+  <path d="M40 30.5C43.5899 30.5 46.5 33.4101 46.5 37C46.5 39.2854 45.2718 41.27 43.4 42.3" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-opacity="0.6" />
 </svg>

@@ -1,20 +1,32 @@
 <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="tutorials-gradient" x1="18" y1="12" x2="66" y2="68" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tutorials-base" x1="16" y1="10" x2="64" y2="70" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#F97316" />
       <stop offset="1" stop-color="#C026D3" />
     </linearGradient>
-    <linearGradient id="tutorials-pages" x1="24" y1="24" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tutorials-page-left" x1="28" y1="24" x2="44" y2="56" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.4" />
+    </linearGradient>
+    <linearGradient id="tutorials-page-right" x1="36" y1="26" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF7ED" stop-opacity="0.85" />
+      <stop offset="1" stop-color="#F5D0FE" stop-opacity="0.45" />
     </linearGradient>
   </defs>
-  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#tutorials-gradient)" />
-  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.5" />
-  <path d="M25 24H38C41.3137 24 44 26.6863 44 30V56C44 52.6863 41.3137 50 38 50H25V24Z" fill="url(#tutorials-pages)" />
-  <path d="M55 24H42C38.6863 24 36 26.6863 36 30V56C36 52.6863 38.6863 50 42 50H55V24Z" fill="#FFE7FF" fill-opacity="0.5" />
-  <path d="M25 24H55V28H25V24Z" fill="#0F172A" fill-opacity="0.15" />
-  <path d="M31 34H48" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-opacity="0.28" />
-  <path d="M31 40H48" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-opacity="0.24" />
-  <path d="M31 46H45" stroke="#1F2937" stroke-width="2" stroke-linecap="round" stroke-opacity="0.2" />
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#tutorials-base)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.28" stroke-width="1.4" />
+  <path
+    d="M25 24.5C25 24.2239 25.2239 24 25.5 24H37.5C41.0899 24 44 26.9101 44 30.5V55.5C44 51.9101 41.0899 49 37.5 49H25.5C25.2239 49 25 48.7761 25 48.5V24.5Z"
+    fill="url(#tutorials-page-left)"
+  />
+  <path
+    d="M55 24.5C55 24.2239 54.7761 24 54.5 24H42.5C38.9101 24 36 26.9101 36 30.5V55.5C36 51.9101 38.9101 49 42.5 49H54.5C54.7761 49 55 48.7761 55 48.5V24.5Z"
+    fill="url(#tutorials-page-right)"
+  />
+  <path d="M25 24H55V28H25V24Z" fill="#0F172A" fill-opacity="0.12" />
+  <path d="M31 35.5H48" stroke="#1E293B" stroke-width="2" stroke-linecap="round" stroke-opacity="0.28" />
+  <path d="M31 41.5H48" stroke="#1E293B" stroke-width="2" stroke-linecap="round" stroke-opacity="0.24" />
+  <path d="M31 47.5H45" stroke="#1E293B" stroke-width="2" stroke-linecap="round" stroke-opacity="0.2" />
+  <path d="M37 31.5V52" stroke="#C026D3" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.35" />
+  <path d="M43 31.5V52" stroke="#F97316" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.35" />
 </svg>

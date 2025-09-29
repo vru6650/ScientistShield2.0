@@ -1,25 +1,27 @@
 <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="visualizer-gradient" x1="20" y1="12" x2="60" y2="68" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#A855F7" />
-      <stop offset="1" stop-color="#2563EB" />
-    </linearGradient>
-    <linearGradient id="visualizer-screen" x1="24" y1="24" x2="56" y2="50" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.92" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.25" />
-    </linearGradient>
-    <linearGradient id="visualizer-graph" x1="28" y1="32" x2="52" y2="48" gradientUnits="userSpaceOnUse">
+    <linearGradient id="visualizer-base" x1="16" y1="12" x2="64" y2="68" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#38BDF8" />
       <stop offset="1" stop-color="#14B8A6" />
     </linearGradient>
+    <linearGradient id="visualizer-grid" x1="24" y1="24" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAFC" stop-opacity="0.85" />
+      <stop offset="1" stop-color="#E2E8F0" stop-opacity="0.3" />
+    </linearGradient>
+    <linearGradient id="visualizer-line" x1="28" y1="28" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22D3EE" />
+      <stop offset="1" stop-color="#0EA5E9" />
+    </linearGradient>
   </defs>
-  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#visualizer-gradient)" />
-  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.5" />
-  <rect x="22" y="22" width="36" height="28" rx="8" fill="url(#visualizer-screen)" />
-  <path d="M26 48H54V50C54 52.2091 52.2091 54 50 54H30C27.7909 54 26 52.2091 26 50V48Z" fill="#0F172A" fill-opacity="0.18" />
-  <path d="M30 40L35 36L40 42L47 34L50 38" stroke="url(#visualizer-graph)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="35" cy="36" r="2.5" fill="#38BDF8" />
-  <circle cx="40" cy="42" r="2.5" fill="#14B8A6" />
-  <circle cx="47" cy="34" r="2.5" fill="#38BDF8" />
-  <circle cx="50" cy="38" r="2.5" fill="#14B8A6" />
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#visualizer-base)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.28" stroke-width="1.4" />
+  <rect x="23" y="24" width="34" height="32" rx="10" fill="url(#visualizer-grid)" />
+  <path d="M28 40H52" stroke="#0F172A" stroke-opacity="0.08" stroke-width="2" />
+  <path d="M34 30V50" stroke="#0F172A" stroke-opacity="0.08" stroke-width="2" />
+  <path d="M46 30V50" stroke="#0F172A" stroke-opacity="0.08" stroke-width="2" />
+  <path d="M28 34L34 46L38 38L44.5 48L52 33" stroke="url(#visualizer-line)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="34" cy="46" r="2.8" fill="#14B8A6" fill-opacity="0.8" />
+  <circle cx="38" cy="38" r="2.8" fill="#22D3EE" fill-opacity="0.8" />
+  <circle cx="44.5" cy="48" r="2.8" fill="#0EA5E9" fill-opacity="0.8" />
+  <circle cx="52" cy="33" r="3.2" fill="#F8FAFC" fill-opacity="0.9" />
 </svg>

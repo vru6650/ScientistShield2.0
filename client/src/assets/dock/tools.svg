@@ -1,16 +1,28 @@
 <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="tools-gradient" x1="18" y1="14" x2="62" y2="68" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#34D399" />
+    <linearGradient id="tools-base" x1="18" y1="10" x2="62" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38BDF8" />
       <stop offset="1" stop-color="#0EA5E9" />
     </linearGradient>
-    <linearGradient id="tools-icon" x1="30" y1="24" x2="52" y2="58" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.88" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.3" />
+    <linearGradient id="tools-body" x1="30" y1="28" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.92" />
+      <stop offset="1" stop-color="#E0F2FE" stop-opacity="0.4" />
+    </linearGradient>
+    <linearGradient id="tools-handle" x1="40" y1="22" x2="58" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAFC" stop-opacity="0.85" />
+      <stop offset="1" stop-color="#C4B5FD" stop-opacity="0.45" />
     </linearGradient>
   </defs>
-  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#tools-gradient)" />
-  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.5" />
-  <path d="M30.5 24C29.1193 24 28 25.1193 28 26.5V33.5C28 34.8807 29.1193 36 30.5 36H33.0858L26.2929 42.7929C25.9024 43.1834 25.9024 43.8166 26.2929 44.2071L35.7929 53.7071C36.1834 54.0976 36.8166 54.0976 37.2071 53.7071L44 46.9142V49.5C44 50.8807 45.1193 52 46.5 52H53.5C54.8807 52 56 50.8807 56 49.5V44.5858C56 43.837 55.7018 43.1203 55.1716 42.5858L44.4142 31.8284C43.8839 31.2982 43.167 31 42.4142 31H37.5C35.567 31 33.794 30.109 32.5858 28.7426L31.4142 27.3574C31.1483 27.0503 30.8256 26.8109 30.4692 26.6592C30.3263 26.5998 30.5 24 30.5 24Z" fill="url(#tools-icon)" />
-  <path d="M37.5858 33L29.5 41.0858L38.9142 50.5L47 42.4142L37.5858 33Z" fill="#0F172A" fill-opacity="0.12" />
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#tools-base)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.28" stroke-width="1.4" />
+  <path
+    d="M45.6 22C45.6 22 50.6 22 52.9 24.3C56.6 28 53.1 33.1 53.1 33.1L48.4 31.5L44.1 35.8L45.9 37.6C48.2 39.9 48.2 43.6 45.9 45.9L40.4 51.4C38.1 53.7 34.4 53.7 32.1 51.4C29.8 49.1 29.8 45.4 32.1 43.1L33.9 41.3L38.2 45.6L40.7 43.1L36.4 38.8L39.8 35.4C42.1 33.1 45.8 33.1 48.1 35.4L49.9 37.2L53.1 33.1C53.1 33.1 56.8 29.4 53.1 25.7C51 23.6 48.3 23 45.6 22Z"
+    fill="url(#tools-handle)"
+  />
+  <path
+    d="M29.8 41.2L26.7 44.3C24.4 46.6 24.4 50.3 26.7 52.6C29 54.9 32.7 54.9 35 52.6L38.1 49.5L29.8 41.2Z"
+    fill="url(#tools-body)"
+  />
+  <path d="M34.2 36.8L45.2 47.8" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-opacity="0.45" />
+  <circle cx="30.8" cy="47.8" r="3" fill="#0284C7" fill-opacity="0.55" />
 </svg>

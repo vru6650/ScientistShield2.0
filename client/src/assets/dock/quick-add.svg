@@ -1,16 +1,25 @@
 <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="quick-add-gradient" x1="22" y1="14" x2="58" y2="66" gradientUnits="userSpaceOnUse">
+    <linearGradient id="quickadd-base" x1="16" y1="12" x2="64" y2="68" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#F472B6" />
-      <stop offset="1" stop-color="#4C1D95" />
+      <stop offset="1" stop-color="#EC4899" />
     </linearGradient>
-    <linearGradient id="quick-add-plus" x1="40" y1="24" x2="40" y2="56" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.3" />
+    <linearGradient id="quickadd-ring" x1="40" y1="22" x2="40" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.25" />
     </linearGradient>
   </defs>
-  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#quick-add-gradient)" />
-  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.5" />
-  <path d="M36 24H44V36H56V44H44V56H36V44H24V36H36V24Z" fill="url(#quick-add-plus)" />
-  <path d="M37.5 25.5H42.5V37.5H54.5V42.5H42.5V54.5H37.5V42.5H25.5V37.5H37.5V25.5Z" fill="#0F172A" fill-opacity="0.14" />
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#quickadd-base)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.4" />
+  <circle cx="40" cy="40" r="18" fill="url(#quickadd-ring)" />
+  <path
+    d="M40 30C40.5523 30 41 30.4477 41 31V39H49C49.5523 39 50 39.4477 50 40C50 40.5523 49.5523 41 49 41H41V49C41 49.5523 40.5523 50 40 50C39.4477 50 39 49.5523 39 49V41H31C30.4477 41 30 40.5523 30 40C30 39.4477 30.4477 39 31 39H39V31C39 30.4477 39.4477 30 40 30Z"
+    fill="#EC4899"
+    fill-opacity="0.9"
+  />
+  <path
+    d="M40 32.5C40.2761 32.5 40.5 32.7239 40.5 33V38.5H46C46.2761 38.5 46.5 38.7239 46.5 39C46.5 39.2761 46.2761 39.5 46 39.5H40.5V45C40.5 45.2761 40.2761 45.5 40 45.5C39.7239 45.5 39.5 45.2761 39.5 45V39.5H34C33.7239 39.5 33.5 39.2761 33.5 39C33.5 38.7239 33.7239 38.5 34 38.5H39.5V33C39.5 32.7239 39.7239 32.5 40 32.5Z"
+    fill="#FDF2F8"
+    fill-opacity="0.8"
+  />
 </svg>

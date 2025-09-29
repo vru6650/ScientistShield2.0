@@ -19,6 +19,20 @@ const INACTIVE_CLASSES =
     'bg-white/40 ring-1 ring-white/45 shadow-[0_24px_40px_-22px_rgba(15,23,42,0.55)] dark:bg-slate-900/55 dark:ring-slate-100/10 dark:shadow-[0_24px_40px_-24px_rgba(15,23,42,0.65)]';
 const DOCK_INFLUENCE_DISTANCE = 160;
 
+const DockIcon = ({ isHighlighted, children }) => (
+    <div className={`${ICON_CONTAINER_BASE} ${isHighlighted ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
+        <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
+        <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
+        <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+        {children}
+    </div>
+);
+
+DockIcon.propTypes = {
+    isHighlighted: PropTypes.bool.isRequired,
+    children: PropTypes.node.isRequired,
+};
+
 const ADMIN_QUICK_ADD_OPTIONS = [
     {
         to: '/create-post',
@@ -386,20 +400,17 @@ export default function BottomNav() {
                                             onBlur={handleBlur}
                                             className="group relative flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent"
                                         >
-                                            <div className={`${ICON_CONTAINER_BASE} ${theme === 'dark' ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
-                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
-                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
-                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                            <DockIcon isHighlighted={theme === 'dark'}>
                                                 <motion.img
                                                     src={item.iconSrc}
                                                     alt={iconAlt}
-                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_12px_20px_rgba(15,23,42,0.38)]"
                                                     initial={false}
                                                     animate={{ rotate: theme === 'dark' ? 180 : 0 }}
                                                     transition={{ type: 'spring', stiffness: 240, damping: 18 }}
                                                     draggable={false}
                                                 />
-                                            </div>
+                                            </DockIcon>
                                         </button>
                                     ) : isQuickAdd ? (
                                         <button
@@ -418,20 +429,17 @@ export default function BottomNav() {
                                                 handleBlur();
                                             }}
                                         >
-                                            <div className={`${ICON_CONTAINER_BASE} ${isQuickAddOpen ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
-                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
-                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
-                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                            <DockIcon isHighlighted={isQuickAddOpen}>
                                                 <motion.img
                                                     src={item.iconSrc}
                                                     alt={iconAlt}
-                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_12px_20px_rgba(15,23,42,0.38)]"
                                                     initial={false}
                                                     animate={{ scale: isQuickAddOpen ? 1.08 : 1 }}
                                                     transition={{ duration: 0.2 }}
                                                     draggable={false}
                                                 />
-                                            </div>
+                                            </DockIcon>
                                         </button>
                                     ) : (
                                         <Link
@@ -442,20 +450,17 @@ export default function BottomNav() {
                                             onFocus={() => handleFocus(index)}
                                             onBlur={handleBlur}
                                         >
-                                            <div className={`${ICON_CONTAINER_BASE} ${isActive ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
-                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
-                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
-                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                            <DockIcon isHighlighted={isActive}>
                                                 <motion.img
                                                     src={item.iconSrc}
                                                     alt={iconAlt}
-                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_12px_20px_rgba(15,23,42,0.38)]"
                                                     initial={false}
                                                     animate={{ scale: isActive ? 1.05 : 1 }}
                                                     transition={{ duration: 0.2 }}
                                                     draggable={false}
                                                 />
-                                            </div>
+                                            </DockIcon>
                                         </Link>
                                     )}
                                     <motion.span

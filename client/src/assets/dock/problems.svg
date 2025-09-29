@@ -1,17 +1,26 @@
 <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="problems-gradient" x1="18" y1="12" x2="62" y2="68" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FB7185" />
-      <stop offset="1" stop-color="#6366F1" />
+    <linearGradient id="problems-base" x1="18" y1="12" x2="64" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FACC15" />
+      <stop offset="1" stop-color="#F97316" />
     </linearGradient>
-    <linearGradient id="problems-bulb" x1="32" y1="20" x2="48" y2="60" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.92" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.3" />
+    <linearGradient id="problems-piece" x1="28" y1="28" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FEF9C3" stop-opacity="0.95" />
+      <stop offset="1" stop-color="#FED7AA" stop-opacity="0.45" />
+    </linearGradient>
+    <linearGradient id="problems-shadow" x1="40" y1="28" x2="40" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#92400E" stop-opacity="0.25" />
+      <stop offset="1" stop-color="#92400E" stop-opacity="0.05" />
     </linearGradient>
   </defs>
-  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#problems-gradient)" />
-  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.5" />
-  <path d="M40 20C32.8203 20 27 25.8203 27 33C27 37.651 29.2431 41.7968 32.9104 44.148C34.1657 44.9733 34.9196 46.3393 34.9196 47.8091V50.5C34.9196 51.8807 36.0389 53 37.4196 53H42.5804C43.9611 53 45.0804 51.8807 45.0804 50.5V47.8091C45.0804 46.3393 45.8343 44.9733 47.0896 44.148C50.7569 41.7968 53 37.651 53 33C53 25.8203 47.1797 20 40 20Z" fill="url(#problems-bulb)" />
-  <path d="M34 56C34 54.8954 34.8954 54 36 54H44C45.1046 54 46 54.8954 46 56C46 57.1046 45.1046 58 44 58H36C34.8954 58 34 57.1046 34 56Z" fill="#F8FAFC" fill-opacity="0.7" />
-  <path d="M38 61C38 59.8954 38.8954 59 40 59C41.1046 59 42 59.8954 42 61C42 62.1046 41.1046 63 40 63C38.8954 63 38 62.1046 38 61Z" fill="#F8FAFC" fill-opacity="0.7" />
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#problems-base)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.28" stroke-width="1.4" />
+  <path
+    d="M28 32C28 30.3431 29.3431 29 31 29H35.5C36.3284 29 37 29.6716 37 30.5C37 32.433 38.567 34 40.5 34C42.433 34 44 32.433 44 30.5C44 29.6716 44.6716 29 45.5 29H49C50.6569 29 52 30.3431 52 32V36.5C52 37.3284 51.3284 38 50.5 38C48.567 38 47 39.567 47 41.5C47 43.433 48.567 45 50.5 45C51.3284 45 52 45.6716 52 46.5V50C52 51.6569 50.6569 53 49 53H45C44.1716 53 43.5 52.3284 43.5 51.5C43.5 49.567 41.933 48 40 48C38.067 48 36.5 49.567 36.5 51.5C36.5 52.3284 35.8284 53 35 53H31C29.3431 53 28 51.6569 28 50V46C28 45.1716 28.6716 44.5 29.5 44.5C31.433 44.5 33 42.933 33 41C33 39.067 31.433 37.5 29.5 37.5C28.6716 37.5 28 36.8284 28 36V32Z"
+    fill="url(#problems-piece)"
+  />
+  <path
+    d="M32 34.6V34.5C32 33.6716 32.6716 33 33.5 33H35.4C36.302 33 37.2 33.698 37.2 34.6C37.2 37.3 39.3 39.4 42 39.4C44.7 39.4 46.8 37.3 46.8 34.6C46.8 33.698 47.498 33 48.4 33H50.5C51.3284 33 52 33.6716 52 34.5V36.4C52 37.302 51.302 38.2 50.4 38.2C47.7 38.2 45.6 40.3 45.6 43C45.6 45.7 47.7 47.8 50.4 47.8C51.302 47.8 52 48.498 52 49.4V51.5C52 52.3284 51.3284 53 50.5 53H48.4C47.498 53 46.8 52.302 46.8 51.4C46.8 48.7 44.7 46.6 42 46.6C39.3 46.6 37.2 48.7 37.2 51.4C37.2 52.302 36.502 53 35.6 53H33.5C32.6716 53 32 52.3284 32 51.5V49.4C32 48.498 31.302 47.8 30.4 47.8C27.7 47.8 25.6 45.7 25.6 43C25.6 40.3 27.7 38.2 30.4 38.2C31.302 38.2 32 37.502 32 36.6V34.6Z"
+    fill="url(#problems-shadow)"
+  />
 </svg>
