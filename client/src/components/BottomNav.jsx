@@ -24,9 +24,9 @@ export default function BottomNav() {
         'bg-white/80 dark:bg-gray-800/80 text-gray-600 dark:text-gray-200 shadow-md shadow-gray-900/10';
 
     return (
-        <nav className="fixed bottom-6 left-1/2 z-50 flex w-full max-w-4xl -translate-x-1/2 justify-center px-4 pointer-events-none">
+        <nav className="fixed bottom-6 left-1/2 z-50 flex w-full max-w-4xl -translate-x-1/2 justify-center px-4">
             <motion.ul
-                className="pointer-events-auto flex items-end gap-4 rounded-3xl border border-white/30 bg-white/70 p-3 backdrop-blur-xl shadow-2xl shadow-cyan-500/20 dark:border-white/10 dark:bg-gray-900/60"
+                className="flex items-end gap-4 rounded-3xl border border-white/30 bg-white/70 p-3 backdrop-blur-xl shadow-2xl shadow-cyan-500/20 dark:border-white/10 dark:bg-gray-900/60"
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
