@@ -79,9 +79,8 @@ export default function MainLayout() {
                 </motion.div>
 
                 <motion.main
-                    className="flex-1 min-h-screen"
-                    animate={{ marginLeft: isSidebarCollapsed ? '5rem' : `${sidebarWidth}px` }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    className="flex-1 min-h-screen transition-all duration-300"
+                    style={{ marginLeft: 0 }}
                 >
                     <AnimatePresence mode="wait">
                         <motion.div
