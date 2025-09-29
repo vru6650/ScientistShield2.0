@@ -188,36 +188,7 @@ const Sidebar = ({ isCollapsed, isPinned, setIsPinned }) => {
                 {mainNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
             </nav>
 
-            <div className="p-4 mt-auto relative z-10">
-                <AnimatePresence>
-                    {!isCollapsed && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1, transition: { delay: 0.2 } }}
-                            exit={{ opacity: 0 }}
-                            className="bg-neutral-800/80 p-4 rounded-lg text-center border"
-                            style={{ borderColor: 'var(--color-sidebar-border)' }}
-                        >
-                            <h4 className="font-semibold text-white">Let's start!</h4>
-                            <p className="text-xs text-neutral-400 mt-1 mb-3">Creating or starting new tasks couldn't be easier.</p>
-                            <Link to="/create-post">
-                                <Button gradientDuoTone="purpleToBlue" className="w-full">
-                                    <FaPlus className="mr-2 h-3 w-3" /> Add New Task
-                                </Button>
-                            </Link>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                <AnimatePresence>
-                    {isCollapsed && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <Link to="/create-post">
-                                <Button gradientDuoTone="purpleToBlue" className="w-full h-12 flex items-center justify-center rounded-lg"><FaPlus /></Button>
-                            </Link>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+            <div className="p-4 mt-auto relative z-10" />
         </motion.aside>
     );
 };
