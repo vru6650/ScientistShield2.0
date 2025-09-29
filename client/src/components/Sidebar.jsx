@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
@@ -5,6 +6,8 @@ import {
     FaBolt,
     FaBook,
     FaCrown,
+    FaFire,
+    FaCompass,
     FaProjectDiagram,
     FaQuestionCircle,
     FaRocket,
@@ -15,9 +18,13 @@ import {
     FaRegCreditCard,
     FaThumbtack,
     FaShieldAlt,
+    FaLightbulb,
+    FaRegClock,
     FaLaptopCode,
     FaChevronLeft,
     FaChevronRight,
+    FaUsers,
+    FaMoon,
 } from 'react-icons/fa';
 import { Avatar, Tooltip, Button } from 'flowbite-react';
 
@@ -136,6 +143,7 @@ const Sidebar = ({ isCollapsed, isPinned, onTogglePin, onToggleCollapse, expande
     const { currentUser } = useSelector((state) => state.user);
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
+    const [focusMode, setFocusMode] = useState(false);
 
     const handleMouseMove = (e) => {
         const { currentTarget, clientX, clientY } = e;
@@ -152,6 +160,35 @@ const Sidebar = ({ isCollapsed, isPinned, onTogglePin, onToggleCollapse, expande
         { to: '/invoices', label: 'Invoices', icon: FaRegFileAlt },
         { to: '/wallet', label: 'Wallet', icon: FaRegCreditCard },
         { to: '/notification', label: 'Notification', icon: FaRegBell },
+    ];
+
+    const explorerNavItems = [
+        { to: '/tools', label: 'Learning Tools', icon: FaLightbulb },
+        { to: '/dashboard', label: 'Daily Planner', icon: FaRegClock, badge: 'New' },
+        { to: '/problems', label: 'Practice Arena', icon: FaFire, badge: 'Hot' },
+        { to: '/search', label: 'Discover Content', icon: FaCompass },
+        { to: '/tryit', label: 'Interactive Playground', icon: FaLaptopCode },
+    ];
+
+    const statusHighlights = [
+        {
+            label: 'Learning streak',
+            value: '5 days',
+            sublabel: 'Keep it up!',
+            icon: FaFire,
+        },
+        {
+            label: 'Active projects',
+            value: '3',
+            sublabel: 'Progressing smoothly',
+            icon: FaBolt,
+        },
+        {
+            label: 'Community reach',
+            value: '128',
+            sublabel: 'Peers engaged',
+            icon: FaUsers,
+        },
     ];
 
     const sidebarTargetWidth = expandedWidth ? `${expandedWidth}px` : '16rem';
@@ -212,8 +249,8 @@ const Sidebar = ({ isCollapsed, isPinned, onTogglePin, onToggleCollapse, expande
                 </div>
 
                 <motion.div
-                    whileHover={{ backgroundColor: 'rgba(100, 116, 139, 0.1)' }}
-                    className={`p-4 border-b`}
+                    whileHover={{ backgroundColor: 'rgba(100, 116, 139, 0.08)' }}
+                    className="p-4 border-b"
                     style={{ borderColor: 'var(--color-sidebar-border)' }}
                 >
                     {currentUser ? (
@@ -235,19 +272,77 @@ const Sidebar = ({ isCollapsed, isPinned, onTogglePin, onToggleCollapse, expande
                     )}
 
                     {currentUser && !isCollapsed && (
-                        <div className="mt-4 space-y-2">
-                            <QuickActionButton
-                                to="/tutorials"
-                                icon={FaRocket}
-                                label="Continue learning"
-                                sublabel="Jump back into your last tutorial"
-                            />
-                            <QuickActionButton
-                                to="/projects"
-                                icon={FaBolt}
-                                label="Create a new project"
-                                sublabel="Spin up an idea in seconds"
-                            />
+                        <div className="mt-4 space-y-3">
+                            <div className="space-y-2">
+                                <QuickActionButton
+                                    to="/tutorials"
+                                    icon={FaRocket}
+                                    label="Continue learning"
+                                    sublabel="Jump back into your last tutorial"
+                                />
+                                <QuickActionButton
+                                    to="/projects"
+                                    icon={FaBolt}
+                                    label="Create a new project"
+                                    sublabel="Spin up an idea in seconds"
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {statusHighlights.map(({ label, value, sublabel, icon: HighlightIcon }) => (
+                                    <motion.div
+                                        key={label}
+                                        initial={{ opacity: 0, y: 6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="relative overflow-hidden rounded-xl border border-white/5 bg-white/5 p-3 text-[11px] text-neutral-100 dark:bg-slate-900/40 backdrop-blur"
+                                    >
+                                        <div className="absolute -right-3 -top-4 h-12 w-12 rounded-full bg-emerald-400/10 blur-2xl" />
+                                        <div className="relative space-y-1">
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-200/80">
+                                                <HighlightIcon className="h-3.5 w-3.5" />
+                                                {label}
+                                            </span>
+                                            <p className="text-sm font-semibold text-white">{value}</p>
+                                            <p className="text-[10px] text-neutral-300">{sublabel}</p>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                            <div className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/20 via-emerald-500/5 to-transparent p-4">
+                                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-emerald-500/20 blur-3xl" />
+                                <div className="relative flex items-start justify-between gap-3">
+                                    <div className="space-y-1">
+                                        <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                                            <FaMoon className="h-4 w-4 text-emerald-200" />
+                                            Focus mode
+                                        </p>
+                                        <p className="text-xs text-neutral-200/80">
+                                            Reduce distractions and keep essential tools pinned for your next sprint.
+                                        </p>
+                                    </div>
+                                    <motion.button
+                                        whileTap={{ scale: 0.94 }}
+                                        onClick={() => setFocusMode((prev) => !prev)}
+                                        aria-pressed={focusMode}
+                                        className={`relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${focusMode ? 'bg-white text-emerald-600 shadow-lg shadow-emerald-500/40' : 'bg-white/10 text-white/80 hover:bg-white/20'}`}
+                                        type="button"
+                                    >
+                                        <span className={`h-2 w-2 rounded-full ${focusMode ? 'bg-emerald-500' : 'bg-white/70'}`} />
+                                        {focusMode ? 'Focus Enabled' : 'Enable Focus'}
+                                    </motion.button>
+                                </div>
+                                <AnimatePresence>
+                                    {focusMode && (
+                                        <motion.p
+                                            initial={{ opacity: 0, y: -4 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -4 }}
+                                            className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-3 py-2 text-[11px] text-emerald-100"
+                                        >
+                                            Quick tip: You can pin the sidebar to keep your favorite resources within reach while staying in focus mode.
+                                        </motion.p>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
                     )}
                 </motion.div>
@@ -266,6 +361,9 @@ const Sidebar = ({ isCollapsed, isPinned, onTogglePin, onToggleCollapse, expande
                 )}
 
                 {workspaceNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
+
+                <SectionHeader label="Explore" isCollapsed={isCollapsed} />
+                {explorerNavItems.map(item => <NavItem key={item.to} {...item} isCollapsed={isCollapsed} />)}
             </nav>
 
             <div className="p-4 mt-auto relative z-10">
