@@ -1,5 +1,5 @@
 // client/src/components/Header.jsx
-import { Avatar, Button, Navbar, TextInput, Tooltip, Modal } from 'flowbite-react';
+import { Avatar, Button, Navbar, Tooltip } from 'flowbite-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AiOutlineSearch } from 'react-icons/ai';
 import { useSelector, useDispatch } from 'react-redux';
@@ -9,6 +9,7 @@ import { useEffect, useState, useRef } from 'react';
 import { signoutSuccess } from '../redux/user/userSlice';
 import CommandMenu from './CommandMenu';
 import ControlCenter from './ControlCenter.jsx';
+import LogoutConfirmationModal from './LogoutConfirmationModal';
 
 // --- Reusable Components ---
 
@@ -59,6 +60,8 @@ export default function Header() {
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { scrollY } = useScroll();
   const headerRef = useRef(null);
 
@@ -95,12 +98,21 @@ export default function Header() {
   }, []);
 
   const handleSignout = async () => {
+    setIsSigningOut(true);
     try {
       await fetch('/api/user/signout', { method: 'POST' });
       dispatch(signoutSuccess());
     } catch (error) {
       console.log(error.message);
+    } finally {
+      setIsSigningOut(false);
+      setIsLogoutModalOpen(false);
     }
+  };
+
+  const confirmSignout = () => {
+    setIsDropdownOpen(false);
+    setIsLogoutModalOpen(true);
   };
 
   const navContainerVariants = {
@@ -284,7 +296,15 @@ export default function Header() {
                               <hr className="dark:border-gray-600" />
                               <div
                                   className="block px-space-lg py-space-sm text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 cursor-pointer"
-                                  onClick={handleSignout}
+                                  onClick={confirmSignout}
+                                  role='button'
+                                  tabIndex={0}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      confirmSignout();
+                                    }
+                                  }}
                               >
                                 Sign out
                               </div>
@@ -312,6 +332,12 @@ export default function Header() {
           </div>
         </motion.header>
         <CommandMenu isOpen={isCommandMenuOpen} onClose={() => setIsCommandMenuOpen(false)} />
+        <LogoutConfirmationModal
+            show={isLogoutModalOpen}
+            onClose={() => setIsLogoutModalOpen(false)}
+            onConfirm={handleSignout}
+            processing={isSigningOut}
+        />
       </>
   );
 }
