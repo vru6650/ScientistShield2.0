@@ -276,27 +276,7 @@ export default function PostPage() {
         return encodeURIComponent(post.category);
     }, [post?.category]);
 
-    const quickSummary = useMemo(() => {
-        if (!sanitizedContent) return { text: '', truncated: false };
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = sanitizedContent;
-        const text = (tempDiv.textContent || '')
-            .replace(/\s+/g, ' ')
-            .trim();
-        if (!text) return { text: '', truncated: false };
-
-        const previewLimit = 260;
-        const shouldTruncate = text.length > previewLimit;
-        const preview = shouldTruncate ? text.slice(0, previewLimit).trimEnd() : text;
-
-        return {
-            text: preview,
-            truncated: shouldTruncate,
-        };
-    }, [sanitizedContent]);
-
-    const heroDescriptionText = metaDescription || quickSummary.text;
-    const heroDescriptionTruncated = !metaDescription && quickSummary.truncated;
+    const heroDescriptionText = metaDescription;
 
     const scrollToElement = useCallback((elementId) => {
         const element = document.getElementById(elementId);
@@ -398,7 +378,6 @@ export default function PostPage() {
                         {heroDescriptionText && (
                             <p className='mx-auto max-w-3xl text-base text-slate-200/90 sm:text-lg'>
                                 {heroDescriptionText}
-                                {heroDescriptionTruncated ? '…' : ''}
                             </p>
                         )}
                         <div className='flex flex-wrap items-center justify-center gap-3'>
@@ -441,16 +420,6 @@ export default function PostPage() {
                         </div>
                     </div>
                 </section>
-
-                {quickSummary.text && (
-                    <div className='relative z-10 mx-auto -mt-16 max-w-3xl rounded-3xl border border-slate-200/70 bg-white/90 p-6 text-center shadow-xl shadow-slate-200/60 backdrop-blur dark:border-white/10 dark:bg-slate-900/80 dark:shadow-slate-900/60'>
-                        <p className='text-sm font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500'>Quick take</p>
-                        <p className='mt-3 text-base text-slate-600 dark:text-slate-300'>
-                            {quickSummary.text}
-                            {quickSummary.truncated ? '…' : ''}
-                        </p>
-                    </div>
-                )}
 
                 <main className='mx-auto flex max-w-6xl flex-col gap-10 px-4 py-10 lg:flex-row lg:px-10'>
                     <article id='article-start' className='flex-1 space-y-10'>
