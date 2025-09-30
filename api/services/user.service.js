@@ -1,3 +1,4 @@
+import bcryptjs from 'bcryptjs';
 import User from '../models/user.model.js';
 
 /**
@@ -35,8 +36,8 @@ export const updateUserById = async (userId, updates) => {
   if (updates.email) {
     userToUpdate.email = updates.email;
   }
-  if (updates.password) {
-    userToUpdate.password = updates.password;
+  if (typeof updates.password === 'string' && updates.password.trim() !== '') {
+    userToUpdate.password = await bcryptjs.hash(updates.password, 10);
   }
   if (updates.profilePicture) {
     userToUpdate.profilePicture = updates.profilePicture;
