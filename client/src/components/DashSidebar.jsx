@@ -10,10 +10,11 @@ import {
   HiPuzzle, // NEW: Import puzzle icon for quizzes
   HiCollection,
 } from 'react-icons/hi';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { signoutSuccess } from '../redux/user/userSlice';
+import LogoutConfirmationModal from './LogoutConfirmationModal';
 
 // Define sidebar links in a configuration array
 const sidebarLinks = [
@@ -32,6 +33,8 @@ export default function DashSidebar() {
   const dispatch = useDispatch();
   const { currentUser } = useSelector((state) => state.user);
   const [tab, setTab] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
@@ -41,14 +44,18 @@ export default function DashSidebar() {
     }
   }, [location.search]);
 
-  const handleSignout = useCallback(async () => {
+  const handleSignout = async () => {
+    setIsSigningOut(true);
     try {
       await fetch('/api/user/signout', { method: 'POST' });
       dispatch(signoutSuccess());
     } catch (error) {
       console.log(error.message);
+    } finally {
+      setIsSigningOut(false);
+      setShowLogoutModal(false);
     }
-  }, [dispatch]);
+  };
 
   return (
       <Sidebar className='w-full md:w-56'>
@@ -86,12 +93,18 @@ export default function DashSidebar() {
             <Sidebar.Item
                 icon={HiArrowSmRight}
                 className='cursor-pointer'
-                onClick={handleSignout}
+                onClick={() => setShowLogoutModal(true)}
             >
               Sign Out
             </Sidebar.Item>
           </Sidebar.ItemGroup>
         </Sidebar.Items>
+        <LogoutConfirmationModal
+            show={showLogoutModal}
+            onClose={() => !isSigningOut && setShowLogoutModal(false)}
+            onConfirm={handleSignout}
+            processing={isSigningOut}
+        />
       </Sidebar>
   );
 }

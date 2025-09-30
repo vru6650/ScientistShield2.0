@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 // Import our advanced custom hook and modal component
 import { useCloudinaryUpload } from '../hooks/useCloudinaryUpload';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import LogoutConfirmationModal from './LogoutConfirmationModal';
 
 // Import Redux actions
 import {
@@ -32,6 +33,8 @@ export default function DashProfile() {
   const [updateUserSuccess, setUpdateUserSuccess] = useState(null);
   const [updateUserError, setUpdateUserError] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const filePickerRef = useRef();
 
   // Use our custom hook for all upload logic
@@ -125,6 +128,7 @@ export default function DashProfile() {
 
   // Handle user sign-out
   const handleSignout = async () => {
+    setIsSigningOut(true);
     try {
       const res = await fetch('/api/user/signout', { method: 'POST' });
       const data = await res.json();
@@ -135,6 +139,9 @@ export default function DashProfile() {
       }
     } catch (error) {
       console.log(error.message);
+    } finally {
+      setIsSigningOut(false);
+      setShowLogoutModal(false);
     }
   };
 
@@ -205,7 +212,20 @@ export default function DashProfile() {
         </form>
         <div className='text-red-500 flex justify-between mt-5'>
           <span onClick={() => setShowModal(true)} className='cursor-pointer'>Delete Account</span>
-          <span onClick={handleSignout} className='cursor-pointer'>Sign Out</span>
+          <span
+              onClick={() => setShowLogoutModal(true)}
+              className='cursor-pointer'
+              role='button'
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setShowLogoutModal(true);
+                }
+              }}
+          >
+            Sign Out
+          </span>
         </div>
 
         {updateUserSuccess && <Alert color='success' className='mt-5'>{updateUserSuccess}</Alert>}
@@ -216,6 +236,12 @@ export default function DashProfile() {
             show={showModal}
             onClose={() => setShowModal(false)}
             onConfirm={handleDeleteUser}
+        />
+        <LogoutConfirmationModal
+            show={showLogoutModal}
+            onClose={() => !isSigningOut && setShowLogoutModal(false)}
+            onConfirm={handleSignout}
+            processing={isSigningOut}
         />
       </div>
   );
