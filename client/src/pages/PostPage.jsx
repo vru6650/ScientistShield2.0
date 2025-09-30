@@ -216,44 +216,6 @@ export default function PostPage() {
         };
     }, [readingSettings.focusMode, readingSettings.readingGuide, readingSettings.highContrast]);
 
-    if (isLoadingPost) return <PostPageSkeleton />;
-    if (postError) return (
-        <div className='flex justify-center items-center min-h-screen'>
-            <Alert color='failure' className='text-xl'>Error: {postError.message}</Alert>
-        </div>
-    );
-    if (!post) return null;
-
-    const parserOptions = {
-        replace: domNode => {
-            if (domNode.type === 'tag' && (domNode.name === 'h2' || domNode.name === 'h3')) {
-                const textContent = getTextFromNode(domNode);
-                const id = generateSlug(textContent);
-                if (id) domNode.attribs.id = id;
-                return;
-            }
-            if (domNode.type === 'tag' && domNode.name === 'img') {
-                const src = domNode.attribs.src;
-                const index = imagesInPost.indexOf(src);
-                if (index > -1) {
-                    return (
-                        <img
-                            {...domNode.attribs}
-                            onClick={() => openImageViewer(index)}
-                            style={{ cursor: 'pointer' }}
-                            loading="lazy"
-                        />
-                    );
-                }
-            }
-            // NEW: Render the CodeEditor component
-            if (domNode.type === 'tag' && domNode.name === 'div' && domNode.attribs['data-snippet-id']) {
-                const snippetId = domNode.attribs['data-snippet-id'];
-                return <CodeEditor snippetId={snippetId} />;
-            }
-        }
-    };
-
     const createMetaDescription = (htmlContent) => {
         if (!htmlContent) return '';
         const tempDiv = document.createElement('div');
@@ -306,6 +268,44 @@ export default function PostPage() {
         if (!post?.category) return 'all';
         return encodeURIComponent(post.category);
     }, [post?.category]);
+
+    if (isLoadingPost) return <PostPageSkeleton />;
+    if (postError) return (
+        <div className='flex justify-center items-center min-h-screen'>
+            <Alert color='failure' className='text-xl'>Error: {postError.message}</Alert>
+        </div>
+    );
+    if (!post) return null;
+
+    const parserOptions = {
+        replace: domNode => {
+            if (domNode.type === 'tag' && (domNode.name === 'h2' || domNode.name === 'h3')) {
+                const textContent = getTextFromNode(domNode);
+                const id = generateSlug(textContent);
+                if (id) domNode.attribs.id = id;
+                return;
+            }
+            if (domNode.type === 'tag' && domNode.name === 'img') {
+                const src = domNode.attribs.src;
+                const index = imagesInPost.indexOf(src);
+                if (index > -1) {
+                    return (
+                        <img
+                            {...domNode.attribs}
+                            onClick={() => openImageViewer(index)}
+                            style={{ cursor: 'pointer' }}
+                            loading="lazy"
+                        />
+                    );
+                }
+            }
+            // NEW: Render the CodeEditor component
+            if (domNode.type === 'tag' && domNode.name === 'div' && domNode.attribs['data-snippet-id']) {
+                const snippetId = domNode.attribs['data-snippet-id'];
+                return <CodeEditor snippetId={snippetId} />;
+            }
+        }
+    };
 
     return (
         <>
