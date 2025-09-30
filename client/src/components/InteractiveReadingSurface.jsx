@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Spinner, Tooltip } from 'flowbite-react';
 import {
     HiOutlineBookOpen,
-    HiOutlineSearch,
     HiOutlineX,
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
@@ -315,65 +314,6 @@ const applyHighlightRange = (container, highlight) => {
     }
 };
 
-const applySearchHighlights = (container, term, activeIndex) => {
-    if (!container || !term) return [];
-    const searchTerm = term.trim();
-    if (!searchTerm) return [];
-
-    const lowerTerm = searchTerm.toLowerCase();
-    const results = [];
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-
-    let matchIndex = 0;
-
-    while (walker.nextNode()) {
-        let node = walker.currentNode;
-        if (!node || !node.textContent) continue;
-        if (node.parentElement?.closest('mark[data-reader-highlight], mark[data-search-hit]')) {
-            continue;
-        }
-
-        let text = node.textContent;
-        let searchStart = 0;
-
-        while (text) {
-            const foundIndex = text.toLowerCase().indexOf(lowerTerm, searchStart);
-            if (foundIndex === -1) break;
-
-            const range = document.createRange();
-            range.setStart(node, foundIndex);
-            range.setEnd(node, foundIndex + searchTerm.length);
-
-            const mark = document.createElement('mark');
-            mark.dataset.searchHit = 'true';
-            mark.dataset.searchIndex = `${matchIndex}`;
-            mark.className = 'reader-search-highlight';
-            mark.appendChild(range.extractContents());
-            range.insertNode(mark);
-            range.detach();
-
-            if (matchIndex === activeIndex) {
-                mark.classList.add('reader-search-highlight-active');
-                mark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-            }
-
-            results.push({ index: matchIndex, text: mark.textContent });
-            matchIndex += 1;
-
-            const nextNode = mark.nextSibling;
-            if (nextNode && nextNode.nodeType === Node.TEXT_NODE) {
-                node = nextNode;
-                text = node.textContent;
-                searchStart = 0;
-            } else {
-                break;
-            }
-        }
-    }
-
-    return results;
-};
-
 const getSelectionOffsets = (container, range) => {
     const preRange = range.cloneRange();
     preRange.selectNodeContents(container);
@@ -399,9 +339,6 @@ const InteractiveReadingSurface = ({
     const fullTextRef = useRef('');
     const [highlights, setHighlights] = useState([]);
     const [selectionMenu, setSelectionMenu] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [searchMatches, setSearchMatches] = useState([]);
-    const [activeMatchIndex, setActiveMatchIndex] = useState(0);
     const [dictionaryState, setDictionaryState] = useState({
         word: '',
         loading: false,
@@ -445,9 +382,6 @@ const InteractiveReadingSurface = ({
     }, [chapterId, highlights]);
 
     useEffect(() => {
-        setSearchTerm('');
-        setSearchMatches([]);
-        setActiveMatchIndex(0);
         setSelectionMenu(null);
         setSelectionFeedback('');
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -481,27 +415,10 @@ const InteractiveReadingSurface = ({
         if (!container) return;
 
         unwrapMarks(container, 'data-reader-highlight');
-        unwrapMarks(container, 'data-search-hit');
 
         const ordered = [...highlights].sort((a, b) => a.start - b.start);
         ordered.forEach((highlight) => applyHighlightRange(container, { ...highlight }));
-
-        if (searchTerm) {
-            const matches = applySearchHighlights(container, searchTerm, activeMatchIndex);
-            setSearchMatches(matches);
-        } else {
-            setSearchMatches([]);
-        }
-    }, [content, highlights, searchTerm, activeMatchIndex]);
-
-    useEffect(() => {
-        if (searchMatches.length === 0 && activeMatchIndex !== 0) {
-            setActiveMatchIndex(0);
-        }
-        if (searchMatches.length > 0 && activeMatchIndex >= searchMatches.length) {
-            setActiveMatchIndex(searchMatches.length - 1);
-        }
-    }, [searchMatches, activeMatchIndex]);
+    }, [content, highlights]);
 
     const closeSelectionMenu = useCallback(() => {
         setSelectionMenu(null);
@@ -858,62 +775,13 @@ const InteractiveReadingSurface = ({
         setSelectionFeedback('Reading selection aloud…');
     };
 
-    const handleSearchChange = (event) => {
-        setSearchTerm(event.target.value);
-        setActiveMatchIndex(0);
-    };
-
-    const goToNextMatch = () => {
-        if (searchMatches.length === 0) return;
-        setActiveMatchIndex((prev) => (prev + 1) % searchMatches.length);
-    };
-
-    const goToPreviousMatch = () => {
-        if (searchMatches.length === 0) return;
-        setActiveMatchIndex((prev) => (prev - 1 + searchMatches.length) % searchMatches.length);
-    };
-
-    const clearSearch = () => {
-        setSearchTerm('');
-        setActiveMatchIndex(0);
-    };
-
     const closeDictionary = () => {
         setDictionaryState((prev) => ({ ...prev, open: false }));
     };
 
     return (
         <div className="space-y-6">
-            <div className="reader-utility-bar">
-                <div className="reader-search-field">
-                    <HiOutlineSearch className="reader-search-icon" aria-hidden />
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        placeholder="Search within this chapter..."
-                        className="reader-search-input"
-                    />
-                    {searchTerm && (
-                        <button type="button" className="reader-search-clear" onClick={clearSearch} aria-label="Clear search">
-                            <HiOutlineX />
-                        </button>
-                    )}
-                </div>
-                {searchMatches.length > 0 && (
-                    <div className="reader-search-controls">
-                        <button type="button" onClick={goToPreviousMatch} aria-label="Previous match">
-                            <HiOutlineChevronLeft />
-                        </button>
-                        <span>
-                            {activeMatchIndex + 1} / {searchMatches.length}
-                        </span>
-                        <button type="button" onClick={goToNextMatch} aria-label="Next match">
-                            <HiOutlineChevronRight />
-                        </button>
-                    </div>
-                )}
-            </div>
+            <div className="reader-utility-bar" />
 
             <motion.div
                 ref={containerRef}
