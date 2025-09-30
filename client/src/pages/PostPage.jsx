@@ -3,11 +3,11 @@ import { Button, Alert, Tooltip } from 'flowbite-react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import hljs from 'highlight.js';
 import ImageViewer from 'react-simple-image-viewer';
 import { Helmet } from 'react-helmet-async';
-import { FaClock, FaBookOpen, FaCalendarAlt } from 'react-icons/fa';
+import { FaClock, FaBookOpen, FaCalendarAlt, FaArrowRight, FaCommentDots } from 'react-icons/fa';
 import { HiOutlineSparkles } from 'react-icons/hi';
 
 // --- Component Imports ---
@@ -256,7 +256,14 @@ export default function PostPage() {
     }, [post]);
 
     const heroBackgroundStyle = useMemo(() => {
-        if (!heroImage) return {};
+        if (!heroImage) {
+            return {
+                backgroundImage: 'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.88))',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+            };
+        }
+
         return {
             backgroundImage: `linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.35)), url(${heroImage})`,
             backgroundSize: 'cover',
@@ -268,6 +275,43 @@ export default function PostPage() {
         if (!post?.category) return 'all';
         return encodeURIComponent(post.category);
     }, [post?.category]);
+
+    const quickSummary = useMemo(() => {
+        if (!sanitizedContent) return { text: '', truncated: false };
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = sanitizedContent;
+        const text = (tempDiv.textContent || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (!text) return { text: '', truncated: false };
+
+        const previewLimit = 260;
+        const shouldTruncate = text.length > previewLimit;
+        const preview = shouldTruncate ? text.slice(0, previewLimit).trimEnd() : text;
+
+        return {
+            text: preview,
+            truncated: shouldTruncate,
+        };
+    }, [sanitizedContent]);
+
+    const heroDescriptionText = metaDescription || quickSummary.text;
+    const heroDescriptionTruncated = !metaDescription && quickSummary.truncated;
+
+    const scrollToElement = useCallback((elementId) => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, []);
+
+    const handleStartReading = useCallback(() => {
+        scrollToElement('article-start');
+    }, [scrollToElement]);
+
+    const handleDiscuss = useCallback(() => {
+        scrollToElement('comments-section');
+    }, [scrollToElement]);
 
     if (isLoadingPost) return <PostPageSkeleton />;
     if (postError) return (
@@ -331,41 +375,66 @@ export default function PostPage() {
                     className='relative isolate overflow-hidden bg-slate-900 text-white'
                     style={heroBackgroundStyle}
                 >
-                    <div className='absolute inset-0 bg-slate-900/75 backdrop-blur-sm dark:bg-slate-950/80' />
-                    <div className='relative mx-auto flex max-w-4xl flex-col gap-8 px-6 py-24 text-center sm:py-28 lg:px-0'>
-                        <div className='inline-flex items-center justify-center gap-2 self-center rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-slate-100 backdrop-blur'>
-                            <HiOutlineSparkles className='h-4 w-4 text-amber-300' aria-hidden />
-                            Featured Insight
-                        </div>
-                        <Link to={`/search?category=${categoryQuery}`} className='inline-flex items-center justify-center self-center'>
-                            <span className='inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1 text-xs font-medium uppercase tracking-wide text-slate-100 ring-1 ring-white/30 backdrop-blur-sm transition hover:bg-white/30'>
-                                {formatCategory(post.category)}
+                    <div className='absolute inset-0 bg-slate-900/80 backdrop-blur-sm dark:bg-slate-950/85' />
+                    <div className='absolute inset-x-0 -bottom-40 h-[420px] bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent opacity-80 blur-3xl dark:from-slate-950 dark:via-slate-950/80' aria-hidden />
+                    <div className='absolute -left-32 top-24 h-64 w-64 rounded-full bg-gradient-to-br from-sky-500/40 via-cyan-400/30 to-emerald-400/40 blur-3xl' aria-hidden />
+                    <div className='absolute -right-32 bottom-24 h-72 w-72 rounded-full bg-gradient-to-br from-purple-500/30 via-indigo-500/30 to-amber-400/30 blur-3xl' aria-hidden />
+                    <div className='relative mx-auto flex max-w-5xl flex-col gap-8 px-6 py-24 text-center sm:py-32 lg:px-0'>
+                        <div className='inline-flex flex-wrap items-center justify-center gap-3 self-center text-xs uppercase tracking-widest text-slate-100'>
+                            <span className='inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 font-semibold backdrop-blur'>
+                                <HiOutlineSparkles className='h-4 w-4 text-amber-300' aria-hidden />
+                                Featured Insight
                             </span>
-                        </Link>
-                        <h1 className='text-balance text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl'>
+                            <Link
+                                to={`/search?category=${categoryQuery}`}
+                                className='inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-1 font-medium backdrop-blur transition hover:border-white/50 hover:bg-white/20'
+                            >
+                                {formatCategory(post.category)}
+                            </Link>
+                        </div>
+                        <h1 className='text-balance text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl md:text-5xl lg:text-6xl'>
                             {post.title}
                         </h1>
-                        {metaDescription && (
-                            <p className='mx-auto max-w-2xl text-base text-slate-200 sm:text-lg'>
-                                {metaDescription}
+                        {heroDescriptionText && (
+                            <p className='mx-auto max-w-3xl text-base text-slate-200/90 sm:text-lg'>
+                                {heroDescriptionText}
+                                {heroDescriptionTruncated ? '…' : ''}
                             </p>
                         )}
-                        <div className='mx-auto flex flex-wrap items-center justify-center gap-6 text-sm text-slate-200'>
+                        <div className='flex flex-wrap items-center justify-center gap-3'>
+                            <Button
+                                gradientDuoTone='purpleToBlue'
+                                className='group flex items-center gap-2 rounded-full px-6 py-2 text-sm font-semibold shadow-lg shadow-purple-500/30'
+                                onClick={handleStartReading}
+                            >
+                                Start reading
+                                <FaArrowRight className='h-4 w-4 transition-transform duration-300 group-hover:translate-x-1' />
+                            </Button>
+                            <Button
+                                color='light'
+                                className='group flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-2 text-sm font-semibold text-white transition hover:border-white/50 hover:bg-white/20'
+                                onClick={handleDiscuss}
+                            >
+                                Join the discussion
+                                <FaCommentDots className='h-4 w-4 text-slate-200 transition-transform duration-300 group-hover:-translate-y-0.5' />
+                            </Button>
+                        </div>
+                        <div className='mx-auto flex flex-wrap items-center justify-center gap-4 text-sm text-slate-200/90'>
                             {formattedPublishDate && (
-                                <span className='inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 ring-1 ring-white/15'>
-                                    <FaCalendarAlt className='h-4 w-4' aria-hidden />
+                                <span className='inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur'>
+                                    <FaCalendarAlt className='h-4 w-4 text-emerald-300' aria-hidden />
                                     {formattedPublishDate}
                                 </span>
                             )}
                             {readingStats.readingMinutes > 0 && (
-                                <span className='inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 ring-1 ring-white/15'>
-                                    <FaClock className='h-4 w-4' aria-hidden />
-                                    {readingStats.readingMinutes} min read
+                                <span className='inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur'>
+                                    <FaClock className='h-4 w-4 text-sky-300' aria-hidden />
+                                    {readingStats.readingMinutes} minute read
                                 </span>
                             )}
                             {readingStats.wordCount > 0 && (
-                                <span className='inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 ring-1 ring-white/15'>
-                                    <FaBookOpen className='h-4 w-4' aria-hidden />
+                                <span className='inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur'>
+                                    <FaBookOpen className='h-4 w-4 text-indigo-300' aria-hidden />
                                     {readingStats.wordCount.toLocaleString()} words
                                 </span>
                             )}
@@ -373,9 +442,19 @@ export default function PostPage() {
                     </div>
                 </section>
 
-                <main className='mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-10 lg:flex-row lg:px-8'>
-                    <article className='flex-1 space-y-10'>
-                        {(post.mediaUrl || post.image) && (
+                {quickSummary.text && (
+                    <div className='relative z-10 mx-auto -mt-16 max-w-3xl rounded-3xl border border-slate-200/70 bg-white/90 p-6 text-center shadow-xl shadow-slate-200/60 backdrop-blur dark:border-white/10 dark:bg-slate-900/80 dark:shadow-slate-900/60'>
+                        <p className='text-sm font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500'>Quick take</p>
+                        <p className='mt-3 text-base text-slate-600 dark:text-slate-300'>
+                            {quickSummary.text}
+                            {quickSummary.truncated ? '…' : ''}
+                        </p>
+                    </div>
+                )}
+
+                <main className='mx-auto flex max-w-6xl flex-col gap-10 px-4 py-10 lg:flex-row lg:px-10'>
+                    <article id='article-start' className='flex-1 space-y-10'>
+                        {(heroImage || post.mediaType === 'video') && (
                             <div className='overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-xl shadow-slate-200/70 transition duration-500 hover:-translate-y-1 hover:shadow-2xl dark:border-white/5 dark:bg-slate-900/70 dark:shadow-slate-900/60'>
                                 {post.mediaType === 'video' ? (
                                     <video
@@ -386,7 +465,7 @@ export default function PostPage() {
                                     />
                                 ) : (
                                     <img
-                                        src={post.mediaUrl || post.image}
+                                        src={heroImage}
                                         alt={post.title}
                                         className='h-full w-full object-cover'
                                         loading='lazy'
@@ -410,18 +489,26 @@ export default function PostPage() {
                             />
                         </div>
 
-                        <div className='flex flex-col gap-6 rounded-3xl border border-slate-200/70 bg-white p-6 shadow-xl shadow-slate-200/70 dark:border-white/5 dark:bg-slate-900/70 dark:shadow-slate-900/60 sm:flex-row sm:items-center sm:justify-between'>
-                            <ClapButton post={post} />
-                            <div className='flex items-center gap-3'>
+                        <div className='flex flex-col gap-6 rounded-3xl border border-slate-200/70 bg-white/95 p-6 shadow-xl shadow-slate-200/70 backdrop-blur dark:border-white/5 dark:bg-slate-900/80 dark:shadow-slate-900/60 sm:flex-row sm:items-center sm:justify-between'>
+                            <div className='flex flex-1 flex-col items-start gap-4 sm:flex-row sm:items-center'>
+                                <ClapButton post={post} />
+                                <div className='max-w-sm text-left'>
+                                    <p className='text-sm font-semibold text-slate-600 dark:text-slate-200'>Enjoying this insight?</p>
+                                    <p className='text-sm text-slate-500 dark:text-slate-400'>Applaud the author and let them know this story resonated with you.</p>
+                                </div>
+                            </div>
+                            <div className='flex flex-1 flex-col items-start gap-2 sm:items-end'>
                                 <Tooltip content='Share this insight'>
-                                    <span>
+                                    <span className='inline-flex items-center gap-3 rounded-full bg-slate-100/70 px-4 py-2 text-slate-600 shadow-sm shadow-slate-200/60 transition hover:bg-slate-100 dark:bg-slate-800/70 dark:text-slate-200 dark:shadow-slate-900/40'>
                                         <SocialShare post={post} />
+                                        <span className='text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500'>Share</span>
                                     </span>
                                 </Tooltip>
+                                <p className='text-xs text-slate-400 dark:text-slate-500'>Spread the insight with your community.</p>
                             </div>
                         </div>
 
-                        <div className='overflow-hidden rounded-3xl border border-slate-200/70 bg-white p-6 shadow-xl shadow-slate-200/70 dark:border-white/5 dark:bg-slate-900/70 dark:shadow-slate-900/60'>
+                        <div id='comments-section' className='overflow-hidden rounded-3xl border border-slate-200/70 bg-white p-6 shadow-xl shadow-slate-200/70 dark:border-white/5 dark:bg-slate-900/70 dark:shadow-slate-900/60'>
                             <CommentSection postId={post._id} />
                         </div>
 
