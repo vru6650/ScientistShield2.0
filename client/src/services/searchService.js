@@ -16,12 +16,31 @@ export const getSearchResults = async (params = {}, options = {}) => {
         }
     }
 
+    if (params.difficulties) {
+        if (Array.isArray(params.difficulties)) {
+            const filteredDifficulties = params.difficulties.map((value) => value.trim()).filter(Boolean);
+            if (filteredDifficulties.length) {
+                searchParams.set('difficulty', filteredDifficulties.join(','));
+            }
+        } else if (typeof params.difficulties === 'string' && params.difficulties.trim()) {
+            searchParams.set('difficulty', params.difficulties.trim());
+        }
+    }
+
     if (params.limit) {
         searchParams.set('limit', String(params.limit));
     }
 
     if (params.sort) {
         searchParams.set('sort', params.sort);
+    }
+
+    if (params.updatedAfter) {
+        searchParams.set('updatedAfter', params.updatedAfter);
+    }
+
+    if (params.updatedBefore) {
+        searchParams.set('updatedBefore', params.updatedBefore);
     }
 
     const queryString = searchParams.toString();

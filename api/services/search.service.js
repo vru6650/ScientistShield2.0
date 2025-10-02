@@ -352,7 +352,15 @@ const mapSearchHit = (hit) => {
     };
 };
 
-export const searchDocuments = async ({ term, limit = 20, sort = 'relevance', types = [] }) => {
+export const searchDocuments = async ({
+    term,
+    limit = 20,
+    sort = 'relevance',
+    types = [],
+    difficulties = [],
+    updatedAfter = null,
+    updatedBefore = null,
+}) => {
     if (!isSearchEnabled()) {
         throw new Error('Elasticsearch is not configured');
     }
@@ -362,6 +370,23 @@ export const searchDocuments = async ({ term, limit = 20, sort = 'relevance', ty
         : SUPPORTED_TYPES;
 
     const indexPattern = queryTypes.map((type) => buildIndexName(type)).join(',');
+
+    const filters = [];
+
+    if (Array.isArray(difficulties) && difficulties.length) {
+        filters.push({ terms: { difficulty: difficulties } });
+    }
+
+    const range = {};
+    if (updatedAfter) {
+        range.gte = updatedAfter;
+    }
+    if (updatedBefore) {
+        range.lte = updatedBefore;
+    }
+    if (Object.keys(range).length) {
+        filters.push({ range: { updatedAt: range } });
+    }
 
     const payload = {
         size: Math.min(Math.max(limit, 1), 100),
@@ -396,6 +421,10 @@ export const searchDocuments = async ({ term, limit = 20, sort = 'relevance', ty
             },
         },
     };
+
+    if (filters.length) {
+        payload.query.bool.filter = filters;
+    }
 
     if (sort === 'recent') {
         payload.sort = [{ updatedAt: { order: 'desc' } }];

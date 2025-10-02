@@ -2,7 +2,14 @@ import { Button, Select, Spinner, Badge } from 'flowbite-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getSearchResults } from '../services/searchService';
-import { HiOutlineMicrophone, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
+import {
+    HiOutlineAdjustments,
+    HiOutlineChevronDown,
+    HiOutlineChevronUp,
+    HiOutlineMicrophone,
+    HiOutlineSearch,
+    HiOutlineX,
+} from 'react-icons/hi';
 
 const TYPE_OPTIONS = [
     { value: 'post', label: 'Posts', description: 'Community updates, announcements, and deep dives.' },
@@ -31,6 +38,144 @@ const SUGGESTED_QUERIES = [
     'system design',
     'graph algorithms',
 ];
+
+const DIFFICULTY_OPTIONS = ['Beginner', 'Easy', 'Medium', 'Hard', 'Advanced'];
+
+const DATE_PRESETS = [
+    { value: 'any', label: 'Any time' },
+    { value: '24h', label: 'Past 24 hours', durationMs: 24 * 60 * 60 * 1000 },
+    { value: '7d', label: 'Past week', durationMs: 7 * 24 * 60 * 60 * 1000 },
+    { value: '30d', label: 'Past month', durationMs: 30 * 24 * 60 * 60 * 1000 },
+    { value: '90d', label: 'Past 90 days', durationMs: 90 * 24 * 60 * 60 * 1000 },
+    { value: '365d', label: 'Past year', durationMs: 365 * 24 * 60 * 60 * 1000 },
+    { value: 'custom', label: 'Custom range' },
+];
+
+const PRESET_DURATION_LOOKUP = DATE_PRESETS.reduce((acc, preset) => {
+    if (preset.durationMs) {
+        acc[preset.value] = preset.durationMs;
+    }
+    return acc;
+}, {});
+
+const clampIsoDate = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+    return date.toISOString();
+};
+
+const derivePresetFromRange = (updatedAfter, updatedBefore) => {
+    const afterIso = clampIsoDate(updatedAfter);
+    const beforeIso = clampIsoDate(updatedBefore);
+
+    if (!afterIso && !beforeIso) {
+        return 'any';
+    }
+
+    if (!afterIso || beforeIso) {
+        return 'custom';
+    }
+
+    const afterTime = new Date(afterIso).getTime();
+    const now = Date.now();
+    const diff = Math.max(0, now - afterTime);
+
+    for (const [value, duration] of Object.entries(PRESET_DURATION_LOOKUP)) {
+        const tolerance = Math.max(duration * 0.15, 60 * 60 * 1000);
+        if (Math.abs(diff - duration) <= tolerance) {
+            return value;
+        }
+    }
+
+    if (diff <= PRESET_DURATION_LOOKUP['24h']) {
+        return '24h';
+    }
+
+    return 'custom';
+};
+
+const computePresetRange = (preset) => {
+    if (!preset || preset === 'any') {
+        return { updatedAfter: null, updatedBefore: null };
+    }
+
+    if (preset === 'custom') {
+        return { updatedAfter: null, updatedBefore: null };
+    }
+
+    const duration = PRESET_DURATION_LOOKUP[preset];
+    if (!duration) {
+        return { updatedAfter: null, updatedBefore: null };
+    }
+
+    const now = Date.now();
+    const after = new Date(now - duration).toISOString();
+    return { updatedAfter: after, updatedBefore: null };
+};
+
+const formatDateForInput = (isoValue) => {
+    if (!isoValue) return '';
+    const date = new Date(isoValue);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+    const offset = date.getTimezoneOffset();
+    const local = new Date(date.getTime() - offset * 60 * 1000);
+    return local.toISOString().slice(0, 10);
+};
+
+const toIsoStartOfDay = (value) => {
+    if (!value) return null;
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+    return date.toISOString();
+};
+
+const toIsoEndOfDay = (value) => {
+    if (!value) return null;
+    const date = new Date(`${value}T23:59:59.999`);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+    return date.toISOString();
+};
+
+const describeDateFilter = (preset, updatedAfter, updatedBefore) => {
+    if (preset && preset !== 'custom') {
+        const presetOption = DATE_PRESETS.find((option) => option.value === preset);
+        if (presetOption) {
+            return `Updated within the ${presetOption.label.toLowerCase()}`;
+        }
+    }
+
+    const formatter = new Intl.DateTimeFormat(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+
+    const afterDate = clampIsoDate(updatedAfter);
+    const beforeDate = clampIsoDate(updatedBefore);
+
+    if (afterDate && beforeDate) {
+        return `Updated between ${formatter.format(new Date(afterDate))} and ${formatter.format(new Date(beforeDate))}`;
+    }
+
+    if (afterDate) {
+        return `Updated after ${formatter.format(new Date(afterDate))}`;
+    }
+
+    if (beforeDate) {
+        return `Updated before ${formatter.format(new Date(beforeDate))}`;
+    }
+
+    return null;
+};
 
 const parseTypesFromQuery = (param, { defaultToAll = true } = {}) => {
     if (!param) {
@@ -88,11 +233,16 @@ export default function Search() {
         searchTerm: '',
         sort: 'relevance',
         contentTypes: [...ALL_TYPES],
+        difficulties: [],
+        updatedAfter: null,
+        updatedBefore: null,
+        datePreset: 'any',
     });
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [metadata, setMetadata] = useState({ total: 0, took: null, fallbackUsed: false, message: null });
+    const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -101,11 +251,25 @@ export default function Search() {
         const typeParam = params.get('types');
         const parsedTypes = parseTypesFromQuery(typeParam);
         const orderedTypes = parsedTypes.length ? parsedTypes : [...ALL_TYPES];
+        const difficultyParam = params.get('difficulty') || params.get('difficulties');
+        const difficulties = difficultyParam
+            ? difficultyParam
+                  .split(',')
+                  .map((value) => value.trim())
+                  .filter(Boolean)
+            : [];
+        const updatedAfterParam = clampIsoDate(params.get('updatedAfter'));
+        const updatedBeforeParam = clampIsoDate(params.get('updatedBefore'));
+        const datePreset = derivePresetFromRange(updatedAfterParam, updatedBeforeParam);
 
         setSidebarData({
             searchTerm: searchTermFromUrl,
             sort: SORT_OPTIONS.some((option) => option.value === sortFromUrl) ? sortFromUrl : 'relevance',
             contentTypes: orderedTypes.length ? orderedTypes : [...ALL_TYPES],
+            difficulties,
+            updatedAfter: updatedAfterParam,
+            updatedBefore: updatedBeforeParam,
+            datePreset,
         });
     }, [location.search]);
 
@@ -124,6 +288,15 @@ export default function Search() {
         const sort = params.get('sort') || 'relevance';
         const typeParam = params.get('types');
         const parsedTypes = parseTypesFromQuery(typeParam, { defaultToAll: false });
+        const difficultyParam = params.get('difficulty') || params.get('difficulties');
+        const difficulties = difficultyParam
+            ? difficultyParam
+                  .split(',')
+                  .map((value) => value.trim())
+                  .filter(Boolean)
+            : [];
+        const updatedAfter = clampIsoDate(params.get('updatedAfter'));
+        const updatedBefore = clampIsoDate(params.get('updatedBefore'));
 
         const query = {
             searchTerm,
@@ -133,6 +306,18 @@ export default function Search() {
 
         if (parsedTypes.length) {
             query.types = parsedTypes;
+        }
+
+        if (difficulties.length) {
+            query.difficulties = difficulties;
+        }
+
+        if (updatedAfter) {
+            query.updatedAfter = updatedAfter;
+        }
+
+        if (updatedBefore) {
+            query.updatedBefore = updatedBefore;
         }
 
         setLoading(true);
@@ -160,6 +345,20 @@ export default function Search() {
 
         return () => controller.abort();
     }, [location.search]);
+
+    const hasAdvancedFilters = useMemo(
+        () =>
+            sidebarData.difficulties.length > 0 ||
+            Boolean(sidebarData.updatedAfter) ||
+            Boolean(sidebarData.updatedBefore),
+        [sidebarData.difficulties, sidebarData.updatedAfter, sidebarData.updatedBefore],
+    );
+
+    useEffect(() => {
+        if (hasAdvancedFilters) {
+            setIsAdvancedOpen(true);
+        }
+    }, [hasAdvancedFilters]);
 
     const handleSearchInputChange = (event) => {
         const { value } = event.target;
@@ -197,6 +396,53 @@ export default function Search() {
         setSidebarData((prev) => ({ ...prev, contentTypes: [...ALL_TYPES] }));
     };
 
+    const toggleDifficulty = (difficulty) => {
+        setSidebarData((prev) => {
+            const isSelected = prev.difficulties.includes(difficulty);
+            if (isSelected) {
+                return {
+                    ...prev,
+                    difficulties: prev.difficulties.filter((value) => value !== difficulty),
+                };
+            }
+
+            return {
+                ...prev,
+                difficulties: [...prev.difficulties, difficulty],
+            };
+        });
+    };
+
+    const handleDatePresetChange = (event) => {
+        const { value } = event.target;
+        setSidebarData((prev) => {
+            const nextRange = computePresetRange(value);
+            return {
+                ...prev,
+                datePreset: value,
+                updatedAfter: nextRange.updatedAfter,
+                updatedBefore: nextRange.updatedBefore,
+            };
+        });
+    };
+
+    const handleCustomDateChange = (field, value) => {
+        setSidebarData((prev) => {
+            const next = {
+                ...prev,
+                datePreset: 'custom',
+            };
+
+            if (field === 'start') {
+                next.updatedAfter = value ? toIsoStartOfDay(value) : null;
+            } else {
+                next.updatedBefore = value ? toIsoEndOfDay(value) : null;
+            }
+
+            return next;
+        });
+    };
+
     const buildSearchParams = (data) => {
         const params = new URLSearchParams();
 
@@ -210,6 +456,18 @@ export default function Search() {
 
         if (data.contentTypes.length && data.contentTypes.length < ALL_TYPES.length) {
             params.set('types', data.contentTypes.join(','));
+        }
+
+        if (data.difficulties.length) {
+            params.set('difficulty', data.difficulties.join(','));
+        }
+
+        if (data.updatedAfter) {
+            params.set('updatedAfter', data.updatedAfter);
+        }
+
+        if (data.updatedBefore) {
+            params.set('updatedBefore', data.updatedBefore);
         }
 
         return params;
@@ -234,7 +492,11 @@ export default function Search() {
     const handleInputClear = () => {
         const nextData = { ...sidebarData, searchTerm: '' };
         setSidebarData(nextData);
-        if (sidebarData.contentTypes.length === ALL_TYPES.length && sidebarData.sort === 'relevance') {
+        if (
+            sidebarData.contentTypes.length === ALL_TYPES.length &&
+            sidebarData.sort === 'relevance' &&
+            !hasAdvancedFilters
+        ) {
             navigate('/search');
         } else {
             commitSearchToUrl(nextData);
@@ -242,7 +504,15 @@ export default function Search() {
     };
 
     const handleClear = () => {
-        const defaults = { searchTerm: '', sort: 'relevance', contentTypes: [...ALL_TYPES] };
+        const defaults = {
+            searchTerm: '',
+            sort: 'relevance',
+            contentTypes: [...ALL_TYPES],
+            difficulties: [],
+            updatedAfter: null,
+            updatedBefore: null,
+            datePreset: 'any',
+        };
         setSidebarData(defaults);
         navigate('/search');
     };
@@ -285,10 +555,35 @@ export default function Search() {
                 pieces.push(`Filtered to ${labels.join(', ')}`);
             }
         }
+
+        if (sidebarData.difficulties.length) {
+            pieces.push(`Difficulty: ${sidebarData.difficulties.join(', ')}`);
+        }
+
+        const dateDescription = describeDateFilter(
+            sidebarData.datePreset,
+            sidebarData.updatedAfter,
+            sidebarData.updatedBefore,
+        );
+        if (dateDescription) {
+            pieces.push(dateDescription);
+        }
         return pieces.join(' · ');
-    }, [sidebarData.searchTerm, loading, error, metadata, sidebarData.contentTypes]);
+    }, [
+        sidebarData.searchTerm,
+        loading,
+        error,
+        metadata,
+        sidebarData.contentTypes,
+        sidebarData.difficulties,
+        sidebarData.datePreset,
+        sidebarData.updatedAfter,
+        sidebarData.updatedBefore,
+    ]);
 
     const hasCustomTypes = sidebarData.contentTypes.length && sidebarData.contentTypes.length < ALL_TYPES.length;
+    const customStartValue = formatDateForInput(sidebarData.updatedAfter);
+    const customEndValue = formatDateForInput(sidebarData.updatedBefore);
 
     return (
         <div className='min-h-screen bg-gray-50 dark:bg-gray-950'>
@@ -397,6 +692,110 @@ export default function Search() {
                                 Reset all
                             </Button>
                         </div>
+                    </div>
+                    <div className='flex flex-col gap-4'>
+                        <div className='flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-800 dark:bg-gray-900'>
+                            <div className='flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200'>
+                                <HiOutlineAdjustments className='h-5 w-5 text-purple-500' />
+                                <span>Advanced filters</span>
+                                {hasAdvancedFilters && (
+                                    <Badge color='purple' size='sm' className='ml-1'>
+                                        Applied
+                                    </Badge>
+                                )}
+                            </div>
+                            <button
+                                type='button'
+                                onClick={() => setIsAdvancedOpen((prev) => !prev)}
+                                className='flex items-center gap-1 rounded-full border border-transparent px-3 py-1 text-sm font-medium text-purple-600 transition hover:border-purple-300 hover:bg-purple-50 dark:text-purple-300 dark:hover:border-purple-500 dark:hover:bg-purple-500/10'
+                                aria-expanded={isAdvancedOpen}
+                                aria-controls='advanced-filter-panel'
+                            >
+                                {isAdvancedOpen ? (
+                                    <>
+                                        Hide <HiOutlineChevronUp className='h-4 w-4' />
+                                    </>
+                                ) : (
+                                    <>
+                                        Show <HiOutlineChevronDown className='h-4 w-4' />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        {isAdvancedOpen && (
+                            <div
+                                id='advanced-filter-panel'
+                                className='grid gap-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900'
+                            >
+                                <div className='flex flex-col gap-3'>
+                                    <span className='text-xs uppercase tracking-wide text-gray-400'>Difficulty</span>
+                                    <div className='flex flex-wrap gap-2'>
+                                        {DIFFICULTY_OPTIONS.map((difficulty) => {
+                                            const isSelected = sidebarData.difficulties.includes(difficulty);
+                                            return (
+                                                <label
+                                                    key={difficulty}
+                                                    className={`flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium transition ${
+                                                        isSelected
+                                                            ? 'border-purple-500 bg-purple-50 text-purple-600 dark:border-purple-400 dark:bg-purple-500/10 dark:text-purple-200'
+                                                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-purple-400 dark:hover:bg-purple-500/10 dark:hover:text-purple-200'
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type='checkbox'
+                                                        checked={isSelected}
+                                                        onChange={() => toggleDifficulty(difficulty)}
+                                                        className='h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-800'
+                                                    />
+                                                    <span>{difficulty}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className='text-xs text-gray-500 dark:text-gray-400'>Refine problem results based on challenge level.</p>
+                                </div>
+                                <div className='flex flex-col gap-3'>
+                                    <span className='text-xs uppercase tracking-wide text-gray-400'>Updated</span>
+                                    <div className='flex flex-wrap gap-3'>
+                                        <Select
+                                            id='date-preset'
+                                            value={sidebarData.datePreset}
+                                            onChange={handleDatePresetChange}
+                                            className='w-full max-w-xs'
+                                        >
+                                            {DATE_PRESETS.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </Select>
+                                        {sidebarData.datePreset === 'custom' && (
+                                            <div className='flex flex-wrap gap-3 text-sm'>
+                                                <label className='flex flex-col gap-1 text-left text-gray-600 dark:text-gray-300'>
+                                                    <span className='text-xs uppercase tracking-wide text-gray-400'>From</span>
+                                                    <input
+                                                        type='date'
+                                                        value={customStartValue}
+                                                        onChange={(event) => handleCustomDateChange('start', event.target.value)}
+                                                        className='rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-purple-400 dark:focus:ring-purple-400/30'
+                                                    />
+                                                </label>
+                                                <label className='flex flex-col gap-1 text-left text-gray-600 dark:text-gray-300'>
+                                                    <span className='text-xs uppercase tracking-wide text-gray-400'>To</span>
+                                                    <input
+                                                        type='date'
+                                                        value={customEndValue}
+                                                        onChange={(event) => handleCustomDateChange('end', event.target.value)}
+                                                        className='rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-purple-400 dark:focus:ring-purple-400/30'
+                                                    />
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className='text-xs text-gray-500 dark:text-gray-400'>Limit results to recent updates or choose a custom date window.</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

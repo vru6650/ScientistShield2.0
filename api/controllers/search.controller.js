@@ -267,13 +267,73 @@ const parseTypes = (typesParam) => {
         .filter((type) => SUPPORTED_SEARCH_TYPES.includes(type));
 };
 
-const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
+const DIFFICULTY_LOOKUP = new Map(
+    ['Beginner', 'Easy', 'Medium', 'Hard', 'Advanced'].map((value) => [value.toLowerCase(), value]),
+);
+
+const parseDifficulties = (param) => {
+    if (!param) return [];
+    return Array.from(
+        new Set(
+            param
+                .split(',')
+                .map((value) => DIFFICULTY_LOOKUP.get(value.trim().toLowerCase()))
+                .filter(Boolean),
+        ),
+    );
+};
+
+const sanitizeIsoDate = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+    return date.toISOString();
+};
+
+const fallbackSearch = async ({ term, limit, sort, types, difficulties, updatedAfter, updatedBefore, reason }) => {
     const startedAt = Date.now();
     const regex = new RegExp(escapeRegExp(term), 'i');
     const searchTypes = types.length ? types : SUPPORTED_SEARCH_TYPES;
     const perTypeLimit = Math.max(3, Math.ceil(limit / searchTypes.length));
     const resultBuckets = [];
     const searchContext = { term: term.toLowerCase(), tokens: tokenizeSearchTerm(term) };
+    const afterDate = sanitizeIsoDate(updatedAfter);
+    const beforeDate = sanitizeIsoDate(updatedBefore);
+    const afterTimestamp = afterDate ? new Date(afterDate).getTime() : null;
+    const beforeTimestamp = beforeDate ? new Date(beforeDate).getTime() : null;
+
+    const matchesDocFilters = (type, doc) => {
+        const referenceDate = doc?.updatedAt || doc?.createdAt;
+        const referenceTimestamp = referenceDate ? new Date(referenceDate).getTime() : null;
+
+        if (afterTimestamp != null || beforeTimestamp != null) {
+            if (referenceTimestamp == null || Number.isNaN(referenceTimestamp)) {
+                return false;
+            }
+
+            if (afterTimestamp != null && referenceTimestamp < afterTimestamp) {
+                return false;
+            }
+
+            if (beforeTimestamp != null && referenceTimestamp > beforeTimestamp) {
+                return false;
+            }
+        }
+
+        if (Array.isArray(difficulties) && difficulties.length) {
+            if (type !== 'problem') {
+                return false;
+            }
+
+            if (!doc?.difficulty || !difficulties.includes(doc.difficulty)) {
+                return false;
+            }
+        }
+
+        return true;
+    };
 
     for (const type of searchTypes) {
         if (type === 'post') {
@@ -286,8 +346,9 @@ const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
                 .sort(sort === 'recent' ? { updatedAt: -1 } : { createdAt: -1 })
                 .limit(perTypeLimit)
                 .lean();
+            const filteredDocs = docs.filter((doc) => matchesDocFilters('post', doc));
             resultBuckets.push(
-                ...docs
+                ...filteredDocs
                     .map((doc) => buildFallbackResult('post', doc, searchContext))
                     .filter(Boolean),
             );
@@ -302,8 +363,9 @@ const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
                 .sort(sort === 'recent' ? { updatedAt: -1 } : { createdAt: -1 })
                 .limit(perTypeLimit)
                 .lean();
+            const filteredDocs = docs.filter((doc) => matchesDocFilters('tutorial', doc));
             resultBuckets.push(
-                ...docs
+                ...filteredDocs
                     .map((doc) => buildFallbackResult('tutorial', doc, searchContext))
                     .filter(Boolean),
             );
@@ -318,8 +380,9 @@ const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
                 .sort(sort === 'recent' ? { updatedAt: -1 } : { createdAt: -1 })
                 .limit(perTypeLimit)
                 .lean();
+            const filteredDocs = docs.filter((doc) => matchesDocFilters('problem', doc));
             resultBuckets.push(
-                ...docs
+                ...filteredDocs
                     .map((doc) => buildFallbackResult('problem', doc, searchContext))
                     .filter(Boolean),
             );
@@ -342,8 +405,9 @@ const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
                 .sort(sort === 'recent' ? { updatedAt: -1 } : { createdAt: -1 })
                 .limit(perTypeLimit)
                 .lean();
+            const filteredDocs = docs.filter((doc) => matchesDocFilters('page', doc));
             resultBuckets.push(
-                ...docs
+                ...filteredDocs
                     .map((doc) => buildFallbackResult('page', doc, searchContext))
                     .filter(Boolean),
             );
@@ -396,6 +460,9 @@ export const globalSearch = async (req, res, next) => {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
     const sort = req.query.sort === 'recent' ? 'recent' : 'relevance';
     const types = parseTypes(req.query.types);
+    const difficulties = parseDifficulties(req.query.difficulty || req.query.difficulties);
+    const updatedAfter = sanitizeIsoDate(req.query.updatedAfter);
+    const updatedBefore = sanitizeIsoDate(req.query.updatedBefore);
 
     if (!searchTerm) {
         return res.status(200).json({
@@ -410,11 +477,22 @@ export const globalSearch = async (req, res, next) => {
     try {
         if (isSearchEnabled()) {
             try {
-                const data = await searchDocuments({ term: searchTerm, limit, sort, types });
+                const data = await searchDocuments({
+                    term: searchTerm,
+                    limit,
+                    sort,
+                    types,
+                    difficulties,
+                    updatedAfter,
+                    updatedBefore,
+                });
                 return res.status(200).json({
                     ...data,
                     sort,
                     types: types.length ? types : SUPPORTED_SEARCH_TYPES,
+                    difficulties,
+                    updatedAfter,
+                    updatedBefore,
                     fallbackUsed: false,
                 });
             } catch (error) {
@@ -424,12 +502,18 @@ export const globalSearch = async (req, res, next) => {
                     limit,
                     sort,
                     types,
+                    difficulties,
+                    updatedAfter,
+                    updatedBefore,
                     reason: resolveFallbackReason(error),
                 });
                 return res.status(200).json({
                     ...fallbackData,
                     sort,
                     types: types.length ? types : SUPPORTED_SEARCH_TYPES,
+                    difficulties,
+                    updatedAfter,
+                    updatedBefore,
                 });
             }
         }
@@ -439,12 +523,18 @@ export const globalSearch = async (req, res, next) => {
             limit,
             sort,
             types,
+            difficulties,
+            updatedAfter,
+            updatedBefore,
             reason: 'Elasticsearch is not configured. Results are provided via a MongoDB fallback search.',
         });
         return res.status(200).json({
             ...fallbackData,
             sort,
             types: types.length ? types : SUPPORTED_SEARCH_TYPES,
+            difficulties,
+            updatedAfter,
+            updatedBefore,
         });
     } catch (error) {
         next(error);
