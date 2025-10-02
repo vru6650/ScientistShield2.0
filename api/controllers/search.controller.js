@@ -79,6 +79,24 @@ const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
     };
 };
 
+const resolveFallbackReason = (error) => {
+    if (!error) {
+        return 'Elasticsearch query failed. Results are provided via a MongoDB fallback search.';
+    }
+
+    if (error.code === 'ELASTICSEARCH_NETWORK_ERROR') {
+        return 'Unable to reach Elasticsearch. Results are provided via a MongoDB fallback search.';
+    }
+
+    const message = String(error.message || '').toLowerCase();
+
+    if (message.includes('index_not_found_exception') || message.includes('no such index')) {
+        return 'The search index has not been created yet. Results are provided via a MongoDB fallback search.';
+    }
+
+    return 'Elasticsearch query failed. Results are provided via a MongoDB fallback search.';
+};
+
 export const globalSearch = async (req, res, next) => {
     const searchTerm = (req.query.q || req.query.searchTerm || '').toString().trim();
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
@@ -112,7 +130,7 @@ export const globalSearch = async (req, res, next) => {
                     limit,
                     sort,
                     types,
-                    reason: `Elasticsearch query failed (${error.message}). Results are provided via a MongoDB fallback search.`,
+                    reason: resolveFallbackReason(error),
                 });
                 return res.status(200).json({
                     ...fallbackData,
