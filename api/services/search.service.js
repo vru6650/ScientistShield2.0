@@ -5,14 +5,38 @@ const {
     ELASTICSEARCH_USERNAME,
     ELASTICSEARCH_PASSWORD,
     ELASTICSEARCH_API_KEY,
+    ELASTICSEARCH_DISABLED,
     ELASTICSEARCH_INDEX_PREFIX = 'scientistshield',
 } = process.env;
 
-const BASE_URL = ELASTICSEARCH_NODE
-    ? ELASTICSEARCH_NODE.endsWith('/')
-        ? ELASTICSEARCH_NODE
-        : `${ELASTICSEARCH_NODE}/`
-    : null;
+const DEFAULT_ELASTICSEARCH_NODE = 'http://127.0.0.1:9200';
+
+const normalizeNode = (value) => {
+    if (!value) return null;
+    return value.endsWith('/') ? value : `${value}/`;
+};
+
+const shouldDisableElasticsearch = () => {
+    const disabledFlag = String(ELASTICSEARCH_DISABLED || '').toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(disabledFlag)) {
+        return true;
+    }
+
+    const nodeValue = (ELASTICSEARCH_NODE || '').trim().toLowerCase();
+    return ['disable', 'disabled', 'false', '0', 'off'].includes(nodeValue);
+};
+
+const resolveBaseUrl = () => {
+    if (shouldDisableElasticsearch()) {
+        return null;
+    }
+
+    const configuredNode = (ELASTICSEARCH_NODE || '').trim();
+    const node = configuredNode || DEFAULT_ELASTICSEARCH_NODE;
+    return normalizeNode(node);
+};
+
+const BASE_URL = resolveBaseUrl();
 
 const SUPPORTED_TYPES = ['post', 'tutorial', 'problem'];
 
@@ -41,12 +65,23 @@ const request = async (path, { method = 'GET', headers = {}, body, signal } = {}
     }
 
     const url = new URL(path.startsWith('/') ? path.slice(1) : path, BASE_URL);
-    const response = await fetch(url, {
-        method,
-        headers: buildHeaders(headers),
-        body,
-        signal,
-    });
+    let response;
+
+    try {
+        response = await fetch(url, {
+            method,
+            headers: buildHeaders(headers),
+            body,
+            signal,
+        });
+    } catch (error) {
+        const networkError = new Error(
+            `Unable to reach Elasticsearch at ${BASE_URL}: ${error.message}`
+        );
+        networkError.code = 'ELASTICSEARCH_NETWORK_ERROR';
+        networkError.cause = error;
+        throw networkError;
+    }
 
     if (!response.ok) {
         const errorPayload = await response.text();
