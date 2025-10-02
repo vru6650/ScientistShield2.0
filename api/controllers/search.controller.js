@@ -18,7 +18,7 @@ const parseTypes = (typesParam) => {
         .filter((type) => SUPPORTED_SEARCH_TYPES.includes(type));
 };
 
-const fallbackSearch = async ({ term, limit, sort, types }) => {
+const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
     const regex = new RegExp(term, 'i');
     const searchTypes = types.length ? types : SUPPORTED_SEARCH_TYPES;
     const perTypeLimit = Math.max(3, Math.ceil(limit / searchTypes.length));
@@ -73,7 +73,9 @@ const fallbackSearch = async ({ term, limit, sort, types }) => {
         took: null,
         results: sortedResults.slice(0, limit),
         fallbackUsed: true,
-        message: 'Elasticsearch is not configured. Results are provided via a MongoDB fallback search.',
+        message:
+            reason ||
+            'Elasticsearch is not configured. Results are provided via a MongoDB fallback search.',
     };
 };
 
@@ -95,16 +97,38 @@ export const globalSearch = async (req, res, next) => {
 
     try {
         if (isSearchEnabled()) {
-            const data = await searchDocuments({ term: searchTerm, limit, sort, types });
-            return res.status(200).json({
-                ...data,
-                sort,
-                types: types.length ? types : SUPPORTED_SEARCH_TYPES,
-                fallbackUsed: false,
-            });
+            try {
+                const data = await searchDocuments({ term: searchTerm, limit, sort, types });
+                return res.status(200).json({
+                    ...data,
+                    sort,
+                    types: types.length ? types : SUPPORTED_SEARCH_TYPES,
+                    fallbackUsed: false,
+                });
+            } catch (error) {
+                console.warn('Elasticsearch query failed. Falling back to MongoDB search:', error.message);
+                const fallbackData = await fallbackSearch({
+                    term: searchTerm,
+                    limit,
+                    sort,
+                    types,
+                    reason: `Elasticsearch query failed (${error.message}). Results are provided via a MongoDB fallback search.`,
+                });
+                return res.status(200).json({
+                    ...fallbackData,
+                    sort,
+                    types: types.length ? types : SUPPORTED_SEARCH_TYPES,
+                });
+            }
         }
 
-        const fallbackData = await fallbackSearch({ term: searchTerm, limit, sort, types });
+        const fallbackData = await fallbackSearch({
+            term: searchTerm,
+            limit,
+            sort,
+            types,
+            reason: 'Elasticsearch is not configured. Results are provided via a MongoDB fallback search.',
+        });
         return res.status(200).json({
             ...fallbackData,
             sort,
