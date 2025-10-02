@@ -1,6 +1,7 @@
 import Post from '../models/post.model.js';
 import { errorHandler } from '../utils/error.js';
 import { generateSlug } from '../utils/slug.js';
+import { indexSearchDocument, removeSearchDocument } from '../services/search.service.js';
 
 // --- CREATE, DELETEPOST, UPDATEPOST functions are here ---
 // (Your existing code for these functions remains unchanged)
@@ -20,6 +21,7 @@ export const create = async (req, res, next) => {
   });
   try {
     const savedPost = await newPost.save();
+    await indexSearchDocument('post', savedPost);
     res.status(201).json(savedPost);
   } catch (error) {
     next(error);
@@ -93,6 +95,7 @@ export const deletepost = async (req, res, next) => {
   }
   try {
     await Post.findByIdAndDelete(req.params.postId);
+    await removeSearchDocument('post', req.params.postId);
     res.status(200).json('The post has been deleted');
   } catch (error) {
     next(error);
@@ -121,6 +124,9 @@ export const updatepost = async (req, res, next) => {
         },
         { new: true }
     );
+    if (updatedPost) {
+        await indexSearchDocument('post', updatedPost);
+    }
     res.status(200).json(updatedPost);
   } catch (error) {
     next(error);
