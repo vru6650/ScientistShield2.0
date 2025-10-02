@@ -6,7 +6,14 @@ export const getSearchResults = async (params = {}, options = {}) => {
     }
 
     if (params.types) {
-        searchParams.set('types', params.types);
+        if (Array.isArray(params.types)) {
+            const filteredTypes = params.types.map((type) => type.trim()).filter(Boolean);
+            if (filteredTypes.length) {
+                searchParams.set('types', filteredTypes.join(','));
+            }
+        } else if (typeof params.types === 'string' && params.types.trim()) {
+            searchParams.set('types', params.types.trim());
+        }
     }
 
     if (params.limit) {

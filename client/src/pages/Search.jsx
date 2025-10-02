@@ -1,14 +1,15 @@
-import { Button, Select, Spinner, TextInput, Badge } from 'flowbite-react';
+import { Button, Select, Spinner, TextInput, Badge, Checkbox } from 'flowbite-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getSearchResults } from '../services/searchService';
 
 const TYPE_OPTIONS = [
-    { value: 'all', label: 'All content' },
-    { value: 'post', label: 'Posts' },
-    { value: 'tutorial', label: 'Tutorials' },
-    { value: 'problem', label: 'Problems' },
+    { value: 'post', label: 'Posts', description: 'Community updates, announcements, and deep dives.' },
+    { value: 'tutorial', label: 'Tutorials', description: 'Step-by-step learning paths and guided lessons.' },
+    { value: 'problem', label: 'Problems', description: 'Interview-style challenges to practice solving.' },
 ];
+
+const ALL_TYPES = TYPE_OPTIONS.map((option) => option.value);
 
 const SORT_OPTIONS = [
     { value: 'relevance', label: 'Best match' },
@@ -19,6 +20,30 @@ const TYPE_LABELS = {
     post: 'Post',
     tutorial: 'Tutorial',
     problem: 'Problem',
+};
+
+const parseTypesFromQuery = (param, { defaultToAll = true } = {}) => {
+    if (!param) {
+        return defaultToAll ? [...ALL_TYPES] : [];
+    }
+
+    const normalizedValues = param
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean);
+
+    if (!normalizedValues.length) {
+        return defaultToAll ? [...ALL_TYPES] : [];
+    }
+
+    const normalizedSet = new Set(normalizedValues);
+    const filtered = ALL_TYPES.filter((type) => normalizedSet.has(type));
+
+    if (!filtered.length) {
+        return defaultToAll ? [...ALL_TYPES] : [];
+    }
+
+    return filtered;
 };
 
 const buildResultPath = (result) => {
@@ -50,7 +75,7 @@ export default function Search() {
     const [sidebarData, setSidebarData] = useState({
         searchTerm: '',
         sort: 'relevance',
-        contentType: 'all',
+        contentTypes: [...ALL_TYPES],
     });
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -61,12 +86,14 @@ export default function Search() {
         const params = new URLSearchParams(location.search);
         const searchTermFromUrl = params.get('searchTerm') || '';
         const sortFromUrl = params.get('sort') || 'relevance';
-        const typeFromUrl = params.get('types') || 'all';
+        const typeParam = params.get('types');
+        const parsedTypes = parseTypesFromQuery(typeParam);
+        const orderedTypes = parsedTypes.length ? parsedTypes : [...ALL_TYPES];
 
         setSidebarData({
             searchTerm: searchTermFromUrl,
             sort: SORT_OPTIONS.some((option) => option.value === sortFromUrl) ? sortFromUrl : 'relevance',
-            contentType: TYPE_OPTIONS.some((option) => option.value === typeFromUrl) ? typeFromUrl : 'all',
+            contentTypes: orderedTypes.length ? orderedTypes : [...ALL_TYPES],
         });
     }, [location.search]);
 
@@ -82,8 +109,9 @@ export default function Search() {
         }
 
         const controller = new AbortController();
-        const contentType = params.get('types') || 'all';
         const sort = params.get('sort') || 'relevance';
+        const typeParam = params.get('types');
+        const parsedTypes = parseTypesFromQuery(typeParam, { defaultToAll: false });
 
         const query = {
             searchTerm,
@@ -91,8 +119,8 @@ export default function Search() {
             limit: 25,
         };
 
-        if (contentType && contentType !== 'all') {
-            query.types = contentType;
+        if (parsedTypes.length) {
+            query.types = parsedTypes;
         }
 
         setLoading(true);
@@ -126,6 +154,32 @@ export default function Search() {
         setSidebarData((prev) => ({ ...prev, [id]: value }));
     };
 
+    const toggleContentType = (type) => {
+        setSidebarData((prev) => {
+            const isSelected = prev.contentTypes.includes(type);
+            if (isSelected) {
+                if (prev.contentTypes.length === 1) {
+                    return prev;
+                }
+                return {
+                    ...prev,
+                    contentTypes: prev.contentTypes.filter((item) => item !== type),
+                };
+            }
+
+            const nextTypes = [...prev.contentTypes, type];
+            const orderedTypes = ALL_TYPES.filter((item) => nextTypes.includes(item));
+            return {
+                ...prev,
+                contentTypes: orderedTypes,
+            };
+        });
+    };
+
+    const handleSelectAllTypes = () => {
+        setSidebarData((prev) => ({ ...prev, contentTypes: [...ALL_TYPES] }));
+    };
+
     const handleSubmit = (event) => {
         event.preventDefault();
         const params = new URLSearchParams();
@@ -138,15 +192,15 @@ export default function Search() {
             params.set('sort', sidebarData.sort);
         }
 
-        if (sidebarData.contentType !== 'all') {
-            params.set('types', sidebarData.contentType);
+        if (sidebarData.contentTypes.length && sidebarData.contentTypes.length < ALL_TYPES.length) {
+            params.set('types', sidebarData.contentTypes.join(','));
         }
 
         navigate({ pathname: '/search', search: params.toString() });
     };
 
     const handleClear = () => {
-        setSidebarData({ searchTerm: '', sort: 'relevance', contentType: 'all' });
+        setSidebarData({ searchTerm: '', sort: 'relevance', contentTypes: [...ALL_TYPES] });
         navigate('/search');
     };
 
@@ -171,8 +225,16 @@ export default function Search() {
         if (metadata.fallbackUsed) {
             pieces.push('MongoDB fallback');
         }
+        if (sidebarData.contentTypes.length && sidebarData.contentTypes.length < ALL_TYPES.length) {
+            const labels = sidebarData.contentTypes
+                .map((type) => TYPE_OPTIONS.find((option) => option.value === type)?.label)
+                .filter(Boolean);
+            if (labels.length) {
+                pieces.push(`Filtered to ${labels.join(', ')}`);
+            }
+        }
         return pieces.join(' · ');
-    }, [sidebarData.searchTerm, loading, error, metadata]);
+    }, [sidebarData.searchTerm, loading, error, metadata, sidebarData.contentTypes]);
 
     return (
         <div className='flex flex-col md:flex-row'>
@@ -190,17 +252,39 @@ export default function Search() {
                             onChange={handleChange}
                         />
                     </div>
-                    <div className='flex items-center gap-2'>
-                        <label className='font-semibold' htmlFor='contentType'>
-                            Content type
-                        </label>
-                        <Select id='contentType' value={sidebarData.contentType} onChange={handleChange}>
-                            {TYPE_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </Select>
+                    <div className='flex flex-col gap-3'>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span className='font-semibold'>Content types</span>
+                            {sidebarData.contentTypes.length < ALL_TYPES.length && (
+                                <button
+                                    type='button'
+                                    onClick={handleSelectAllTypes}
+                                    className='text-xs font-medium text-purple-600 hover:text-purple-500'
+                                >
+                                    Select all
+                                </button>
+                            )}
+                        </div>
+                        <div className='flex flex-col gap-2'>
+                            {TYPE_OPTIONS.map((option) => {
+                                const checked = sidebarData.contentTypes.includes(option.value);
+                                return (
+                                    <label key={option.value} htmlFor={`type-${option.value}`} className='flex items-start gap-3'>
+                                        <Checkbox
+                                            id={`type-${option.value}`}
+                                            checked={checked}
+                                            onChange={() => toggleContentType(option.value)}
+                                        />
+                                        <div className='flex flex-col'>
+                                            <span className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                                                {option.label}
+                                            </span>
+                                            <span className='text-xs text-gray-500 dark:text-gray-400'>{option.description}</span>
+                                        </div>
+                                    </label>
+                                );
+                            })}
+                        </div>
                     </div>
                     <div className='flex items-center gap-2'>
                         <label className='font-semibold' htmlFor='sort'>
@@ -228,6 +312,20 @@ export default function Search() {
                 <header className='border-b border-gray-500 p-7 flex flex-col gap-2'>
                     <h1 className='text-3xl font-semibold'>Search results</h1>
                     <p className='text-sm text-gray-500 dark:text-gray-400'>{headerMeta}</p>
+                    <div className='flex flex-wrap gap-2'>
+                        {sidebarData.contentTypes.length === ALL_TYPES.length ? (
+                            <Badge color='gray' size='sm'>All content types</Badge>
+                        ) : (
+                            sidebarData.contentTypes.map((type) => (
+                                <Badge key={type} color='purple' size='sm'>
+                                    {TYPE_LABELS[type] || type}
+                                </Badge>
+                            ))
+                        )}
+                        <Badge color='info' size='sm'>
+                            Sort: {SORT_OPTIONS.find((option) => option.value === sidebarData.sort)?.label || 'Best match'}
+                        </Badge>
+                    </div>
                     {metadata.message && (
                         <p className='text-xs text-amber-600 dark:text-amber-400'>{metadata.message}</p>
                     )}
