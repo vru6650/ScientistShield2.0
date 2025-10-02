@@ -8,6 +8,7 @@ const TYPE_OPTIONS = [
     { value: 'post', label: 'Posts', description: 'Community updates, announcements, and deep dives.' },
     { value: 'tutorial', label: 'Tutorials', description: 'Step-by-step learning paths and guided lessons.' },
     { value: 'problem', label: 'Problems', description: 'Interview-style challenges to practice solving.' },
+    { value: 'page', label: 'Pages', description: 'Published guides, landing pages, and documentation.' },
 ];
 
 const ALL_TYPES = TYPE_OPTIONS.map((option) => option.value);
@@ -21,6 +22,7 @@ const TYPE_LABELS = {
     post: 'Post',
     tutorial: 'Tutorial',
     problem: 'Problem',
+    page: 'Page',
 };
 
 const SUGGESTED_QUERIES = [
@@ -62,6 +64,8 @@ const buildResultPath = (result) => {
             return `/tutorials/${result.slug}`;
         case 'problem':
             return `/problems/${result.slug}`;
+        case 'page':
+            return `/content/${result.slug}`;
         default:
             return '#';
     }
@@ -245,7 +249,7 @@ export default function Search() {
 
     const headerMeta = useMemo(() => {
         if (!sidebarData.searchTerm.trim()) {
-            return 'Start typing to search across posts, tutorials, and coding problems.';
+            return 'Start typing to search across posts, tutorials, coding problems, and knowledge pages.';
         }
 
         if (loading) {
@@ -306,7 +310,7 @@ export default function Search() {
                             Search the ScientistShield library
                         </h1>
                         <p className='mt-2 text-base text-gray-500 dark:text-gray-400'>
-                            Instantly surface posts, tutorials, and coding problems with a Google-inspired experience.
+                            Instantly surface posts, tutorials, coding problems, and documentation pages with a Google-inspired experience.
                         </p>
                     </div>
                     <form onSubmit={handleSubmit} className='mx-auto flex w-full max-w-3xl flex-col gap-4'>

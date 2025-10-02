@@ -38,7 +38,7 @@ const resolveBaseUrl = () => {
 
 const BASE_URL = resolveBaseUrl();
 
-const SUPPORTED_TYPES = ['post', 'tutorial', 'problem'];
+const SUPPORTED_TYPES = ['post', 'tutorial', 'problem', 'page'];
 
 const buildHeaders = (customHeaders = {}) => {
     const headers = { ...customHeaders };
@@ -132,6 +132,32 @@ const toArrayOfStrings = (value) => {
     return [String(value)];
 };
 
+const extractPageSectionText = (sections = []) => {
+    if (!Array.isArray(sections)) {
+        return [];
+    }
+
+    return sections.flatMap((section) => {
+        if (!section || typeof section !== 'object') {
+            return [];
+        }
+
+        const pieces = [section.title, section.subtitle, section.body];
+
+        if (Array.isArray(section.items)) {
+            for (const item of section.items) {
+                pieces.push(item?.title, item?.body);
+            }
+        }
+
+        if (section.cta) {
+            pieces.push(section.cta.label, section.cta.url);
+        }
+
+        return pieces.filter(Boolean);
+    });
+};
+
 const normalizeDocument = (type, document) => {
     if (!SUPPORTED_TYPES.includes(type) || !document) {
         return null;
@@ -213,6 +239,28 @@ const normalizeDocument = (type, document) => {
             topics: toArrayOfStrings(plain.topics),
             companies: toArrayOfStrings(plain.companies),
             difficulty: plain.difficulty || null,
+        };
+    }
+
+    if (type === 'page') {
+        if (plain.status && plain.status !== 'published') {
+            return null;
+        }
+
+        const sectionPieces = extractPageSectionText(plain.sections || []);
+        const seoPieces = [plain.seo?.metaTitle, plain.seo?.metaDescription, ...toArrayOfStrings(plain.seo?.keywords)];
+        const combinedContent = [plain.description, ...sectionPieces, ...seoPieces]
+            .filter(Boolean)
+            .join(' ');
+
+        return {
+            ...base,
+            category: 'Knowledge page',
+            summary: createSummary(plain.description || combinedContent || plain.title || ''),
+            content: stripHtml(combinedContent),
+            tags: toArrayOfStrings(plain.seo?.keywords),
+            topics: [],
+            companies: [],
         };
     }
 
