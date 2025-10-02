@@ -1,6 +1,6 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button, TextInput } from 'flowbite-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { TypeAnimation } from 'react-type-animation';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
@@ -10,13 +10,25 @@ export default function Hero() {
     const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
 
+    const quickFilters = useMemo(
+        () => [
+            { label: 'JavaScript fundamentals', value: 'JavaScript' },
+            { label: 'React component patterns', value: 'React' },
+            { label: 'System design', value: 'System design' },
+            { label: 'Dynamic programming', value: 'Dynamic programming' },
+        ],
+        []
+    );
+
     const handleSearch = (e) => {
         e.preventDefault();
         const params = new URLSearchParams();
-        if (searchQuery.trim() !== '') {
-            params.set('searchTerm', searchQuery.trim());
+        const trimmedQuery = searchQuery.trim();
+        if (trimmedQuery !== '') {
+            params.set('searchTerm', trimmedQuery);
         }
-        navigate(`/tutorials?${params.toString()}`);
+        const queryString = params.toString();
+        navigate(queryString ? `/search?${queryString}` : '/search');
     };
 
     return (
@@ -50,7 +62,7 @@ export default function Hero() {
                 >
                     <TextInput
                         type="text"
-                        placeholder="Search for tutorials..."
+                        placeholder="Search tutorials, posts, and problems..."
                         className="flex-grow rounded-l-radius-full [&>div>input]:!rounded-none [&>div>input]:!border-0 [&>div>input]:!ring-0 [&>div>input]:!shadow-none [&>div>input]:bg-white/90 dark:[&>div>input]:bg-gray-800/90 [&>div>input]:placeholder-gray-500 dark:[&>div>input]:placeholder-gray-400 [&>div>input]:text-gray-900 dark:[&>div>input]:text-gray-100 focus:!ring-0"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -63,6 +75,21 @@ export default function Hero() {
                         Go
                     </Button>
                 </form>
+                <div className="mt-space-xl space-y-3">
+                    <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">Popular searches</p>
+                    <div className="flex flex-wrap justify-center gap-3">
+                        {quickFilters.map((filter) => (
+                            <Link
+                                key={filter.value}
+                                to={`/search?searchTerm=${encodeURIComponent(filter.value)}`}
+                                className="group inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-400 hover:bg-sky-50/80 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900/80"
+                            >
+                                <span className="h-2 w-2 rounded-full bg-sky-500 transition-colors duration-200 group-hover:bg-sky-600" aria-hidden />
+                                {filter.label}
+                            </Link>
+                        ))}
+                    </div>
+                </div>
             </div>
         </section>
     );
