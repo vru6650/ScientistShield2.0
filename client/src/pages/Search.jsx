@@ -1,7 +1,8 @@
-import { Button, Select, Spinner, TextInput, Badge, Checkbox } from 'flowbite-react';
+import { Button, Select, Spinner, Badge } from 'flowbite-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getSearchResults } from '../services/searchService';
+import { HiOutlineMicrophone, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
 
 const TYPE_OPTIONS = [
     { value: 'post', label: 'Posts', description: 'Community updates, announcements, and deep dives.' },
@@ -21,6 +22,13 @@ const TYPE_LABELS = {
     tutorial: 'Tutorial',
     problem: 'Problem',
 };
+
+const SUGGESTED_QUERIES = [
+    'dynamic programming',
+    'react hooks',
+    'system design',
+    'graph algorithms',
+];
 
 const parseTypesFromQuery = (param, { defaultToAll = true } = {}) => {
     if (!param) {
@@ -149,9 +157,14 @@ export default function Search() {
         return () => controller.abort();
     }, [location.search]);
 
-    const handleChange = (event) => {
-        const { id, value } = event.target;
-        setSidebarData((prev) => ({ ...prev, [id]: value }));
+    const handleSearchInputChange = (event) => {
+        const { value } = event.target;
+        setSidebarData((prev) => ({ ...prev, searchTerm: value }));
+    };
+
+    const handleSortChange = (event) => {
+        const { value } = event.target;
+        setSidebarData((prev) => ({ ...prev, sort: value }));
     };
 
     const toggleContentType = (type) => {
@@ -180,27 +193,53 @@ export default function Search() {
         setSidebarData((prev) => ({ ...prev, contentTypes: [...ALL_TYPES] }));
     };
 
-    const handleSubmit = (event) => {
-        event.preventDefault();
+    const buildSearchParams = (data) => {
         const params = new URLSearchParams();
 
-        if (sidebarData.searchTerm.trim()) {
-            params.set('searchTerm', sidebarData.searchTerm.trim());
+        if (data.searchTerm.trim()) {
+            params.set('searchTerm', data.searchTerm.trim());
         }
 
-        if (sidebarData.sort !== 'relevance') {
-            params.set('sort', sidebarData.sort);
+        if (data.sort !== 'relevance') {
+            params.set('sort', data.sort);
         }
 
-        if (sidebarData.contentTypes.length && sidebarData.contentTypes.length < ALL_TYPES.length) {
-            params.set('types', sidebarData.contentTypes.join(','));
+        if (data.contentTypes.length && data.contentTypes.length < ALL_TYPES.length) {
+            params.set('types', data.contentTypes.join(','));
         }
 
+        return params;
+    };
+
+    const commitSearchToUrl = (data) => {
+        const params = buildSearchParams(data);
         navigate({ pathname: '/search', search: params.toString() });
     };
 
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        commitSearchToUrl(sidebarData);
+    };
+
+    const handleSuggestionClick = (query) => {
+        const nextData = { ...sidebarData, searchTerm: query };
+        setSidebarData(nextData);
+        commitSearchToUrl(nextData);
+    };
+
+    const handleInputClear = () => {
+        const nextData = { ...sidebarData, searchTerm: '' };
+        setSidebarData(nextData);
+        if (sidebarData.contentTypes.length === ALL_TYPES.length && sidebarData.sort === 'relevance') {
+            navigate('/search');
+        } else {
+            commitSearchToUrl(nextData);
+        }
+    };
+
     const handleClear = () => {
-        setSidebarData({ searchTerm: '', sort: 'relevance', contentTypes: [...ALL_TYPES] });
+        const defaults = { searchTerm: '', sort: 'relevance', contentTypes: [...ALL_TYPES] };
+        setSidebarData(defaults);
         navigate('/search');
     };
 
@@ -245,185 +284,214 @@ export default function Search() {
         return pieces.join(' · ');
     }, [sidebarData.searchTerm, loading, error, metadata, sidebarData.contentTypes]);
 
+    const hasCustomTypes = sidebarData.contentTypes.length && sidebarData.contentTypes.length < ALL_TYPES.length;
+
     return (
-        <div className='flex flex-col md:flex-row'>
-            <aside className='p-7 border-b md:border-r md:min-h-screen border-gray-500 w-full md:w-80'>
-                <form className='flex flex-col gap-6' onSubmit={handleSubmit}>
-                    <div className='flex items-center gap-2'>
-                        <label className='whitespace-nowrap font-semibold' htmlFor='searchTerm'>
-                            Search term
-                        </label>
-                        <TextInput
-                            id='searchTerm'
-                            placeholder='Try "dynamic programming"'
-                            type='search'
-                            value={sidebarData.searchTerm}
-                            onChange={handleChange}
-                        />
+        <div className='min-h-screen bg-gray-50 dark:bg-gray-950'>
+            <div className='border-b border-gray-200 dark:border-gray-800 bg-gradient-to-b from-white to-gray-100 dark:from-gray-950 dark:to-gray-900'>
+                <div className='mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8'>
+                    <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400'>
+                        <Link to='/' className='font-semibold tracking-tight text-gray-900 dark:text-gray-100'>
+                            ScientistShield
+                        </Link>
+                        <div className='flex items-center gap-2'>
+                            <span className='hidden text-xs uppercase tracking-wide text-gray-400 sm:block'>Jump back</span>
+                            <Button as={Link} to='/' color='light' size='xs'>
+                                Home
+                            </Button>
+                        </div>
                     </div>
-                    <div className='flex flex-col gap-3'>
-                        <div className='flex items-center justify-between gap-2'>
-                            <span className='font-semibold'>Content types</span>
-                            {sidebarData.contentTypes.length < ALL_TYPES.length && (
+                    <div className='text-center'>
+                        <h1 className='text-3xl font-semibold text-gray-900 dark:text-gray-100 sm:text-4xl'>
+                            Search the ScientistShield library
+                        </h1>
+                        <p className='mt-2 text-base text-gray-500 dark:text-gray-400'>
+                            Instantly surface posts, tutorials, and coding problems with a Google-inspired experience.
+                        </p>
+                    </div>
+                    <form onSubmit={handleSubmit} className='mx-auto flex w-full max-w-3xl flex-col gap-4'>
+                        <div className='flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-2 shadow-sm transition focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-200 dark:border-gray-700 dark:bg-gray-900 dark:focus-within:border-purple-300'>
+                            <HiOutlineSearch className='h-5 w-5 text-gray-400' />
+                            <input
+                                id='searchTerm'
+                                type='search'
+                                value={sidebarData.searchTerm}
+                                onChange={handleSearchInputChange}
+                                placeholder='Ask anything...'
+                                className='flex-1 border-none bg-transparent text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0 dark:text-gray-100'
+                            />
+                            {sidebarData.searchTerm && (
                                 <button
                                     type='button'
-                                    onClick={handleSelectAllTypes}
-                                    className='text-xs font-medium text-purple-600 hover:text-purple-500'
+                                    onClick={handleInputClear}
+                                    className='rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800'
+                                    aria-label='Clear search input'
                                 >
-                                    Select all
+                                    <HiOutlineX className='h-5 w-5' />
                                 </button>
                             )}
+                            <HiOutlineMicrophone className='hidden h-5 w-5 text-purple-500 sm:block' />
+                            <Button type='submit' color='light' size='sm' className='hidden sm:inline-flex rounded-full border border-gray-200 bg-gray-100 px-4 font-semibold text-gray-700 shadow-none hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200'>
+                                Search
+                            </Button>
                         </div>
-                        <div className='flex flex-col gap-2'>
-                            {TYPE_OPTIONS.map((option) => {
-                                const checked = sidebarData.contentTypes.includes(option.value);
-                                return (
-                                    <label key={option.value} htmlFor={`type-${option.value}`} className='flex items-start gap-3'>
-                                        <Checkbox
-                                            id={`type-${option.value}`}
-                                            checked={checked}
-                                            onChange={() => toggleContentType(option.value)}
-                                        />
-                                        <div className='flex flex-col'>
-                                            <span className='text-sm font-medium text-gray-900 dark:text-gray-100'>
-                                                {option.label}
-                                            </span>
-                                            <span className='text-xs text-gray-500 dark:text-gray-400'>{option.description}</span>
-                                        </div>
-                                    </label>
-                                );
-                            })}
-                        </div>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                        <label className='font-semibold' htmlFor='sort'>
-                            Sort by
-                        </label>
-                        <Select id='sort' value={sidebarData.sort} onChange={handleChange}>
-                            {SORT_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
+                        <div className='flex flex-wrap items-center justify-center gap-3 text-sm text-gray-500 dark:text-gray-400'>
+                            <span className='text-xs uppercase tracking-wide text-gray-400'>Popular now:</span>
+                            {SUGGESTED_QUERIES.map((query) => (
+                                <button
+                                    key={query}
+                                    type='button'
+                                    onClick={() => handleSuggestionClick(query)}
+                                    className='rounded-full border border-transparent bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600 transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-purple-400 dark:hover:bg-purple-400/10 dark:hover:text-purple-300'
+                                >
+                                    {query}
+                                </button>
                             ))}
-                        </Select>
-                    </div>
-                    <div className='flex items-center gap-3'>
-                        <Button type='submit' gradientDuoTone='purpleToPink' className='flex-1'>
-                            Update results
-                        </Button>
-                        <Button type='button' color='light' onClick={handleClear}>
-                            Clear
-                        </Button>
-                    </div>
-                </form>
-            </aside>
-            <main className='w-full'>
-                <header className='border-b border-gray-500 p-7 flex flex-col gap-2'>
-                    <h1 className='text-3xl font-semibold'>Search results</h1>
-                    <p className='text-sm text-gray-500 dark:text-gray-400'>{headerMeta}</p>
-                    <div className='flex flex-wrap gap-2'>
-                        {sidebarData.contentTypes.length === ALL_TYPES.length ? (
-                            <Badge color='gray' size='sm'>All content types</Badge>
-                        ) : (
-                            sidebarData.contentTypes.map((type) => (
-                                <Badge key={type} color='purple' size='sm'>
-                                    {TYPE_LABELS[type] || type}
-                                </Badge>
-                            ))
-                        )}
-                        <Badge color='info' size='sm'>
-                            Sort: {SORT_OPTIONS.find((option) => option.value === sidebarData.sort)?.label || 'Best match'}
-                        </Badge>
-                    </div>
-                    {metadata.message && (
-                        <p className='text-xs text-amber-600 dark:text-amber-400'>{metadata.message}</p>
-                    )}
-                </header>
-                <section className='p-7 flex flex-col gap-4'>
-                    {loading && (
-                        <div className='flex justify-center items-center py-12'>
-                            <Spinner size='xl' />
                         </div>
-                    )}
-
-                    {!loading && !error && results.length === 0 && sidebarData.searchTerm.trim() && (
-                        <p className='text-lg text-gray-500 dark:text-gray-400'>
-                            No matching content yet. Try a different keyword or expand the content filter.
-                        </p>
-                    )}
-
-                    {!loading && !sidebarData.searchTerm.trim() && (
-                        <p className='text-lg text-gray-500 dark:text-gray-400'>
-                            Use the filters on the left to discover posts, tutorials, and coding problems instantly.
-                        </p>
-                    )}
-
-                    {!loading && !error && (
-                        <div className='flex flex-col gap-3'>
-                            {results.map((result) => {
-                                const path = buildResultPath(result);
-                                const snippet = result.highlight?.[0] || result.summary;
-                                const updated = formatDate(result.updatedAt || result.createdAt);
-
+                    </form>
+                    <div className='flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 pt-6 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400'>
+                        <div className='flex flex-wrap items-center gap-2'>
+                            <button
+                                type='button'
+                                onClick={handleSelectAllTypes}
+                                className={`rounded-full px-3 py-1 text-sm font-medium transition ${
+                                    hasCustomTypes
+                                        ? 'border border-transparent bg-gray-100 text-gray-600 hover:border-purple-200 hover:bg-purple-50 hover:text-purple-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-purple-400 dark:hover:bg-purple-400/10 dark:hover:text-purple-300'
+                                        : 'border border-purple-500 bg-purple-50 text-purple-600 dark:border-purple-400 dark:bg-purple-500/10 dark:text-purple-200'
+                                }`}
+                            >
+                                All
+                            </button>
+                            {TYPE_OPTIONS.map((option) => {
+                                const isActive = sidebarData.contentTypes.includes(option.value);
                                 return (
-                                    <Link
-                                        key={`${result.type}-${result.id}`}
-                                        to={path}
-                                        className='block rounded-lg border border-gray-200 dark:border-gray-700 p-5 hover:border-purple-400 dark:hover:border-purple-400 transition-colors'
+                                    <button
+                                        key={option.value}
+                                        type='button'
+                                        onClick={() => toggleContentType(option.value)}
+                                        className={`rounded-full px-3 py-1 text-sm font-medium transition ${
+                                            isActive
+                                                ? 'border border-purple-500 bg-purple-50 text-purple-600 shadow-sm dark:border-purple-400 dark:bg-purple-500/10 dark:text-purple-200'
+                                                : 'border border-transparent bg-gray-100 text-gray-600 hover:border-purple-200 hover:bg-purple-50 hover:text-purple-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-purple-400 dark:hover:bg-purple-400/10 dark:hover:text-purple-300'
+                                        }`}
                                     >
-                                        <div className='flex flex-col gap-3'>
-                                            <div className='flex items-center gap-3 justify-between'>
-                                                <Badge color='indigo' size='sm'>
-                                                    {TYPE_LABELS[result.type] || 'Content'}
-                                                </Badge>
-                                                {updated && (
-                                                    <span className='text-xs text-gray-500 dark:text-gray-400'>
-                                                        Updated {updated}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <h2 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>
-                                                {result.title}
-                                            </h2>
-                                            {snippet && (
-                                                <p
-                                                    className='text-sm text-gray-600 dark:text-gray-300'
-                                                    dangerouslySetInnerHTML={{ __html: snippet }}
-                                                />
-                                            )}
-                                            <div className='flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400'>
-                                                {result.category && (
-                                                    <span className='px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800'>
-                                                        {result.category}
-                                                    </span>
-                                                )}
-                                                {result.difficulty && (
-                                                    <span className='px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800'>
-                                                        Difficulty: {result.difficulty}
-                                                    </span>
-                                                )}
-                                                {result.topics?.slice(0, 3).map((topic) => (
-                                                    <span key={topic} className='px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800'>
-                                                        {topic}
-                                                    </span>
-                                                ))}
-                                                {result.tags?.slice(0, 3).map((tag) => (
-                                                    <span key={tag} className='px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800'>
-                                                        #{tag}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </Link>
+                                        {option.label}
+                                    </button>
                                 );
                             })}
                         </div>
-                    )}
+                        <div className='flex items-center gap-2'>
+                            <span className='text-xs uppercase tracking-wide text-gray-400'>Sort by</span>
+                            <Select id='sort' value={sidebarData.sort} onChange={handleSortChange} size='sm'>
+                                {SORT_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </Select>
+                            <Button type='button' color='light' size='xs' onClick={handleClear}>
+                                Reset all
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    {!loading && error && (
-                        <p className='text-lg text-red-500'>{error}</p>
+            <main className='mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8'>
+                <div className='flex flex-col gap-2'>
+                    <p className='text-xs uppercase tracking-wide text-gray-400'>Search insights</p>
+                    <p className='text-sm text-gray-600 dark:text-gray-300'>{headerMeta}</p>
+                    {metadata.message && (
+                        <Badge color='warning' size='sm' className='w-fit'>
+                            {metadata.message}
+                        </Badge>
                     )}
-                </section>
+                </div>
+
+                {loading && (
+                    <div className='flex items-center justify-center py-16'>
+                        <Spinner size='xl' />
+                    </div>
+                )}
+
+                {!loading && !error && results.length === 0 && sidebarData.searchTerm.trim() && (
+                    <div className='rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-lg text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400'>
+                        No matching content yet. Try a different keyword or expand the content filter.
+                    </div>
+                )}
+
+                {!loading && !sidebarData.searchTerm.trim() && (
+                    <div className='rounded-2xl border border-transparent bg-white p-10 text-center text-lg text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400'>
+                        Start typing above to explore the latest knowledge from our community.
+                    </div>
+                )}
+
+                {!loading && !error && results.length > 0 && (
+                    <div className='flex flex-col gap-8'>
+                        {results.map((result) => {
+                            const path = buildResultPath(result);
+                            const snippet = result.highlight?.[0] || result.summary;
+                            const updated = formatDate(result.updatedAt || result.createdAt);
+
+                            return (
+                                <article key={`${result.type}-${result.id}`} className='group flex flex-col gap-2'>
+                                    <div className='text-xs text-gray-500 dark:text-gray-400'>
+                                        <span className='font-medium text-gray-600 dark:text-gray-300'>
+                                            {TYPE_LABELS[result.type] || 'Content'}
+                                        </span>
+                                        {result.category && (
+                                            <>
+                                                <span className='px-2 text-gray-300 dark:text-gray-600'>•</span>
+                                                <span>{result.category}</span>
+                                            </>
+                                        )}
+                                        {updated && (
+                                            <>
+                                                <span className='px-2 text-gray-300 dark:text-gray-600'>•</span>
+                                                <span>Updated {updated}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                    <Link
+                                        to={path}
+                                        className='text-xl font-semibold text-blue-700 transition hover:text-purple-600 dark:text-blue-300 dark:hover:text-purple-300'
+                                    >
+                                        {result.title}
+                                    </Link>
+                                    {snippet && (
+                                        <p
+                                            className='text-sm leading-relaxed text-gray-600 dark:text-gray-300'
+                                            dangerouslySetInnerHTML={{ __html: snippet }}
+                                        />
+                                    )}
+                                    <div className='flex flex-wrap gap-2 pt-1 text-xs text-gray-500 dark:text-gray-400'>
+                                        {result.difficulty && (
+                                            <span className='rounded-full bg-gray-100 px-2 py-1 dark:bg-gray-800'>
+                                                Difficulty: {result.difficulty}
+                                            </span>
+                                        )}
+                                        {result.topics?.slice(0, 3).map((topic) => (
+                                            <span key={topic} className='rounded-full bg-gray-100 px-2 py-1 dark:bg-gray-800'>
+                                                {topic}
+                                            </span>
+                                        ))}
+                                        {result.tags?.slice(0, 3).map((tag) => (
+                                            <span key={tag} className='rounded-full bg-gray-100 px-2 py-1 dark:bg-gray-800'>
+                                                #{tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </article>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {!loading && error && (
+                    <div className='rounded-2xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-700 dark:bg-red-900/40 dark:text-red-300'>
+                        {error}
+                    </div>
+                )}
             </main>
         </div>
     );
