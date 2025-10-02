@@ -1,4 +1,5 @@
 import Page from '../models/page.model.js';
+import { indexSearchDocument, removeSearchDocument } from '../services/search.service.js';
 import { errorHandler } from '../utils/error.js';
 import slugify from '../utils/slugify.js';
 
@@ -149,6 +150,10 @@ export const createPage = async (req, res, next) => {
         const pageObject = page.toObject();
         pageObject.sections = sortSections(pageObject.sections);
 
+        if (normalizedStatus === 'published') {
+            await indexSearchDocument('page', page);
+        }
+
         res.status(201).json(pageObject);
     } catch (error) {
         next(error);
@@ -259,6 +264,7 @@ export const updatePage = async (req, res, next) => {
 
         const sanitizedSections = sanitizeSections(sections);
         const normalizedStatus = status === 'published' ? 'published' : 'draft';
+        const previousStatus = page.status;
 
         page.title = title.trim();
         page.slug = normalizedSlug;
@@ -285,6 +291,12 @@ export const updatePage = async (req, res, next) => {
         const pageObject = page.toObject();
         pageObject.sections = sortSections(pageObject.sections);
 
+        if (normalizedStatus === 'published') {
+            await indexSearchDocument('page', page);
+        } else if (previousStatus === 'published') {
+            await removeSearchDocument('page', page._id.toString());
+        }
+
         res.status(200).json(pageObject);
     } catch (error) {
         next(error);
@@ -303,7 +315,14 @@ export const deletePage = async (req, res, next) => {
             return next(errorHandler(404, 'Page not found.'));
         }
 
+        const pageId = page._id.toString();
+        const wasPublished = page.status === 'published';
+
         await page.deleteOne();
+
+        if (wasPublished) {
+            await removeSearchDocument('page', pageId);
+        }
 
         res.status(200).json({ message: 'Page deleted successfully.' });
     } catch (error) {

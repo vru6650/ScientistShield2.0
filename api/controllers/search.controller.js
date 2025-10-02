@@ -1,6 +1,7 @@
 import Post from '../models/post.model.js';
 import Tutorial from '../models/tutorial.model.js';
 import Problem from '../models/problem.model.js';
+import Page from '../models/page.model.js';
 import { errorHandler } from '../utils/error.js';
 import {
     SUPPORTED_SEARCH_TYPES,
@@ -135,6 +136,32 @@ const createHighlightSnippet = (fields, context) => {
     return null;
 };
 
+const collectPageSectionText = (sections = []) => {
+    if (!Array.isArray(sections)) {
+        return [];
+    }
+
+    return sections.flatMap((section) => {
+        if (!section || typeof section !== 'object') {
+            return [];
+        }
+
+        const entries = [section.title, section.subtitle, section.body];
+
+        if (Array.isArray(section.items)) {
+            for (const item of section.items) {
+                entries.push(item?.title, item?.body);
+            }
+        }
+
+        if (section.cta) {
+            entries.push(section.cta.label, section.cta.url);
+        }
+
+        return entries.filter(Boolean);
+    });
+};
+
 const buildFallbackResult = (type, doc, context) => {
     const baseResult = toSearchResult(type, doc);
     if (!baseResult) {
@@ -180,6 +207,34 @@ const buildFallbackResult = (type, doc, context) => {
             { text: Array.isArray(doc.topics) ? doc.topics.join(' ') : '', exactWeight: 2, tokenWeight: 1, prefixWeight: 0.8 },
         );
         highlightFields.push(doc.statement, doc.description, combinedContent, baseResult.summary, doc.title);
+    } else if (type === 'page') {
+        const sectionText = collectPageSectionText(doc.sections);
+        const combinedContent = [
+            doc.description,
+            ...sectionText,
+            doc.seo?.metaTitle,
+            doc.seo?.metaDescription,
+        ]
+            .filter(Boolean)
+            .join(' ');
+        const keywordText = Array.isArray(doc.seo?.keywords) ? doc.seo.keywords.join(' ') : '';
+        const metaDescription = doc.seo?.metaDescription || '';
+
+        fieldConfigs.push(
+            { text: doc.title, exactWeight: 12, tokenWeight: 4, prefixWeight: 2 },
+            { text: doc.description, exactWeight: 8, tokenWeight: 3, prefixWeight: 1.5 },
+            { text: combinedContent, exactWeight: 5, tokenWeight: 2, prefixWeight: 1 },
+            { text: keywordText, exactWeight: 2, tokenWeight: 1, prefixWeight: 0.8 },
+            { text: metaDescription, exactWeight: 3, tokenWeight: 1.5, prefixWeight: 0.8 },
+        );
+        highlightFields.push(
+            combinedContent,
+            doc.description,
+            metaDescription,
+            keywordText,
+            baseResult.summary,
+            doc.title,
+        );
     }
 
     const score = fieldConfigs.reduce(
@@ -266,6 +321,30 @@ const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
             resultBuckets.push(
                 ...docs
                     .map((doc) => buildFallbackResult('problem', doc, searchContext))
+                    .filter(Boolean),
+            );
+        } else if (type === 'page') {
+            const docs = await Page.find({
+                status: 'published',
+                $or: [
+                    { title: { $regex: regex } },
+                    { description: { $regex: regex } },
+                    { 'seo.metaDescription': { $regex: regex } },
+                    { 'seo.metaTitle': { $regex: regex } },
+                    { 'seo.keywords': { $regex: regex } },
+                    { 'sections.title': { $regex: regex } },
+                    { 'sections.subtitle': { $regex: regex } },
+                    { 'sections.body': { $regex: regex } },
+                    { 'sections.items.title': { $regex: regex } },
+                    { 'sections.items.body': { $regex: regex } },
+                ],
+            })
+                .sort(sort === 'recent' ? { updatedAt: -1 } : { createdAt: -1 })
+                .limit(perTypeLimit)
+                .lean();
+            resultBuckets.push(
+                ...docs
+                    .map((doc) => buildFallbackResult('page', doc, searchContext))
                     .filter(Boolean),
             );
         }
@@ -382,16 +461,18 @@ export const reindexSearchContent = async (req, res, next) => {
     }
 
     try {
-        const [posts, tutorials, problems] = await Promise.all([
+        const [posts, tutorials, problems, pages] = await Promise.all([
             Post.find({}).lean(),
             Tutorial.find({}).lean(),
             Problem.find({}).lean(),
+            Page.find({ status: 'published' }).lean(),
         ]);
 
-        const [postResult, tutorialResult, problemResult] = await Promise.all([
+        const [postResult, tutorialResult, problemResult, pageResult] = await Promise.all([
             bulkReplaceDocuments('post', posts),
             bulkReplaceDocuments('tutorial', tutorials),
             bulkReplaceDocuments('problem', problems),
+            bulkReplaceDocuments('page', pages),
         ]);
 
         res.status(200).json({
@@ -400,6 +481,7 @@ export const reindexSearchContent = async (req, res, next) => {
                 posts: postResult.indexed,
                 tutorials: tutorialResult.indexed,
                 problems: problemResult.indexed,
+                pages: pageResult.indexed,
             },
         });
     } catch (error) {
