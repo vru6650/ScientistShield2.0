@@ -20,6 +20,10 @@ ScientistShieldOne is a MERN-stack application for sharing knowledge and practic
     - `MONGO_URI` *(optional)* – MongoDB connection string (defaults to `mongodb://0.0.0.0:27017/myappp`).
     - `PORT` *(optional)* – port for the Express server (defaults to `3000`).
     - `CORS_ORIGIN` *(optional)* – allowed origin for CORS (defaults to `http://localhost:5173`).
+    - `ELASTICSEARCH_NODE` *(optional)* – URL of your Elasticsearch node (e.g., `http://localhost:9200`).
+    - `ELASTICSEARCH_USERNAME`/`ELASTICSEARCH_PASSWORD` *(optional)* – basic auth credentials for Elasticsearch.
+    - `ELASTICSEARCH_API_KEY` *(optional)* – API key for Elasticsearch (takes precedence over username/password when provided).
+    - `ELASTICSEARCH_INDEX_PREFIX` *(optional)* – prefix for Elasticsearch indices (defaults to `scientistshield`).
 
 ## Installation & Usage
 1. Clone the repository and navigate into it.

@@ -16,6 +16,7 @@ import javaRoutes from './routes/java.route.js';
 import csharpRoutes from './routes/csharp.route.js';
 import pageRoutes from './routes/page.route.js';
 import problemRoutes from './routes/problem.route.js';
+import searchRoutes from './routes/search.route.js';
 
 import cookieParser from 'cookie-parser';
 import path from 'path';
@@ -84,6 +85,7 @@ app.use('/api/code', javascriptRoutes);
 app.use('/api/code', javaRoutes);
 app.use('/api/code', csharpRoutes);
 app.use('/api', pageRoutes);
+app.use('/api/search', searchRoutes);
 
 app.use(express.static(path.join(__dirname, '/client/dist')));
 

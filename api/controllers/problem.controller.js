@@ -1,6 +1,7 @@
 import Problem from '../models/problem.model.js';
 import { errorHandler } from '../utils/error.js';
 import jwt from 'jsonwebtoken';
+import { indexSearchDocument, removeSearchDocument } from '../services/search.service.js';
 
 const generateSlug = (text = '') =>
     text
@@ -149,6 +150,7 @@ export const createProblem = async (req, res, next) => {
         });
 
         const savedProblem = await problem.save();
+        await indexSearchDocument('problem', savedProblem);
         res.status(201).json(savedProblem);
     } catch (error) {
         next(error);
@@ -283,6 +285,7 @@ export const updateProblem = async (req, res, next) => {
             return next(errorHandler(404, 'Problem not found.'));
         }
 
+        await indexSearchDocument('problem', updatedProblem);
         res.status(200).json(updatedProblem);
     } catch (error) {
         next(error);
@@ -296,6 +299,7 @@ export const deleteProblem = async (req, res, next) => {
 
     try {
         await Problem.findByIdAndDelete(req.params.problemId);
+        await removeSearchDocument('problem', req.params.problemId);
         res.status(200).json('The problem has been deleted');
     } catch (error) {
         next(error);

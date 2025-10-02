@@ -1,5 +1,6 @@
 import Tutorial from '../models/tutorial.model.js';
 import { errorHandler } from '../utils/error.js';
+import { indexSearchDocument, removeSearchDocument } from '../services/search.service.js';
 
 const generateSlug = (text) => {
     return text
@@ -40,6 +41,7 @@ export const createTutorial = async (req, res, next) => {
 
     try {
         const savedTutorial = await newTutorial.save();
+        await indexSearchDocument('tutorial', savedTutorial);
         res.status(201).json(savedTutorial);
     } catch (error) {
         console.error('Error saving new tutorial:', error);
@@ -119,6 +121,7 @@ export const updateTutorial = async (req, res, next) => {
         if (!updatedTutorial) {
             return next(errorHandler(404, 'Tutorial not found'));
         }
+        await indexSearchDocument('tutorial', updatedTutorial);
         res.status(200).json(updatedTutorial);
     } catch (error) {
         next(error);
@@ -131,6 +134,7 @@ export const deleteTutorial = async (req, res, next) => {
     }
     try {
         await Tutorial.findByIdAndDelete(req.params.tutorialId);
+        await removeSearchDocument('tutorial', req.params.tutorialId);
         res.status(200).json('The tutorial has been deleted');
     } catch (error) {
         next(error);
@@ -177,6 +181,7 @@ export const addChapter = async (req, res, next) => {
         tutorial.chapters.push(chapterData);
         tutorial.chapters.sort((a, b) => a.order - b.order);
         await tutorial.save();
+        await indexSearchDocument('tutorial', tutorial);
         res.status(201).json(tutorial.chapters[tutorial.chapters.length - 1]);
     } catch (error) {
         console.error('Error adding new chapter:', error);
@@ -217,6 +222,7 @@ export const updateChapter = async (req, res, next) => {
 
         tutorial.chapters.sort((a, b) => a.order - b.order);
         await tutorial.save();
+        await indexSearchDocument('tutorial', tutorial);
         res.status(200).json(chapter);
     } catch (error) {
         next(error);
@@ -235,6 +241,7 @@ export const deleteChapter = async (req, res, next) => {
 
         tutorial.chapters.pull({ _id: req.params.chapterId });
         await tutorial.save();
+        await indexSearchDocument('tutorial', tutorial);
         res.status(200).json('Chapter deleted successfully');
     } catch (error) {
         next(error);
