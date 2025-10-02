@@ -10,6 +10,200 @@ import {
     toSearchResult,
 } from '../services/search.service.js';
 
+const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ');
+
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const tokenizeSearchTerm = (term) => {
+    return Array.from(
+        new Set(
+            term
+                .split(/\s+/)
+                .map((token) => token.trim().toLowerCase())
+                .filter(Boolean),
+        ),
+    );
+};
+
+const computeFieldScore = (text, { term, tokens, exactWeight, tokenWeight, prefixWeight }) => {
+    if (!text) return 0;
+
+    const normalized = stripHtml(text).toLowerCase();
+    if (!normalized) return 0;
+
+    let score = 0;
+
+    if (term && normalized.includes(term)) {
+        score += exactWeight;
+        if (normalized.startsWith(term)) {
+            score += exactWeight * 0.4;
+        }
+    }
+
+    for (const token of tokens) {
+        if (!token) continue;
+        if (normalized.includes(token)) {
+            score += tokenWeight;
+        }
+
+        const prefixRegex = new RegExp(`\\b${escapeRegExp(token)}`, 'i');
+        if (prefixRegex.test(normalized)) {
+            score += prefixWeight;
+        }
+    }
+
+    return score;
+};
+
+const computeRecencyBoost = (doc) => {
+    const rawDate = doc?.updatedAt || doc?.createdAt;
+    if (!rawDate) return 0;
+
+    const timestamp = new Date(rawDate).getTime();
+    if (Number.isNaN(timestamp)) return 0;
+
+    const ageInDays = (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
+
+    if (ageInDays <= 1) return 1.5;
+    if (ageInDays <= 7) return 1.1;
+    if (ageInDays <= 30) return 0.8;
+    if (ageInDays <= 180) return 0.4;
+
+    return 0;
+};
+
+const createSnippetFromText = (text, { term, tokens, snippetLength = 160 }) => {
+    if (!text) return null;
+
+    const cleaned = stripHtml(text).replace(/\s+/g, ' ').trim();
+    if (!cleaned) return null;
+
+    const lower = cleaned.toLowerCase();
+    const candidates = [term, ...tokens].filter(Boolean);
+
+    let matchIndex = -1;
+    let matchLength = 0;
+
+    for (const candidate of candidates) {
+        if (!candidate) continue;
+        const index = lower.indexOf(candidate);
+        if (index !== -1) {
+            matchIndex = index;
+            matchLength = candidate.length;
+            break;
+        }
+    }
+
+    if (matchIndex === -1) {
+        const snippet = cleaned.slice(0, snippetLength).trim();
+        return snippet.length === cleaned.length ? snippet : `${snippet}…`;
+    }
+
+    const halfWindow = Math.max(0, Math.floor((snippetLength - matchLength) / 2));
+    const start = Math.max(0, matchIndex - halfWindow);
+    const end = Math.min(cleaned.length, start + snippetLength);
+    const snippet = cleaned.slice(start, end).trim();
+
+    const uniqueTokens = Array.from(new Set(candidates)).sort((a, b) => b.length - a.length);
+    const highlighted = uniqueTokens.reduce((acc, token) => {
+        if (!token) return acc;
+        const regex = new RegExp(`(${escapeRegExp(token)})`, 'gi');
+        return acc.replace(regex, '<mark>$1</mark>');
+    }, snippet);
+
+    const prefix = start > 0 ? '…' : '';
+    const suffix = end < cleaned.length ? '…' : '';
+
+    return `${prefix}${highlighted}${suffix}`;
+};
+
+const createHighlightSnippet = (fields, context) => {
+    for (const field of fields) {
+        const snippet = createSnippetFromText(field, context);
+        if (snippet && /<mark>/.test(snippet)) {
+            return snippet;
+        }
+    }
+
+    for (const field of fields) {
+        const snippet = createSnippetFromText(field, context);
+        if (snippet) {
+            return snippet;
+        }
+    }
+
+    return null;
+};
+
+const buildFallbackResult = (type, doc, context) => {
+    const baseResult = toSearchResult(type, doc);
+    if (!baseResult) {
+        return null;
+    }
+
+    const { term, tokens } = context;
+
+    const fieldConfigs = [];
+    const highlightFields = [];
+
+    if (type === 'post') {
+        fieldConfigs.push(
+            { text: doc.title, exactWeight: 12, tokenWeight: 4, prefixWeight: 2 },
+            { text: doc.excerpt || doc.summary, exactWeight: 8, tokenWeight: 3, prefixWeight: 1.5 },
+            { text: doc.content, exactWeight: 5, tokenWeight: 2, prefixWeight: 1 },
+            { text: Array.isArray(doc.tags) ? doc.tags.join(' ') : '', exactWeight: 2, tokenWeight: 1, prefixWeight: 0.8 },
+        );
+        highlightFields.push(doc.content, doc.summary, doc.excerpt, baseResult.summary, doc.title);
+    } else if (type === 'tutorial') {
+        const chapterContent = Array.isArray(doc.chapters) ? doc.chapters.map((chapter) => chapter?.content || '') : [];
+        fieldConfigs.push(
+            { text: doc.title, exactWeight: 12, tokenWeight: 4, prefixWeight: 2 },
+            { text: doc.description, exactWeight: 8, tokenWeight: 3, prefixWeight: 1.5 },
+            { text: chapterContent.join(' '), exactWeight: 5, tokenWeight: 2, prefixWeight: 1 },
+            { text: Array.isArray(doc.topics) ? doc.topics.join(' ') : '', exactWeight: 2, tokenWeight: 1, prefixWeight: 0.8 },
+        );
+        highlightFields.push(doc.description, chapterContent.join(' '), baseResult.summary, doc.title);
+    } else if (type === 'problem') {
+        const combinedContent = [
+            doc.description,
+            doc.statement,
+            doc.solutionApproach,
+            doc.editorial,
+            Array.isArray(doc.hints) ? doc.hints.join(' ') : '',
+            Array.isArray(doc.constraints) ? doc.constraints.join(' ') : '',
+        ].join(' ');
+
+        fieldConfigs.push(
+            { text: doc.title, exactWeight: 12, tokenWeight: 4, prefixWeight: 2 },
+            { text: doc.description, exactWeight: 8, tokenWeight: 3, prefixWeight: 1.5 },
+            { text: combinedContent, exactWeight: 5, tokenWeight: 2, prefixWeight: 1 },
+            { text: Array.isArray(doc.topics) ? doc.topics.join(' ') : '', exactWeight: 2, tokenWeight: 1, prefixWeight: 0.8 },
+        );
+        highlightFields.push(doc.statement, doc.description, combinedContent, baseResult.summary, doc.title);
+    }
+
+    const score = fieldConfigs.reduce(
+        (total, config) =>
+            total +
+            computeFieldScore(config.text, {
+                term,
+                tokens,
+                exactWeight: config.exactWeight,
+                tokenWeight: config.tokenWeight,
+                prefixWeight: config.prefixWeight,
+            }),
+        0,
+    ) + computeRecencyBoost(doc);
+
+    const highlight = createHighlightSnippet(highlightFields, context);
+
+    return {
+        ...baseResult,
+        score,
+        highlight: highlight ? [highlight] : baseResult.highlight || [],
+    };
+};
+
 const parseTypes = (typesParam) => {
     if (!typesParam) return [];
     return typesParam
@@ -19,10 +213,12 @@ const parseTypes = (typesParam) => {
 };
 
 const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
-    const regex = new RegExp(term, 'i');
+    const startedAt = Date.now();
+    const regex = new RegExp(escapeRegExp(term), 'i');
     const searchTypes = types.length ? types : SUPPORTED_SEARCH_TYPES;
     const perTypeLimit = Math.max(3, Math.ceil(limit / searchTypes.length));
     const resultBuckets = [];
+    const searchContext = { term: term.toLowerCase(), tokens: tokenizeSearchTerm(term) };
 
     for (const type of searchTypes) {
         if (type === 'post') {
@@ -35,7 +231,11 @@ const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
                 .sort(sort === 'recent' ? { updatedAt: -1 } : { createdAt: -1 })
                 .limit(perTypeLimit)
                 .lean();
-            resultBuckets.push(...docs.map((doc) => toSearchResult('post', doc)).filter(Boolean));
+            resultBuckets.push(
+                ...docs
+                    .map((doc) => buildFallbackResult('post', doc, searchContext))
+                    .filter(Boolean),
+            );
         } else if (type === 'tutorial') {
             const docs = await Tutorial.find({
                 $or: [
@@ -47,7 +247,11 @@ const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
                 .sort(sort === 'recent' ? { updatedAt: -1 } : { createdAt: -1 })
                 .limit(perTypeLimit)
                 .lean();
-            resultBuckets.push(...docs.map((doc) => toSearchResult('tutorial', doc)).filter(Boolean));
+            resultBuckets.push(
+                ...docs
+                    .map((doc) => buildFallbackResult('tutorial', doc, searchContext))
+                    .filter(Boolean),
+            );
         } else if (type === 'problem') {
             const docs = await Problem.find({
                 $or: [
@@ -59,18 +263,29 @@ const fallbackSearch = async ({ term, limit, sort, types, reason }) => {
                 .sort(sort === 'recent' ? { updatedAt: -1 } : { createdAt: -1 })
                 .limit(perTypeLimit)
                 .lean();
-            resultBuckets.push(...docs.map((doc) => toSearchResult('problem', doc)).filter(Boolean));
+            resultBuckets.push(
+                ...docs
+                    .map((doc) => buildFallbackResult('problem', doc, searchContext))
+                    .filter(Boolean),
+            );
         }
     }
 
     const sortedResults = sort === 'recent'
-        ? resultBuckets.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
-        : resultBuckets;
+        ? resultBuckets.sort(
+            (a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0),
+        )
+        : resultBuckets.sort((a, b) => {
+            if (a.score === b.score) {
+                return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+            }
+            return (b.score ?? 0) - (a.score ?? 0);
+        });
 
     return {
         query: term,
         total: sortedResults.length,
-        took: null,
+        took: Date.now() - startedAt,
         results: sortedResults.slice(0, limit),
         fallbackUsed: true,
         message:

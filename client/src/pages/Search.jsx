@@ -218,13 +218,22 @@ export default function Search() {
         }
 
         const pieces = [];
-        pieces.push(`${metadata.total} result${metadata.total === 1 ? '' : 's'}`);
+        const formattedTotal = new Intl.NumberFormat().format(metadata.total ?? 0);
+
         if (metadata.took != null) {
-            pieces.push(`${metadata.took} ms`);
+            const seconds = metadata.took / 1000;
+            const formattedTime = seconds < 0.1
+                ? `${metadata.took} ms`
+                : `${seconds.toFixed(seconds < 1 ? 2 : 1)} seconds`;
+            pieces.push(`About ${formattedTotal} result${metadata.total === 1 ? '' : 's'} (${formattedTime})`);
+        } else {
+            pieces.push(`About ${formattedTotal} result${metadata.total === 1 ? '' : 's'}`);
         }
+
         if (metadata.fallbackUsed) {
-            pieces.push('MongoDB fallback');
+            pieces.push('Showing results via our intelligent fallback');
         }
+
         if (sidebarData.contentTypes.length && sidebarData.contentTypes.length < ALL_TYPES.length) {
             const labels = sidebarData.contentTypes
                 .map((type) => TYPE_OPTIONS.find((option) => option.value === type)?.label)
