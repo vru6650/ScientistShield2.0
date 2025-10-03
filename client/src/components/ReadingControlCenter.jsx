@@ -14,7 +14,7 @@ import {
 import { LuAlignLeft, LuAlignJustify } from 'react-icons/lu';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { marginStyleMap } from '../hooks/useReadingSettings';
-import { useReadingSettingsContext } from '../context/ReadingSettingsContext.jsx';
+import { useReadingSettingsContext } from '../context/ReadingSettingsContext';
 
 const themeOptions = [
     { id: 'auto', label: 'Auto', swatch: 'bg-gradient-to-r from-slate-200 via-white to-slate-200', description: 'Follow site theme' },

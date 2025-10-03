@@ -4,7 +4,7 @@ import parse from 'html-react-parser';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Spinner, Tooltip } from 'flowbite-react';
-import { ReadingSettingsContext } from '../context/ReadingSettingsContext.jsx';
+import { ReadingSettingsContext } from '../context/ReadingSettingsContext';
 import {
     HiOutlineBookOpen,
     HiOutlineX,
