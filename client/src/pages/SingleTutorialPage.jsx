@@ -20,7 +20,7 @@ import QuizComponent from '../components/QuizComponent';
 import InteractiveCodeBlock from '../components/InteractiveCodeBlock.jsx';
 import InteractiveReadingSurface from '../components/InteractiveReadingSurface.jsx';
 import ReadingControlCenter from '../components/ReadingControlCenter';
-import { ReadingSettingsProvider, useReadingSettingsContext } from '../context/ReadingSettingsContext.jsx';
+import { ReadingSettingsProvider, useReadingSettingsContext } from '../context/ReadingSettingsContext';
 
 import '../Tiptap.css';
 import '../pages/Scrollbar.css';

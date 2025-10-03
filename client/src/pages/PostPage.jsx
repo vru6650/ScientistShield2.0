@@ -19,7 +19,7 @@ import SocialShare from '../components/SocialShare';
 import ClapButton from '../components/ClapButton';
 import CodeEditor from '../components/CodeEditor';
 import ReadingControlCenter from '../components/ReadingControlCenter';
-import { ReadingSettingsProvider, useReadingSettingsContext } from '../context/ReadingSettingsContext.jsx';
+import { ReadingSettingsProvider, useReadingSettingsContext } from '../context/ReadingSettingsContext';
 import InteractiveReadingSurface from '../components/InteractiveReadingSurface.jsx';
 import '../Tiptap.css';
 
