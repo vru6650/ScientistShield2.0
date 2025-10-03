@@ -14,6 +14,7 @@ import {
 import { LuAlignLeft, LuAlignJustify } from 'react-icons/lu';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { marginStyleMap } from '../hooks/useReadingSettings';
+import { useReadingSettingsContext } from '../context/ReadingSettingsContext.jsx';
 
 const themeOptions = [
     { id: 'auto', label: 'Auto', swatch: 'bg-gradient-to-r from-slate-200 via-white to-slate-200', description: 'Follow site theme' },
@@ -79,7 +80,8 @@ const themePreviewClassMap = {
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-export default function ReadingControlCenter({ settings, onChange, onReset }) {
+export default function ReadingControlCenter() {
+    const { settings, updateSetting, resetSettings } = useReadingSettingsContext();
     const [isOpen, setIsOpen] = useState(false);
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
@@ -140,45 +142,45 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
 
     const handleFontSizeChange = (direction) => {
         const next = direction === 'increase' ? settings.fontSize + 1 : settings.fontSize - 1;
-        onChange('fontSize', clamp(next, 14, 26));
+        updateSetting('fontSize', clamp(next, 14, 26));
     };
 
     // ... (other handlers remain the same) ...
     const handleLineHeightChange = (event) => {
         const value = Number(event.target.value);
-        onChange('lineHeight', clamp(Number(value.toFixed(2)), 1.2, 2.4));
+        updateSetting('lineHeight', clamp(Number(value.toFixed(2)), 1.2, 2.4));
     };
 
     const handleLetterSpacingChange = (event) => {
         const value = Number(event.target.value);
-        onChange('letterSpacing', clamp(Number(value.toFixed(2)), -0.05, 0.1));
+        updateSetting('letterSpacing', clamp(Number(value.toFixed(2)), -0.05, 0.1));
     };
 
     const handleWordSpacingChange = (event) => {
         const value = Number(event.target.value);
-        onChange('wordSpacing', clamp(Number(value.toFixed(2)), 0, 0.5));
+        updateSetting('wordSpacing', clamp(Number(value.toFixed(2)), 0, 0.5));
     };
 
     const handleFontWeightChange = (event) => {
         const value = Number(event.target.value);
-        onChange('fontWeight', clamp(Math.round(value), 300, 800));
+        updateSetting('fontWeight', clamp(Math.round(value), 300, 800));
     };
 
     const handleParagraphSpacingChange = (event) => {
         const value = Number(event.target.value);
-        onChange('paragraphSpacing', clamp(Number(value.toFixed(2)), 0.5, 2));
+        updateSetting('paragraphSpacing', clamp(Number(value.toFixed(2)), 0.5, 2));
     };
 
     const handleBrightnessChange = (event) => {
         const value = Number(event.target.value);
-        onChange('brightness', clamp(Number(value.toFixed(2)), 0.6, 1.4));
+        updateSetting('brightness', clamp(Number(value.toFixed(2)), 0.6, 1.4));
     };
 
     const handleMarginChange = (event) => {
         const index = clamp(Number(event.target.value), 0, marginOptions.length - 1);
         const option = marginOptions[index];
         if (option) {
-            onChange('pageMargin', option.id);
+            updateSetting('pageMargin', option.id);
         }
     };
 
@@ -186,7 +188,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
 
     const handleAidToggle = (option) => {
         const isActive = Boolean(settings[option.id]);
-        onChange(option.id, !isActive);
+        updateSetting(option.id, !isActive);
         setFeedbackMessage(`${option.label} ${!isActive ? 'enabled' : 'disabled'}.`);
     };
 
@@ -332,7 +334,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                         <button
                                             key={option.id}
                                             type="button"
-                                            onClick={() => onChange('theme', option.id)}
+                                            onClick={() => updateSetting('theme', option.id)}
                                             className={`flex flex-col rounded-2xl border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
                                                 settings.theme === option.id
                                                     ? 'border-sky-400/80 bg-sky-50/70 text-sky-700 dark:bg-sky-500/10 dark:text-sky-200'
@@ -367,7 +369,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                         <button
                                             key={option.id}
                                             type="button"
-                                            onClick={() => onChange('fontFamily', option.id)}
+                                            onClick={() => updateSetting('fontFamily', option.id)}
                                             className={`rounded-2xl border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
                                                 settings.fontFamily === option.id
                                                     ? 'border-sky-400 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-500/10 dark:text-sky-200'
@@ -440,7 +442,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                         <button
                                             key={option.id}
                                             type="button"
-                                            onClick={() => onChange('pageWidth', option.id)}
+                                            onClick={() => updateSetting('pageWidth', option.id)}
                                             className={`rounded-2xl border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
                                                 settings.pageWidth === option.id
                                                     ? 'border-sky-400 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-500/10 dark:text-sky-200'
@@ -463,7 +465,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                                 <button
                                                     key={option.id}
                                                     type="button"
-                                                    onClick={() => onChange('pageMargin', option.id)}
+                                                    onClick={() => updateSetting('pageMargin', option.id)}
                                                     aria-pressed={isActive}
                                                     className={`flex-1 rounded-xl border px-2 py-2 text-center transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
                                                         isActive
@@ -506,7 +508,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                         <button
                                             key={option.id}
                                             type="button"
-                                            onClick={() => onChange('textAlign', option.id)}
+                                            onClick={() => updateSetting('textAlign', option.id)}
                                             className={`flex items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
                                                 settings.textAlign === option.id
                                                     ? 'border-sky-400 bg-sky-50 text-sky-700 dark:border-sky-500 dark:bg-sky-500/10 dark:text-sky-200'
@@ -602,7 +604,7 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                 )}
                             </section>
                         </div>
-                        <button type="button" onClick={onReset} className="mt-6 w-full rounded-2xl border border-transparent bg-slate-900 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
+                        <button type="button" onClick={resetSettings} className="mt-6 w-full rounded-2xl border border-transparent bg-slate-900 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
                             Reset to defaults
                         </button>
                     </motion.div>

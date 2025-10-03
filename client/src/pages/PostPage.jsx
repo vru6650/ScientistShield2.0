@@ -19,7 +19,7 @@ import SocialShare from '../components/SocialShare';
 import ClapButton from '../components/ClapButton';
 import CodeEditor from '../components/CodeEditor';
 import ReadingControlCenter from '../components/ReadingControlCenter';
-import useReadingSettings from '../hooks/useReadingSettings';
+import { ReadingSettingsProvider, useReadingSettingsContext } from '../context/ReadingSettingsContext.jsx';
 import InteractiveReadingSurface from '../components/InteractiveReadingSurface.jsx';
 import '../Tiptap.css';
 
@@ -94,7 +94,7 @@ const formatCategory = (category) => {
         .join(' ');
 };
 
-export default function PostPage() {
+function PostPageContent() {
     const { postSlug } = useParams();
 
     const { data: post, isLoading: isLoadingPost, error: postError } = useQuery({
@@ -146,7 +146,7 @@ export default function PostPage() {
         contentMaxWidth,
         surfaceClass,
         contentPadding,
-    } = useReadingSettings();
+    } = useReadingSettingsContext();
 
     const sharedContentStyle = useMemo(
         () => ({
@@ -343,11 +343,7 @@ export default function PostPage() {
                 <meta property="og:type" content="article" />
             </Helmet>
 
-            <ReadingControlCenter
-                settings={readingSettings}
-                onChange={updateReadingSetting}
-                onReset={resetReadingSettings}
-            />
+            <ReadingControlCenter />
 
             <ReadingProgressBar />
             <div className='min-h-screen bg-gradient-to-b from-slate-100 via-white to-slate-100 pb-16 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950'>
@@ -450,9 +446,6 @@ export default function PostPage() {
                             <InteractiveReadingSurface
                                 content={sanitizedContent}
                                 parserOptions={parserOptions}
-                                contentStyles={contentStyles}
-                                contentMaxWidth={contentMaxWidth}
-                                surfaceClass={surfaceClass}
                                 className='post-content tiptap reading-surface w-full space-y-6 px-6 py-8 text-left text-slate-700 transition-all duration-300 dark:text-slate-200 sm:px-10 sm:py-12'
                                 chapterId={post._id}
                             />
@@ -553,5 +546,13 @@ export default function PostPage() {
                 />
             )}
         </>
+    );
+}
+
+export default function PostPage() {
+    return (
+        <ReadingSettingsProvider>
+            <PostPageContent />
+        </ReadingSettingsProvider>
     );
 }

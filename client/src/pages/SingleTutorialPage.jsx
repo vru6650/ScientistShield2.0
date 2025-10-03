@@ -20,7 +20,7 @@ import QuizComponent from '../components/QuizComponent';
 import InteractiveCodeBlock from '../components/InteractiveCodeBlock.jsx';
 import InteractiveReadingSurface from '../components/InteractiveReadingSurface.jsx';
 import ReadingControlCenter from '../components/ReadingControlCenter';
-import useReadingSettings from '../hooks/useReadingSettings';
+import { ReadingSettingsProvider, useReadingSettingsContext } from '../context/ReadingSettingsContext.jsx';
 
 import '../Tiptap.css';
 import '../pages/Scrollbar.css';
@@ -78,7 +78,8 @@ const categoryToLanguageMap = {
 
 // New sub-component for rendering dynamic chapter content.
 // This greatly simplifies the main component and keeps the rendering logic self-contained.
-const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, contentStyles, contentMaxWidth, surfaceClass }) => {
+const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions }) => {
+    const { contentStyles, contentMaxWidth, surfaceClass } = useReadingSettingsContext();
     const readingClassName = `post-content tiptap reading-surface transition-all duration-300 ${surfaceClass}`.trim();
     const readingStyle = { ...contentStyles, maxWidth: contentMaxWidth };
 
@@ -134,9 +135,6 @@ const ChapterContent = ({ activeChapter, sanitizedContent, parserOptions, conten
                 <InteractiveReadingSurface
                     content={sanitizedContent}
                     parserOptions={parserOptions}
-                    contentStyles={contentStyles}
-                    contentMaxWidth={contentMaxWidth}
-                    surfaceClass={surfaceClass}
                     className='post-content tiptap reading-surface transition-all duration-300 p-3 mx-auto leading-relaxed text-lg text-gray-700 dark:text-gray-300'
                     chapterId={activeChapter?._id}
                 />
@@ -232,7 +230,7 @@ const SidebarNavigation = ({ tutorial, sortedChapters, activeChapter, currentUse
     </aside>
 );
 
-export default function SingleTutorialPage() {
+function SingleTutorialPageContent() {
     const { tutorialSlug, chapterSlug } = useParams();
     const navigate = useNavigate();
 
@@ -256,7 +254,7 @@ export default function SingleTutorialPage() {
         contentMaxWidth,
         surfaceClass,
         contentPadding,
-    } = useReadingSettings();
+    } = useReadingSettingsContext();
 
     const sharedContentStyle = useMemo(
         () => ({
@@ -487,11 +485,7 @@ export default function SingleTutorialPage() {
                 <meta property="og:type" content="article" />
             </Helmet>
 
-            <ReadingControlCenter
-                settings={readingSettings}
-                onChange={updateReadingSetting}
-                onReset={resetReadingSettings}
-            />
+            <ReadingControlCenter />
 
             <ReadingProgressBar />
             <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
@@ -544,9 +538,6 @@ export default function SingleTutorialPage() {
                                 activeChapter={activeChapter}
                                 sanitizedContent={sanitizedContent}
                                 parserOptions={parserOptions}
-                                contentStyles={contentStyles}
-                                contentMaxWidth={contentMaxWidth}
-                                surfaceClass={surfaceClass}
                             />
                         </div>
 
@@ -608,5 +599,13 @@ export default function SingleTutorialPage() {
                 </main>
             </div>
         </>
+    );
+}
+
+export default function SingleTutorialPage() {
+    return (
+        <ReadingSettingsProvider>
+            <SingleTutorialPageContent />
+        </ReadingSettingsProvider>
     );
 }

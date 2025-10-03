@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useLayoutEffect, useCallback, useRef, useContext } from 'react';
 import PropTypes from 'prop-types';
 import parse from 'html-react-parser';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Spinner, Tooltip } from 'flowbite-react';
+import { ReadingSettingsContext } from '../context/ReadingSettingsContext.jsx';
 import {
     HiOutlineBookOpen,
     HiOutlineX,
@@ -327,12 +328,13 @@ const getSelectionOffsets = (container, range) => {
 const InteractiveReadingSurface = ({
                                        content,
                                        parserOptions,
-                                       contentStyles,
-                                       contentMaxWidth,
-                                       surfaceClass,
+                                       contentStyles: contentStylesProp,
+                                       contentMaxWidth: contentMaxWidthProp,
+                                       surfaceClass: surfaceClassProp,
                                        className,
                                        chapterId,
                                    }) => {
+    const readingSettings = useContext(ReadingSettingsContext);
     const containerRef = useRef(null);
     const selectionMenuRef = useRef(null);
     const speechUtteranceRef = useRef(null);
@@ -348,6 +350,21 @@ const InteractiveReadingSurface = ({
     });
     const [selectionFeedback, setSelectionFeedback] = useState('');
     const [isSpeaking, setIsSpeaking] = useState(false);
+
+    const effectiveContentStyles = useMemo(
+        () => ({
+            ...(readingSettings?.contentStyles ?? {}),
+            ...(contentStylesProp ?? {}),
+        }),
+        [readingSettings?.contentStyles, contentStylesProp]
+    );
+
+    const effectiveContentMaxWidth = contentMaxWidthProp ?? readingSettings?.contentMaxWidth;
+
+    const effectiveSurfaceClass = useMemo(
+        () => [readingSettings?.surfaceClass, surfaceClassProp].filter(Boolean).join(' '),
+        [readingSettings?.surfaceClass, surfaceClassProp]
+    );
 
     const parsedContent = useMemo(() => parse(content || '', parserOptions), [content, parserOptions]);
 
@@ -785,9 +802,12 @@ const InteractiveReadingSurface = ({
 
             <motion.div
                 ref={containerRef}
-                className={[className, surfaceClass].filter(Boolean).join(' ')}
+                className={[className, effectiveSurfaceClass].filter(Boolean).join(' ')}
                 data-reading-surface="true"
-                style={{ ...contentStyles, maxWidth: contentMaxWidth }}
+                style={{
+                    ...(effectiveContentStyles ?? {}),
+                    ...(effectiveContentMaxWidth ? { maxWidth: effectiveContentMaxWidth } : {}),
+                }}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
