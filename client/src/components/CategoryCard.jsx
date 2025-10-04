@@ -3,7 +3,22 @@ import { Button } from 'flowbite-react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useState, useRef } from 'react';
 import { HiArrowRight } from 'react-icons/hi2';
-import * as SiIcons from 'react-icons/si';
+import {
+    SiHtml5,
+    SiCss3,
+    SiJavascript,
+    SiPython,
+    SiCplusplus,
+    SiOpenjdk,
+    SiC,
+    SiCsharp,
+    SiGo,
+    SiSqlite,
+    SiDelphi,
+    SiVisualstudio,
+    SiReact,
+    SiNodedotjs,
+} from 'react-icons/si';
 
 const itemVariants = {
     hidden: { y: 50, opacity: 0 },
@@ -17,20 +32,23 @@ const itemVariants = {
     },
 };
 
-// A mapping of technology titles to their corresponding icon components
+// Map technology titles to react-icons/si icon names (strings).
+// Using string indirection avoids Rollup warnings for non-existent exports.
 const iconMap = {
-    "HTML": SiIcons.SiHtml5,
-    "CSS": SiIcons.SiCss3,
-    "JavaScript": SiIcons.SiJavascript,
-    "Python": SiIcons.SiPython,
-    "C++": SiIcons.SiCplusplus,
-    "Java": SiIcons.SiJava,
-    "C": SiIcons.SiC,
-    "C#": SiIcons.SiCsharp,
-    "Go": SiIcons.SiGo,
-    "SQL": SiIcons.SiSqlite,
-    "Delphi/Object Pascal": SiIcons.SiDelphi,
-    "Visual Basic": SiIcons.SiVuedotjs,
+    HTML: SiHtml5,
+    CSS: SiCss3,
+    'JavaScript': SiJavascript,
+    Python: SiPython,
+    'C++': SiCplusplus,
+    Java: SiOpenjdk,
+    C: SiC,
+    'C#': SiCsharp,
+    Go: SiGo,
+    SQL: SiSqlite,
+    'Delphi/Object Pascal': SiDelphi,
+    'Visual Basic': SiVisualstudio,
+    'React.js': SiReact,
+    'Node.js': SiNodedotjs,
 };
 
 const CategoryCard = ({ title, description, linkTo, gradient }) => {

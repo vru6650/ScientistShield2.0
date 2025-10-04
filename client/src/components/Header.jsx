@@ -175,7 +175,7 @@ export default function Header() {
                   to="/"
                   className="text-sm sm:text-xl font-semibold font-heading text-gray-700 dark:text-white"
               >
-              <span className="px-space-sm py-space-xs bg-professional-gradient rounded-radius-lg text-white animated-gradient">
+              <span className="px-space-sm py-space-xs bg-professional-gradient rounded-radius-lg text-white">
                 Scientist
               </span>
                 Shield
@@ -192,7 +192,7 @@ export default function Header() {
                       <motion.div variants={navItemVariants} key={link.path}>
                         <Link
                             to={link.path}
-                            className="relative px-space-md py-space-sm text-sm text-gray-700 dark:text-gray-300 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
+                            className="relative px-space-md py-space-sm text-sm text-gray-700 dark:text-gray-300 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors link-premium"
                         >
                           {isActive && (
                               <motion.span
@@ -319,7 +319,7 @@ export default function Header() {
                       </Button>
                     </Link>
                 )}
-                <Navbar.Toggle />
+                <Navbar.Toggle aria-label="Toggle navigation menu" />
               </div>
               <Navbar.Collapse>
                 {navLinks.map((link) => (

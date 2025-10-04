@@ -66,6 +66,12 @@ const readingAidOptions = [
         description: 'Boost contrast for crisp, Kindle-style text clarity.',
         Icon: HiOutlineLightBulb,
     },
+    {
+        id: 'hideImages',
+        label: 'Hide Images',
+        description: 'Reduce distraction by hiding images and videos.',
+        Icon: HiOutlineClipboardDocument,
+    },
 ];
 
 const themePreviewClassMap = {
@@ -87,6 +93,8 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
     const speechRef = useRef(null);
     const [feedbackMessage, setFeedbackMessage] = useState('');
     const [isReadingAloud, setIsReadingAloud] = useState(false);
+    const [voices, setVoices] = useState([]);
+    const scrollRAF = useRef(null);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -116,6 +124,49 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
             window.speechSynthesis.cancel();
         }
     }, []);
+
+    // Populate available TTS voices when supported
+    useEffect(() => {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+        const synth = window.speechSynthesis;
+        const load = () => {
+            const list = synth.getVoices?.() || [];
+            setVoices(list);
+        };
+        load();
+        synth.addEventListener?.('voiceschanged', load);
+        return () => synth.removeEventListener?.('voiceschanged', load);
+    }, []);
+
+    // Auto-scroll using requestAnimationFrame, controlled via settings
+    useEffect(() => {
+        if (!settings.autoScroll) {
+            if (scrollRAF.current) cancelAnimationFrame(scrollRAF.current);
+            scrollRAF.current = null;
+            return undefined;
+        }
+
+        let prev = performance.now();
+        const speed = Math.max(0, Number(settings.autoScrollSpeed) || 0); // px/sec
+        const step = (now) => {
+            const dt = Math.max(0, now - prev) / 1000; // seconds
+            prev = now;
+            const delta = speed * dt;
+            const { scrollY, innerHeight, document: { body, documentElement } } = window;
+            const maxScroll = Math.max(body.scrollHeight, documentElement.scrollHeight) - innerHeight;
+            if (scrollY >= maxScroll - 2) {
+                onChange('autoScroll', false);
+                return;
+            }
+            window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
+            scrollRAF.current = requestAnimationFrame(step);
+        };
+        scrollRAF.current = requestAnimationFrame(step);
+        return () => {
+            if (scrollRAF.current) cancelAnimationFrame(scrollRAF.current);
+            scrollRAF.current = null;
+        };
+    }, [settings.autoScroll, settings.autoScrollSpeed, onChange]);
 
     useEffect(() => {
         if (!feedbackMessage) return undefined;
@@ -251,6 +302,17 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
 
         const utterance = new utteranceCtor(text);
         speechRef.current = utterance;
+        // Apply selected voice, rate, and pitch if available
+        try {
+            if (voices?.length && settings.ttsVoiceURI) {
+                const v = voices.find((vc) => vc.voiceURI === settings.ttsVoiceURI);
+                if (v) utterance.voice = v;
+            }
+            if (typeof settings.ttsRate === 'number') utterance.rate = Math.min(2, Math.max(0.5, settings.ttsRate));
+            if (typeof settings.ttsPitch === 'number') utterance.pitch = Math.min(2, Math.max(0, settings.ttsPitch));
+        } catch (_) {
+            // ignore voice assignment errors
+        }
         utterance.onend = () => {
             setIsReadingAloud(false);
             setFeedbackMessage('Finished reading aloud.');
@@ -592,6 +654,121 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                                     >
                                         <HiOutlineClipboardDocument className="h-5 w-5" aria-hidden="true" />
                                         <span>Copy highlight</span>
+                                    </button>
+                                </div>
+
+                                {/* Read Aloud Settings */}
+                                <div className="mt-3 rounded-2xl border border-slate-200/80 p-3 dark:border-slate-700/80">
+                                    <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Read Aloud Settings</h5>
+                                    <div className="space-y-2">
+                                        <label className="block text-[0.7rem] font-medium text-slate-500 dark:text-slate-400">
+                                            Voice
+                                            <select
+                                                className="mt-1 w-full rounded-md border border-slate-200 bg-white p-2 text-xs dark:border-slate-700 dark:bg-slate-800"
+                                                value={settings.ttsVoiceURI || ''}
+                                                onChange={(e) => onChange('ttsVoiceURI', e.target.value)}
+                                            >
+                                                <option value="">Default</option>
+                                                {voices.map((v) => (
+                                                    <option key={v.voiceURI} value={v.voiceURI}>
+                                                        {v.name} {v.lang ? `(${v.lang})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
+                                        <label className="block text-[0.7rem] font-medium text-slate-500 dark:text-slate-400">
+                                            Rate: {Number(settings.ttsRate ?? 1).toFixed(2)}x
+                                            <input
+                                                type="range"
+                                                min="0.5"
+                                                max="1.8"
+                                                step="0.05"
+                                                value={Number(settings.ttsRate ?? 1)}
+                                                onChange={(e) => onChange('ttsRate', Number(e.target.value))}
+                                                className="w-full accent-sky-500"
+                                            />
+                                        </label>
+                                        <label className="block text-[0.7rem] font-medium text-slate-500 dark:text-slate-400">
+                                            Pitch: {Number(settings.ttsPitch ?? 1).toFixed(2)}
+                                            <input
+                                                type="range"
+                                                min="0.5"
+                                                max="1.8"
+                                                step="0.05"
+                                                value={Number(settings.ttsPitch ?? 1)}
+                                                onChange={(e) => onChange('ttsPitch', Number(e.target.value))}
+                                                className="w-full accent-sky-500"
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Auto Scroll */}
+                                <div className="mt-3 rounded-2xl border border-slate-200/80 p-3 dark:border-slate-700/80">
+                                    <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Auto Scroll</h5>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => onChange('autoScroll', !settings.autoScroll)}
+                                            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+                                                settings.autoScroll
+                                                    ? 'bg-sky-600 text-white hover:bg-sky-700'
+                                                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200'
+                                            }`}
+                                        >
+                                            {settings.autoScroll ? 'Pause' : 'Start'}
+                                        </button>
+                                        <div className="flex-1">
+                                            <div className="mb-1 flex items-center justify-between text-[0.7rem] uppercase tracking-wide text-slate-400">
+                                                <span>Speed</span>
+                                                <span>{Math.round(Number(settings.autoScrollSpeed ?? 40))} px/s</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="10"
+                                                max="200"
+                                                step="5"
+                                                value={Number(settings.autoScrollSpeed ?? 40)}
+                                                onChange={(e) => onChange('autoScrollSpeed', Number(e.target.value))}
+                                                className="w-full accent-sky-500"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Import/Export */}
+                                <div className="mt-3 flex items-center justify-between gap-2">
+                                    <button
+                                        type="button"
+                                        className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                        onClick={async () => {
+                                            try {
+                                                await navigator.clipboard.writeText(JSON.stringify(settings));
+                                                setFeedbackMessage('Settings copied to clipboard.');
+                                            } catch (_) {
+                                                setFeedbackMessage('Unable to copy settings.');
+                                            }
+                                        }}
+                                    >
+                                        Export settings
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                        onClick={async () => {
+                                            try {
+                                                const text = await navigator.clipboard.readText();
+                                                const data = JSON.parse(text);
+                                                if (data && typeof data === 'object') {
+                                                    Object.entries(data).forEach(([k, v]) => onChange(k, v));
+                                                    setFeedbackMessage('Settings imported from clipboard.');
+                                                }
+                                            } catch (_) {
+                                                setFeedbackMessage('Unable to import settings. Copy JSON first.');
+                                            }
+                                        }}
+                                    >
+                                        Import settings
                                     </button>
                                 </div>
 

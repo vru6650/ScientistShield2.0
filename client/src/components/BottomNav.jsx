@@ -12,12 +12,13 @@ import {
 import { toggleTheme } from '../redux/theme/themeSlice';
 
 const ICON_CONTAINER_BASE =
-    'relative flex h-16 w-16 items-center justify-center rounded-[22px] transition-all duration-300 backdrop-blur-2xl';
+    'relative flex h-16 w-16 items-center justify-center rounded-[22px] transition-all duration-300 backdrop-blur-2xl will-change-transform';
 const ACTIVE_CLASSES =
     'bg-white/80 shadow-[0_26px_45px_-20px_rgba(56,189,248,0.65)] ring-2 ring-white/60 dark:bg-slate-900/70 dark:ring-slate-100/20 dark:shadow-[0_26px_45px_-24px_rgba(148,163,184,0.65)]';
 const INACTIVE_CLASSES =
     'bg-white/40 ring-1 ring-white/45 shadow-[0_24px_40px_-22px_rgba(15,23,42,0.55)] dark:bg-slate-900/55 dark:ring-slate-100/10 dark:shadow-[0_24px_40px_-24px_rgba(15,23,42,0.65)]';
-const DOCK_INFLUENCE_DISTANCE = 160;
+// Stronger magnification for macOS-like feel
+const DOCK_INFLUENCE_DISTANCE = 120;
 
 const ADMIN_QUICK_ADD_OPTIONS = [
     {
@@ -232,6 +233,7 @@ export default function BottomNav() {
     const [hoverX, setHoverX] = useState(null);
     const [focusedIndex, setFocusedIndex] = useState(null);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+    const [bouncingIndex, setBouncingIndex] = useState(null);
     const iconRefs = useRef([]);
     const [iconCenters, setIconCenters] = useState([]);
     const quickAddTriggerRef = useRef(null);
@@ -295,7 +297,7 @@ export default function BottomNav() {
             const clamped = Math.max(0, 1 - distance / DOCK_INFLUENCE_DISTANCE);
             const scaleBoost = isActive ? 0.45 : 0.35;
             const scale = (isActive ? 1.2 : 1) + clamped * scaleBoost;
-            const lift = (isActive ? -10 : 0) - clamped * 24;
+            const lift = (isActive ? -10 : 0) - clamped * 26;
             const rotate = (hoverX - center) / 100;
 
             return {
@@ -310,6 +312,11 @@ export default function BottomNav() {
 
     const handleFocus = (index) => setFocusedIndex(index);
     const handleBlur = () => setFocusedIndex(null);
+
+    const triggerBounce = (index) => {
+        setBouncingIndex(index);
+        setTimeout(() => setBouncingIndex((prev) => (prev === index ? null : prev)), 520);
+    };
 
     const handleThemeToggle = () => dispatch(toggleTheme());
 
@@ -359,8 +366,15 @@ export default function BottomNav() {
                                 <motion.div
                                     className="relative flex flex-col items-center"
                                     initial={false}
-                                    animate={{ scale, y: lift, rotate }}
-                                    transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+                                    animate={{
+                                        scale,
+                                        y: bouncingIndex === index ? [lift, lift - 18, lift, lift - 10, lift] : lift,
+                                        rotate,
+                                    }}
+                                    transition={{
+                                        type: 'spring', stiffness: 320, damping: 22,
+                                        ...(bouncingIndex === index ? { duration: 0.55, ease: 'easeOut' } : {}),
+                                    }}
                                 >
                                     <motion.span
                                         aria-hidden="true"
@@ -381,7 +395,7 @@ export default function BottomNav() {
                                             type="button"
                                             aria-label={label}
                                             aria-pressed={theme === 'dark'}
-                                            onClick={handleThemeToggle}
+                                            onClick={() => { triggerBounce(index); handleThemeToggle(); }}
                                             onFocus={() => handleFocus(index)}
                                             onBlur={handleBlur}
                                             className="group relative flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent"
@@ -399,6 +413,17 @@ export default function BottomNav() {
                                                     transition={{ type: 'spring', stiffness: 240, damping: 18 }}
                                                     draggable={false}
                                                 />
+                                                {/* macOS-like reflection */}
+                                                <motion.img
+                                                    src={item.iconSrc}
+                                                    alt=""
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                    style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
+                                                    initial={false}
+                                                    animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                    transition={{ duration: 0.15 }}
+                                                />
                                             </div>
                                         </button>
                                     ) : isQuickAdd ? (
@@ -409,7 +434,7 @@ export default function BottomNav() {
                                             aria-haspopup="menu"
                                             aria-expanded={isQuickAddOpen}
                                             className={`group relative flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent ${isQuickAddOpen ? 'scale-105' : ''}`}
-                                            onClick={() => setIsQuickAddOpen((open) => !open)}
+                                            onClick={() => { triggerBounce(index); setIsQuickAddOpen((open) => !open); }}
                                             onFocus={() => handleFocus(index)}
                                             onBlur={(event) => {
                                                 if (quickAddMenuRef.current?.contains(event.relatedTarget)) {
@@ -431,6 +456,17 @@ export default function BottomNav() {
                                                     transition={{ duration: 0.2 }}
                                                     draggable={false}
                                                 />
+                                                {/* macOS-like reflection */}
+                                                <motion.img
+                                                    src={item.iconSrc}
+                                                    alt=""
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                    style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
+                                                    initial={false}
+                                                    animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                    transition={{ duration: 0.15 }}
+                                                />
                                             </div>
                                         </button>
                                     ) : (
@@ -441,6 +477,8 @@ export default function BottomNav() {
                                             className="group relative flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent"
                                             onFocus={() => handleFocus(index)}
                                             onBlur={handleBlur}
+                                            onMouseDown={() => triggerBounce(index)}
+                                            onClick={() => triggerBounce(index)}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${isActive ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
                                                 <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
@@ -454,6 +492,17 @@ export default function BottomNav() {
                                                     animate={{ scale: isActive ? 1.05 : 1 }}
                                                     transition={{ duration: 0.2 }}
                                                     draggable={false}
+                                                />
+                                                {/* macOS-like reflection */}
+                                                <motion.img
+                                                    src={item.iconSrc}
+                                                    alt=""
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                    style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
+                                                    initial={false}
+                                                    animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                    transition={{ duration: 0.15 }}
                                                 />
                                             </div>
                                         </Link>

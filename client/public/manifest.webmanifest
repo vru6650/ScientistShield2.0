@@ -1,0 +1,11 @@
+{
+  "name": "Scientist Shield",
+  "short_name": "SciShield",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#174878",
+  "description": "Tutorials, problems, quizzes, and tools for developers.",
+  "icons": []
+}
+

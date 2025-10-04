@@ -53,6 +53,14 @@ Reusable primitives are available in `src/components/ui/`:
 
 Use these components to avoid duplicating common styles across the app.
 
+## Flowbite Theme
+
+Flowbite React components are themed to match our Tailwind tokens via `customFlowbiteTheme` in `src/theme/flowbiteTheme.js`. The provider is applied in `src/components/ThemeProvider.jsx`.
+
+- Primary actions use `professional-blue` hues.
+- Inputs and selects use brand-focused rings and rounded radii.
+- Modals, tooltips, and badges follow the ink/brand palette in both light and dark modes.
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` in the project root to customize how the client connects to the API. The following variable is available:
