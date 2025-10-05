@@ -374,6 +374,7 @@ export default function SingleTutorialPage() {
         const focusClass = 'reading-focus-active';
         const guideClass = 'reading-guide-active';
         const contrastClass = 'reading-contrast-active';
+        const hideImagesClass = 'reading-hide-images';
 
         if (readingSettings.focusMode) {
             classList.add(focusClass);
@@ -392,11 +393,16 @@ export default function SingleTutorialPage() {
         } else {
             classList.remove(contrastClass);
         }
+        if (readingSettings.hideImages) {
+            classList.add(hideImagesClass);
+        } else {
+            classList.remove(hideImagesClass);
+        }
 
         return () => {
-            classList.remove(focusClass, guideClass, contrastClass);
+            classList.remove(focusClass, guideClass, contrastClass, hideImagesClass);
         };
-    }, [readingSettings.focusMode, readingSettings.readingGuide, readingSettings.highContrast]);
+    }, [readingSettings.focusMode, readingSettings.readingGuide, readingSettings.highContrast, readingSettings.hideImages]);
 
     const createMetaDescription = (htmlContent) => {
         if (!htmlContent) return '';

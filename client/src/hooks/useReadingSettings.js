@@ -25,6 +25,13 @@ const defaultSettings = {
     focusMode: false,
     readingGuide: false,
     highContrast: false,
+    // NEW: Advanced controls
+    ttsVoiceURI: '',
+    ttsRate: 1,
+    ttsPitch: 1,
+    autoScroll: false,
+    autoScrollSpeed: 40, // px/sec
+    hideImages: false,
 };
 
 const fontFamilyMap = {

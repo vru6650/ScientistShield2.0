@@ -37,21 +37,21 @@ const AuroraBackground = () => {
             onMouseMove={handleMouseMove} // Still track mouse for effect
         >
             <motion.div
-                className="absolute w-96 h-96 bg-professional-blue-500/20 rounded-full blur-3xl opacity-70" // Increased blur, added opacity
+                className="absolute w-96 h-96 bg-brand-500/18 rounded-full blur-3xl opacity-70"
                 style={{
                     x: useTransform(smoothMouseX, val => val - 192),
                     y: useTransform(smoothMouseY, val => val - 192)
                 }}
             />
             <motion.div
-                className="absolute w-96 h-96 bg-accent-teal/20 rounded-full blur-3xl opacity-70" // Increased blur, added opacity
+                className="absolute w-96 h-96 bg-accent-teal/18 rounded-full blur-3xl opacity-70"
                 style={{
                     x: useTransform(smoothMouseX, val => val - 192 + 200),
                     y: useTransform(smoothMouseY, val => val - 192 + 100)
                 }}
             />
             <motion.div // Added a third, more subtle blob
-                className="absolute w-80 h-80 bg-professional-blue-300/15 rounded-full blur-3xl opacity-60"
+                className="absolute w-80 h-80 bg-flare-400/18 rounded-full blur-3xl opacity-60"
                 style={{
                     x: useTransform(smoothMouseX, val => val - 192 - 150),
                     y: useTransform(smoothMouseY, val => val - 192 - 50)
@@ -114,10 +114,10 @@ export default function FooterCom() {
     return (
         <footer className="relative mt-20">
             <FooterWave />
-            <div className='relative z-10 bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-xl border-t border-gray-300 dark:border-gray-700 overflow-hidden'> {/* Increased blur, added overflow-hidden */}
+            <div className='relative z-10 bg-[var(--color-surface-muted)] dark:bg-ink-900/70 backdrop-blur-3xl border-t border-[var(--color-border)] dark:border-[var(--color-border-strong)] overflow-hidden shadow-[0_-20px_60px_-30px_rgba(39,47,138,0.35)] dark:shadow-[0_-18px_60px_-30px_rgba(5,12,32,0.55)]'>
                 <AuroraBackground />
 
-                <div className='w-full max-w-7xl mx-auto py-12 px-6 relative z-20'> {/* Increased padding, added z-20 */}
+                <div className='w-full max-w-7xl mx-auto py-12 px-6 lg:px-10 relative z-20'>
                     <div className='grid w-full justify-between sm:flex md:grid-cols-1'>
                         <div className='mb-8 sm:mb-0'> {/* Increased bottom margin for logo section */}
                             <Link to='/' className='self-center whitespace-nowrap text-2xl sm:text-3xl font-extrabold dark:text-white'> {/* Larger, bolder logo */}
@@ -126,22 +126,22 @@ export default function FooterCom() {
                                 </span>
                                 <span className="ml-2">Blog</span> {/* Added margin to "Blog" */}
                             </Link>
-                            <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-sm text-sm">
+                            <p className="mt-4 text-ink-500 dark:text-ink-300/80 max-w-sm text-sm leading-relaxed">
                                 Explore insightful articles and tutorials on web development, programming, and more. Join our community!
                             </p>
                         </div>
                         <div className='grid grid-cols-2 gap-10 mt-4 sm:grid-cols-4 sm:gap-8'> {/* Increased gaps */}
                             {footerLinks.map((section) => (
                                 <div key={section.title}>
-                                    <Footer.Title title={section.title} className="text-lg font-bold text-gray-800 dark:text-white mb-3" /> {/* Larger, bolder titles */}
-                                    <Footer.LinkGroup col className="gap-2"> {/* More space between links */}
+                                    <Footer.Title title={section.title} className="text-lg font-semibold text-ink-700 dark:text-ink-100 mb-3" />
+                                    <Footer.LinkGroup col className="gap-2">
                                         {section.links.map((link) => (
                                             <Footer.Link
                                                 key={link.name}
                                                 href={link.href}
                                                 target='_blank'
                                                 rel='noopener noreferrer'
-                                                className="text-gray-600 dark:text-gray-400 hover:text-accent-teal dark:hover:text-accent-teal transition-colors duration-200" // Enhanced link styles
+                                                className="text-ink-500 dark:text-ink-300/80 hover:text-brand-600 dark:hover:text-brand-300 transition-colors duration-200"
                                             >
                                                 {link.name}
                                             </Footer.Link>
@@ -150,7 +150,7 @@ export default function FooterCom() {
                                 </div>
                             ))}
                             <div>
-                                <Footer.Title title='Stay Updated' className="text-lg font-bold text-gray-800 dark:text-white mb-3" />
+                                <Footer.Title title='Stay Updated' className="text-lg font-semibold text-ink-700 dark:text-ink-100 mb-3" />
                                 <form onSubmit={handleSubscribe} className="flex flex-col gap-4">
                                     <TextInput
                                         type="email"
@@ -158,12 +158,12 @@ export default function FooterCom() {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
-                                        className="rounded-md focus:ring-accent-teal focus:border-accent-teal" // Styled input
+                                        className="rounded-lg border-ink-200/60 bg-white/90 focus:border-brand-400 focus:ring-brand-400 dark:border-ink-700/60 dark:bg-ink-900/80"
                                     />
                                     <Button
                                         type="submit"
-                                        gradientDuoTone="purpleToPink"
-                                        className="w-full"
+                                        color="primary"
+                                        className="w-full shadow-[0_18px_42px_-24px_rgba(76,98,245,0.75)] hover:shadow-[0_16px_38px_-26px_rgba(53,70,210,0.65)]"
                                     >
                                         Subscribe
                                     </Button>
@@ -171,17 +171,17 @@ export default function FooterCom() {
                             </div>
                         </div>
                     </div>
-                    <Footer.Divider className="my-10 border-gray-300 dark:border-gray-700" /> {/* More space for divider */}
+                    <Footer.Divider className="my-10 border-[var(--color-border)] dark:border-[var(--color-border-strong)]" />
                     <div className='w-full sm:flex sm:items-center sm:justify-between'>
-                        <Footer.Copyright href='#' by="Sahand's blog" year={new Date().getFullYear()} className="text-gray-600 dark:text-gray-400" />
+                        <Footer.Copyright href='#' by="ScientistShield" year={new Date().getFullYear()} className="text-ink-500 dark:text-ink-300/80" />
                         <div className='flex gap-7 sm:mt-0 mt-6 sm:justify-center'> {/* Increased gap, top margin */}
                             {socialMediaLinks.map((social) => (
                                 <Tooltip content={social.name} key={social.name} placement="top"> {/* Tooltip on top */}
                                     <motion.div
-                                        whileHover={{ y: -5, scale: 1.2, color: '#35B8A8' }} // More pronounced hover, add color
+                                        whileHover={{ y: -5, scale: 1.2, color: '#4C62F5' }}
                                         whileTap={{ scale: 0.9 }}
                                         transition={{ type: "spring", stiffness: 300, damping: 10 }}
-                                        className="text-gray-500 dark:text-gray-400" // Base color for icons
+                                        className="text-ink-400 dark:text-ink-300/70"
                                     >
                                         <Footer.Icon
                                             href={social.href}

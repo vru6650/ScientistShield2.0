@@ -157,42 +157,42 @@ export default function Home() {
                 title: 'HTML',
                 description: 'The language for building web pages',
                 linkTo: '/tutorials?category=html',
-                gradient: 'bg-gradient-to-br from-orange-400 to-rose-500',
+                gradient: 'bg-gradient-to-br from-flare-400 via-flare-500 to-brand-500',
                 delay: '0.1s',
             },
             {
                 title: 'CSS',
                 description: 'The language for styling web pages',
                 linkTo: '/tutorials?category=css',
-                gradient: 'bg-gradient-to-br from-sky-500 to-indigo-600',
+                gradient: 'bg-gradient-to-br from-brand-300 via-brand-400 to-brand-700',
                 delay: '0.2s',
             },
             {
                 title: 'JavaScript',
                 description: 'The language for programming web pages',
                 linkTo: '/tutorials?category=javascript',
-                gradient: 'bg-gradient-to-br from-yellow-400 to-amber-600',
+                gradient: 'bg-gradient-to-br from-flare-300 via-flare-400 to-brand-500',
                 delay: '0.3s',
             },
             {
                 title: 'React.js',
                 description: 'A library for building user interfaces',
                 linkTo: '/tutorials?category=reactjs',
-                gradient: 'bg-gradient-to-br from-cyan-500 to-blue-600',
+                gradient: 'bg-gradient-to-br from-brand-200 via-brand-400 to-accent-teal',
                 delay: '0.4s',
             },
             {
                 title: 'Node.js',
                 description: "JS runtime built on Chrome's V8 engine",
                 linkTo: '/tutorials?category=node.js',
-                gradient: 'bg-gradient-to-br from-lime-500 to-emerald-600',
+                gradient: 'bg-gradient-to-br from-accent-teal via-brand-300 to-brand-600',
                 delay: '0.5s',
             },
             {
                 title: 'C',
                 description: 'A powerful general-purpose language',
                 linkTo: '/tutorials?category=c',
-                gradient: 'bg-gradient-to-br from-slate-500 to-gray-700',
+                gradient: 'bg-gradient-to-br from-ink-500 via-ink-700 to-brand-800',
                 delay: '0.6s',
             },
         ],
@@ -214,8 +214,9 @@ export default function Home() {
                 if (!active) return;
                 setError('Failed to load content. Please try again.');
             } finally {
-                if (!active) return;
-                setLoading(false);
+                if (active) {
+                    setLoading(false);
+                }
             }
         })();
         return () => {
@@ -253,7 +254,7 @@ export default function Home() {
                     <Alert color="failure" onDismiss={() => setError(null)}>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <span>{error}</span>
-                            <Button size="sm" gradientDuoTone="purpleToBlue" onClick={retry}>
+                            <Button size="sm" color="primary" className="shadow-[0_14px_34px_-20px_rgba(76,98,245,0.65)]" onClick={retry}>
                                 Retry
                             </Button>
                         </div>
@@ -269,21 +270,21 @@ export default function Home() {
             <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-20">
                 {/* Stats */}
                 <section className="relative" aria-labelledby="community-impact">
-                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-sky-100 via-purple-100 to-rose-100 dark:from-sky-900/40 dark:via-indigo-900/30 dark:to-rose-900/40 blur-3xl opacity-60" />
-                    <div className="rounded-3xl border border-white/50 dark:border-white/10 bg-white/70 dark:bg-gray-900/60 shadow-xl backdrop-blur-xl p-6 sm:p-8 lg:p-10">
+                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-brand-200/45 via-accent-teal/35 to-flare-200/45 dark:from-brand-700/40 dark:via-accent-teal/30 dark:to-flare-400/35 blur-3xl opacity-70" />
+                    <div className="rounded-3xl border border-white/60 dark:border-ink-800/60 bg-[var(--color-surface-raised)] dark:bg-ink-900/70 shadow-[0_40px_90px_-55px_rgba(39,47,138,0.45)] backdrop-blur-2xl p-6 sm:p-8 lg:p-10">
                         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
                             <div>
-                                <p className="text-sm uppercase tracking-widest text-sky-500 dark:text-sky-400 font-semibold">
+                                <p className="text-sm uppercase tracking-[0.35em] text-brand-500 dark:text-brand-300 font-semibold">
                                     Community Impact
                                 </p>
                                 <h2
                                     id="community-impact"
-                                    className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white"
+                                    className="text-3xl sm:text-4xl font-extrabold text-ink-900 dark:text-ink-50"
                                 >
                                     Built for learners who never stop exploring
                                 </h2>
                             </div>
-                            <p className="text-base sm:text-lg max-w-xl text-gray-600 dark:text-gray-300">
+                            <p className="text-base sm:text-lg max-w-xl text-ink-500 dark:text-ink-300/85">
                                 From your first line of code to launching your startup, ScientistShield grows with you by blending
                                 curated learning, interactive practice, and a vibrant community.
                             </p>
@@ -292,20 +293,20 @@ export default function Home() {
                             {stats.map(({ icon: Icon, label, value, description }) => (
                                 <div
                                     key={label}
-                                    className="group rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-6 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                                    className="group rounded-2xl border border-white/65 dark:border-ink-800/60 bg-white/85 dark:bg-ink-900/75 p-6 shadow-[0_30px_60px_-45px_rgba(39,47,138,0.45)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_42px_90px_-50px_rgba(39,47,138,0.5)]"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white text-2xl shadow-md">
+                                        <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-300 via-brand-400 to-brand-600 text-white text-2xl shadow-[0_16px_35px_-24px_rgba(39,47,138,0.6)]">
                                             <Icon aria-hidden />
                                         </span>
                                         <div>
-                                            <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                                            <p className="text-xs uppercase tracking-wider text-ink-400 dark:text-ink-300/80 font-semibold">
                                                 {label}
                                             </p>
-                                            <p className="text-3xl font-black text-slate-900 dark:text-white">{value}</p>
+                                            <p className="text-3xl font-black text-ink-900 dark:text-ink-100">{value}</p>
                                         </div>
                                     </div>
-                                    <p className="mt-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{description}</p>
+                                    <p className="mt-4 text-sm text-ink-500 dark:text-ink-300/80 leading-relaxed">{description}</p>
                                 </div>
                             ))}
                         </div>
@@ -315,16 +316,16 @@ export default function Home() {
                 {/* Highlights */}
                 <section className="space-y-10" aria-labelledby="why-scientistshield">
                     <div className="text-center max-w-3xl mx-auto space-y-3">
-                        <p className="text-sm uppercase tracking-[0.4em] text-sky-500 dark:text-sky-400 font-semibold">
+                        <p className="text-sm uppercase tracking-[0.4em] text-brand-500 dark:text-brand-300 font-semibold">
                             Why ScientistShield
                         </p>
                         <h2
                             id="why-scientistshield"
-                            className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white"
+                            className="text-3xl sm:text-4xl font-extrabold text-ink-900 dark:text-ink-50"
                         >
                             Everything you need to learn, build, and stand out
                         </h2>
-                        <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
+                        <p className="text-base sm:text-lg text-ink-500 dark:text-ink-300/85">
                             Purpose-built experiences combine human guidance with hands-on challenges, so your next breakthrough is
                             always within reach.
                         </p>
@@ -333,16 +334,16 @@ export default function Home() {
                         {highlights.map(({ icon: Icon, title, description }) => (
                             <article
                                 key={title}
-                                className="group relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-8 shadow-lg transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                                className="group relative overflow-hidden rounded-3xl border border-white/65 dark:border-ink-800/60 bg-white/85 dark:bg-ink-900/75 p-8 shadow-[0_32px_70px_-48px_rgba(39,47,138,0.42)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_46px_90px_-52px_rgba(39,47,138,0.48)]"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-sky-200/0 via-sky-200/0 to-sky-200/20 dark:from-sky-500/0 dark:via-sky-500/0 dark:to-sky-500/15 transition-opacity duration-300 group-hover:opacity-100" />
+                                <div className="absolute inset-0 bg-gradient-to-br from-brand-200/0 via-brand-200/0 to-brand-300/20 dark:from-brand-600/0 dark:via-brand-500/0 dark:to-brand-600/20 transition-opacity duration-300 group-hover:opacity-100" />
                                 <div className="relative flex items-start gap-5">
-                                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl shadow">
+                                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-300 via-brand-500 to-flare-400 text-white text-xl shadow-[0_16px_35px_-24px_rgba(39,47,138,0.55)]">
                                         <Icon aria-hidden />
                                     </span>
                                     <div>
-                                        <h3 className="text-xl font-semibold text-slate-900 dark:text-white">{title}</h3>
-                                        <p className="mt-3 text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+                                        <h3 className="text-xl font-semibold text-ink-900 dark:text-ink-50">{title}</h3>
+                                        <p className="mt-3 text-sm sm:text-base text-ink-500 dark:text-ink-300/80 leading-relaxed">
                                             {description}
                                         </p>
                                     </div>
@@ -356,11 +357,11 @@ export default function Home() {
                 <section aria-labelledby="learn-tech">
                     <h2
                         id="learn-tech"
-                        className="text-3xl sm:text-4xl font-bold text-center mb-12 text-gray-800 dark:text-gray-200"
+                        className="text-3xl sm:text-4xl font-bold text-center mb-12 text-ink-900 dark:text-ink-50"
                     >
                         Learn Technology for Free
                     </h2>
-                    <p className="max-w-3xl mx-auto text-center text-gray-600 dark:text-gray-300 mb-12 text-base sm:text-lg">
+                    <p className="max-w-3xl mx-auto text-center text-ink-500 dark:text-ink-300/85 mb-12 text-base sm:text-lg">
                         Dive into bite-sized lessons and deep-dive guides created by industry veterans. Pick a topic to begin your
                         personalized learning sprint.
                     </p>

@@ -12,12 +12,13 @@ import {
 import { toggleTheme } from '../redux/theme/themeSlice';
 
 const ICON_CONTAINER_BASE =
-    'relative flex h-16 w-16 items-center justify-center rounded-[22px] transition-all duration-300 backdrop-blur-2xl';
+    'relative flex h-16 w-16 items-center justify-center rounded-[22px] origin-bottom transition-all duration-300 backdrop-blur-2xl will-change-transform';
 const ACTIVE_CLASSES =
-    'bg-white/80 shadow-[0_26px_45px_-20px_rgba(56,189,248,0.65)] ring-2 ring-white/60 dark:bg-slate-900/70 dark:ring-slate-100/20 dark:shadow-[0_26px_45px_-24px_rgba(148,163,184,0.65)]';
+    'bg-gradient-to-br from-white/95 via-white/60 to-white/30 shadow-[0_30px_68px_-36px_rgba(39,47,138,0.5)] ring-2 ring-brand-500/25 dark:from-ink-900/85 dark:via-ink-900/70 dark:to-ink-900/50 dark:ring-brand-500/25 dark:shadow-[0_30px_68px_-34px_rgba(4,9,26,0.7)]';
 const INACTIVE_CLASSES =
-    'bg-white/40 ring-1 ring-white/45 shadow-[0_24px_40px_-22px_rgba(15,23,42,0.55)] dark:bg-slate-900/55 dark:ring-slate-100/10 dark:shadow-[0_24px_40px_-24px_rgba(15,23,42,0.65)]';
-const DOCK_INFLUENCE_DISTANCE = 160;
+    'bg-gradient-to-br from-white/75 via-white/45 to-white/20 ring-1 ring-white/55 shadow-[0_26px_60px_-36px_rgba(17,25,40,0.42)] dark:from-ink-900/70 dark:via-ink-900/55 dark:to-ink-900/40 dark:ring-ink-800/60 dark:shadow-[0_26px_60px_-34px_rgba(5,12,32,0.6)]';
+// Stronger magnification for macOS-like feel
+const DOCK_INFLUENCE_DISTANCE = 120;
 
 const ADMIN_QUICK_ADD_OPTIONS = [
     {
@@ -215,7 +216,12 @@ export default function BottomNav() {
         return items;
     }, [currentUser]);
 
-    const dockItems = useMemo(() => [...navItems, quickAddDockItem, themeDockItem], [navItems]);
+    const dockItems = useMemo(() => {
+        const items = [...navItems];
+        items.push({ type: 'separator', key: 'dock-separator' });
+        items.push(quickAddDockItem, themeDockItem);
+        return items;
+    }, [navItems]);
 
     const quickAddOptions = useMemo(() => {
         const options = [...BASE_QUICK_ADD_OPTIONS];
@@ -232,10 +238,12 @@ export default function BottomNav() {
     const [hoverX, setHoverX] = useState(null);
     const [focusedIndex, setFocusedIndex] = useState(null);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+    const [bouncingIndex, setBouncingIndex] = useState(null);
     const iconRefs = useRef([]);
     const [iconCenters, setIconCenters] = useState([]);
     const quickAddTriggerRef = useRef(null);
     const quickAddMenuRef = useRef(null);
+    const bounceTimeoutRef = useRef(null);
 
     const updateIconCenters = useCallback(() => {
         const centers = iconRefs.current.map((element) => {
@@ -279,6 +287,13 @@ export default function BottomNav() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isQuickAddOpen]);
 
+    useEffect(() => () => {
+        if (bounceTimeoutRef.current) {
+            clearTimeout(bounceTimeoutRef.current);
+            bounceTimeoutRef.current = null;
+        }
+    }, []);
+
     const getMetrics = useCallback(
         (index, isActive) => {
             const center = iconCenters[index];
@@ -295,7 +310,7 @@ export default function BottomNav() {
             const clamped = Math.max(0, 1 - distance / DOCK_INFLUENCE_DISTANCE);
             const scaleBoost = isActive ? 0.45 : 0.35;
             const scale = (isActive ? 1.2 : 1) + clamped * scaleBoost;
-            const lift = (isActive ? -10 : 0) - clamped * 24;
+            const lift = (isActive ? -10 : 0) - clamped * 26;
             const rotate = (hoverX - center) / 100;
 
             return {
@@ -311,12 +326,23 @@ export default function BottomNav() {
     const handleFocus = (index) => setFocusedIndex(index);
     const handleBlur = () => setFocusedIndex(null);
 
+    const triggerBounce = (index) => {
+        setBouncingIndex(index);
+        if (bounceTimeoutRef.current) {
+            clearTimeout(bounceTimeoutRef.current);
+        }
+        bounceTimeoutRef.current = setTimeout(() => {
+            setBouncingIndex((prev) => (prev === index ? null : prev));
+            bounceTimeoutRef.current = null;
+        }, 520);
+    };
+
     const handleThemeToggle = () => dispatch(toggleTheme());
 
     return (
         <nav className="fixed bottom-6 left-1/2 z-50 flex w-full max-w-4xl -translate-x-1/2 justify-center px-4">
             <motion.ul
-                className="group relative flex items-end gap-4 overflow-visible rounded-[2.5rem] border border-white/40 bg-white/30 px-6 py-4 shadow-[0_45px_90px_-40px_rgba(14,116,144,0.55)] backdrop-blur-3xl before:absolute before:-top-6 before:left-1/2 before:h-12 before:w-[78%] before:-translate-x-1/2 before:rounded-[999px] before:bg-white/60 before:opacity-70 before:blur-2xl before:content-[''] after:absolute after:-bottom-8 after:left-1/2 after:h-10 after:w-[70%] after:-translate-x-1/2 after:rounded-full after:bg-cyan-500/10 after:blur-3xl after:content-[''] dark:border-slate-100/10 dark:bg-slate-900/40 dark:before:bg-slate-200/30 dark:after:bg-slate-500/20"
+                className="group relative flex items-end gap-4 overflow-visible rounded-[2.75rem] border border-white/55 bg-gradient-to-br from-white/75 via-white/35 to-white/15 px-6 py-4 shadow-[0_55px_110px_-52px_rgba(31,41,55,0.55)] backdrop-blur-[28px] before:absolute before:-top-6 before:left-1/2 before:h-12 before:w-[78%] before:-translate-x-1/2 before:rounded-[999px] before:bg-white/80 before:opacity-80 before:blur-2xl before:content-[''] after:absolute after:-bottom-8 after:left-1/2 after:h-10 after:w-[70%] after:-translate-x-1/2 after:rounded-full after:bg-brand-500/18 after:blur-3xl after:content-[''] dark:border-ink-800/70 dark:bg-gradient-to-br dark:from-ink-900/70 dark:via-ink-900/55 dark:to-ink-900/40 dark:shadow-[0_55px_110px_-50px_rgba(4,9,26,0.75)] dark:before:bg-ink-700/45 dark:after:bg-brand-500/22"
                 initial={{ opacity: 0, y: 45 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -324,6 +350,20 @@ export default function BottomNav() {
                 onMouseLeave={() => setHoverX(null)}
             >
                 {dockItems.map((item, index) => {
+                    if (item.type === 'separator') {
+                        return (
+                            <motion.li
+                                key={item.key ?? `dock-separator-${index}`}
+                                className="hidden md:flex items-center justify-center px-2"
+                                initial={{ opacity: 0, scaleY: 0.6 }}
+                                animate={{ opacity: 0.6, scaleY: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <span className="h-12 w-px rounded-full bg-gradient-to-b from-white/80 via-white/40 to-white/0 dark:from-white/30 dark:via-white/15 dark:to-transparent" />
+                            </motion.li>
+                        );
+                    }
                     const isTheme = item.type === 'theme';
                     const isQuickAdd = item.type === 'quick-add';
                     const isActive = !isTheme && !isQuickAdd && item.match ? item.match(location.pathname) : false;
@@ -359,19 +399,26 @@ export default function BottomNav() {
                                 <motion.div
                                     className="relative flex flex-col items-center"
                                     initial={false}
-                                    animate={{ scale, y: lift, rotate }}
-                                    transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+                                    animate={{
+                                        scale,
+                                        y: bouncingIndex === index ? [lift, lift - 18, lift, lift - 10, lift] : lift,
+                                        rotate,
+                                    }}
+                                    transition={{
+                                        type: 'spring', stiffness: 320, damping: 22,
+                                        ...(bouncingIndex === index ? { duration: 0.55, ease: 'easeOut' } : {}),
+                                    }}
                                 >
                                     <motion.span
                                         aria-hidden="true"
-                                        className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-gradient-to-br from-cyan-400/25 via-sky-400/15 to-blue-500/25 blur-xl"
+                                        className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-gradient-to-br from-brand-400/25 via-brand-500/18 to-flare-400/22 blur-xl"
                                         initial={false}
                                         animate={{ opacity: glowOpacity }}
                                         transition={{ duration: 0.18 }}
                                     />
                                     <motion.span
                                         aria-hidden="true"
-                                        className="pointer-events-none absolute left-1/2 top-full z-0 mt-1 h-6 w-12 -translate-x-1/2 rounded-b-[28px] bg-gradient-to-t from-white/60 via-white/10 to-transparent opacity-70 dark:from-slate-200/30"
+                                        className="pointer-events-none absolute left-1/2 top-full z-0 mt-1 h-6 w-12 -translate-x-1/2 rounded-b-[28px] bg-gradient-to-t from-white/60 via-white/10 to-transparent opacity-70 dark:from-ink-500/30"
                                         initial={false}
                                         animate={{ opacity: Math.max(0, proximity - 0.15), scaleY: 1 + proximity * 0.25 }}
                                         transition={{ duration: 0.2 }}
@@ -381,7 +428,7 @@ export default function BottomNav() {
                                             type="button"
                                             aria-label={label}
                                             aria-pressed={theme === 'dark'}
-                                            onClick={handleThemeToggle}
+                                            onClick={() => { triggerBounce(index); handleThemeToggle(); }}
                                             onFocus={() => handleFocus(index)}
                                             onBlur={handleBlur}
                                             className="group relative flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent"
@@ -399,6 +446,17 @@ export default function BottomNav() {
                                                     transition={{ type: 'spring', stiffness: 240, damping: 18 }}
                                                     draggable={false}
                                                 />
+                                                {/* macOS-like reflection */}
+                                                <motion.img
+                                                    src={item.iconSrc}
+                                                    alt=""
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-25 blur-[1px]"
+                                                    style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.45), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.45), transparent)' }}
+                                                    initial={false}
+                                                    animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                    transition={{ duration: 0.15 }}
+                                                />
                                             </div>
                                         </button>
                                     ) : isQuickAdd ? (
@@ -406,31 +464,102 @@ export default function BottomNav() {
                                             type="button"
                                             ref={quickAddTriggerRef}
                                             aria-label={label}
+                                            aria-controls="dock-quick-add-menu"
                                             aria-haspopup="menu"
                                             aria-expanded={isQuickAddOpen}
-                                            className={`group relative flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent ${isQuickAddOpen ? 'scale-105' : ''}`}
-                                            onClick={() => setIsQuickAddOpen((open) => !open)}
+                                            className={`group relative flex flex-col items-center rounded-full transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent ${isQuickAddOpen ? 'scale-105' : ''}`}
+                                            onClick={() => { triggerBounce(index); setIsQuickAddOpen((open) => !open); }}
                                             onFocus={() => handleFocus(index)}
                                             onBlur={(event) => {
                                                 if (quickAddMenuRef.current?.contains(event.relatedTarget)) {
                                                     return;
                                                 }
                                                 handleBlur();
+                                                setIsQuickAddOpen(false);
+                                            }}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Escape') {
+                                                    event.stopPropagation();
+                                                    setIsQuickAddOpen(false);
+                                                    setFocusedIndex(index);
+                                                }
                                             }}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${isQuickAddOpen ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
-                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
-                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
-                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                                <motion.span
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute inset-[1.5px] rounded-[20px] bg-gradient-to-br from-brand-400/35 via-brand-300/20 to-flare-400/25 dark:from-brand-500/35 dark:via-brand-400/22 dark:to-flare-400/25"
+                                                    initial={false}
+                                                    animate={{ opacity: isQuickAddOpen ? 0.9 : Math.max(0.25, proximity), scale: isQuickAddOpen ? 1.05 : 1 }}
+                                                    transition={{ duration: 0.25 }}
+                                                />
+                                                <motion.span
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/95 via-white/25 to-transparent opacity-90 dark:from-white/45"
+                                                    initial={false}
+                                                    animate={{ opacity: isQuickAddOpen ? 0.85 : 0.65 }}
+                                                    transition={{ duration: 0.2 }}
+                                                />
+                                                <motion.span
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/35 via-transparent to-transparent opacity-70 dark:from-white/10"
+                                                    initial={false}
+                                                    animate={{ opacity: isQuickAddOpen ? 0.55 : 0.35 }}
+                                                    transition={{ duration: 0.2 }}
+                                                />
+                                                <motion.div
+                                                    className="relative flex h-12 w-12 items-center justify-center select-none"
+                                                    initial={false}
+                                                    animate={{ rotate: isQuickAddOpen ? 45 : 0, scale: isQuickAddOpen ? 1.1 : 1 }}
+                                                    transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                                                >
+                                                    <motion.img
+                                                        src={item.iconSrc}
+                                                        alt={iconAlt}
+                                                        className="h-full w-full object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                        draggable={false}
+                                                    />
+                                                    <motion.span
+                                                        aria-hidden
+                                                        className="pointer-events-none absolute inset-0 rounded-full bg-brand-500/35 blur-xl"
+                                                        initial={false}
+                                                        animate={{ opacity: isQuickAddOpen ? 0.35 : 0 }}
+                                                        transition={{ duration: 0.25 }}
+                                                    />
+                                                </motion.div>
+                                                {/* macOS-like reflection */}
                                                 <motion.img
                                                     src={item.iconSrc}
-                                                    alt={iconAlt}
-                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                    alt=""
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-25 blur-[1px]"
+                                                    style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.45), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.45), transparent)' }}
                                                     initial={false}
-                                                    animate={{ scale: isQuickAddOpen ? 1.08 : 1 }}
-                                                    transition={{ duration: 0.2 }}
-                                                    draggable={false}
+                                                    animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                    transition={{ duration: 0.15 }}
                                                 />
+                                                <AnimatePresence>
+                                                    {isQuickAddOpen && (
+                                                        <motion.span
+                                                            aria-hidden
+                                                            className="pointer-events-none absolute -top-6 flex items-center gap-2"
+                                                            initial={{ opacity: 0, y: 6 }}
+                                                            animate={{ opacity: 1, y: -2 }}
+                                                            exit={{ opacity: 0, y: 4 }}
+                                                            transition={{ duration: 0.18 }}
+                                                        >
+                                                            {[0, 1, 2].map((bubble) => (
+                                                                <motion.span
+                                                                    key={bubble}
+                                                                    className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-brand-300 to-brand-500 shadow-[0_6px_12px_-6px_rgba(76,98,245,0.8)]"
+                                                                    initial={{ scale: 0.6, opacity: 0 }}
+                                                                    animate={{ scale: 1, opacity: 1, y: [-2, 0, -2] }}
+                                                                    transition={{ duration: 0.9, repeat: Infinity, delay: bubble * 0.1, repeatType: 'mirror' }}
+                                                                />
+                                                            ))}
+                                                        </motion.span>
+                                                    )}
+                                                </AnimatePresence>
                                             </div>
                                         </button>
                                     ) : (
@@ -441,6 +570,8 @@ export default function BottomNav() {
                                             className="group relative flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent"
                                             onFocus={() => handleFocus(index)}
                                             onBlur={handleBlur}
+                                            onMouseDown={() => triggerBounce(index)}
+                                            onClick={() => triggerBounce(index)}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${isActive ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
                                                 <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
@@ -455,12 +586,23 @@ export default function BottomNav() {
                                                     transition={{ duration: 0.2 }}
                                                     draggable={false}
                                                 />
+                                                {/* macOS-like reflection */}
+                                                <motion.img
+                                                    src={item.iconSrc}
+                                                    alt=""
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-25 blur-[1px]"
+                                                    style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.45), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.45), transparent)' }}
+                                                    initial={false}
+                                                    animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                    transition={{ duration: 0.15 }}
+                                                />
                                             </div>
                                         </Link>
                                     )}
                                     <motion.span
                                         aria-hidden="true"
-                                        className="pointer-events-none absolute inset-0 rounded-[22px] ring-2 ring-sky-200/60 dark:ring-slate-400/40"
+                                        className="pointer-events-none absolute inset-0 rounded-[22px] ring-2 ring-brand-300/45 dark:ring-brand-500/35"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: isTheme ? ringOpacity : ringOpacity }}
                                         transition={{ duration: 0.2 }}
@@ -473,7 +615,7 @@ export default function BottomNav() {
                                                 animate={{ opacity: 1, y: -4 }}
                                                 exit={{ opacity: 0, y: 4 }}
                                                 transition={{ duration: 0.18 }}
-                                                className="absolute -top-10 whitespace-nowrap rounded-full bg-slate-900/95 px-3 py-1 text-xs font-semibold text-white shadow-lg shadow-slate-900/40 ring-1 ring-white/20 dark:bg-slate-200/95 dark:text-slate-900 dark:shadow-none"
+                                                className="absolute -top-10 whitespace-nowrap rounded-full bg-ink-900/95 px-3 py-1 text-xs font-semibold text-white shadow-lg shadow-ink-900/40 ring-1 ring-white/20 dark:bg-ink-100/95 dark:text-ink-900 dark:shadow-none"
                                             >
                                                 {label}
                                             </motion.span>
@@ -482,11 +624,11 @@ export default function BottomNav() {
                                     {!isTheme && isActive ? (
                                         <motion.span
                                             layoutId="dock-indicator"
-                                            className="absolute -bottom-2 h-1.5 w-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 shadow-lg dark:from-cyan-300 dark:to-sky-400"
-                                            initial={{ opacity: 0, scale: 0.4 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.4 }}
-                                            transition={{ duration: 0.2 }}
+                                            className="absolute -bottom-3 h-1.5 w-6 rounded-full bg-gradient-to-r from-brand-300 to-brand-500 blur-[0.3px] drop-shadow-[0_4px_10px_rgba(76,98,245,0.45)] dark:from-brand-200 dark:to-brand-400"
+                                            initial={{ opacity: 0, scaleX: 0.4, scaleY: 0.8 }}
+                                            animate={{ opacity: 1, scaleX: 1, scaleY: 1 }}
+                                            exit={{ opacity: 0, scaleX: 0.5 }}
+                                            transition={{ duration: 0.22 }}
                                         />
                                     ) : null}
                                     <AnimatePresence>
@@ -498,9 +640,22 @@ export default function BottomNav() {
                                                 animate={{ opacity: 1, y: -14, scale: 1 }}
                                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                                                className="absolute bottom-24 left-1/2 w-[19rem] max-w-xs -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-[0_35px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-slate-800/60 dark:bg-slate-900/95"
+                                                id="dock-quick-add-menu"
+                                                className="absolute bottom-24 left-1/2 w-[19rem] max-w-xs -translate-x-1/2 rounded-3xl border border-white/55 bg-white/95 p-4 shadow-[0_35px_80px_-40px_rgba(39,47,138,0.38)] backdrop-blur-2xl dark:border-ink-800/60 dark:bg-ink-900/95"
                                                 role="menu"
                                                 aria-label="Quick add shortcuts"
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Escape') {
+                                                        event.stopPropagation();
+                                                        setIsQuickAddOpen(false);
+                                                        quickAddTriggerRef.current?.focus();
+                                                    }
+                                                }}
+                                                onBlur={(event) => {
+                                                    if (!event.currentTarget.contains(event.relatedTarget)) {
+                                                        setIsQuickAddOpen(false);
+                                                    }
+                                                }}
                                             >
                                                 <motion.ul initial={false} className="space-y-2">
                                                     {quickAddOptions.map((option) => (
@@ -513,22 +668,22 @@ export default function BottomNav() {
                                                         >
                                                             <Link
                                                                 to={option.to}
-                                                                className="group flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-3 py-3 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 hover:border-cyan-200 hover:bg-white dark:border-slate-700/70 dark:bg-slate-900/70 dark:hover:border-sky-500/40 dark:hover:bg-slate-900"
+                                                                className="group flex items-center gap-3 rounded-2xl border border-ink-200/60 bg-white/85 px-3 py-3 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/70 hover:border-brand-200/70 hover:bg-white dark:border-ink-800/70 dark:bg-ink-900/75 dark:hover:border-brand-500/40 dark:hover:bg-ink-900"
                                                                 role="menuitem"
                                                                 onClick={() => setIsQuickAddOpen(false)}
                                                             >
-                                                                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400/20 via-sky-500/20 to-blue-500/20 text-sky-500 shadow-inner shadow-white/40 dark:text-sky-300">
+                                                                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-200/35 via-brand-300/25 to-flare-300/30 text-brand-500 shadow-inner shadow-white/50 dark:text-brand-300">
                                                                     <QuickAddIllustration variant={option.illustration} />
                                                                 </span>
                                                                 <span className="flex-1">
-                                                                    <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                                                    <span className="block text-sm font-semibold text-ink-700 dark:text-ink-100">
                                                                         {option.label}
                                                                     </span>
-                                                                    <span className="mt-0.5 block text-xs text-slate-500 transition group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200">
+                                                                    <span className="mt-0.5 block text-xs text-ink-500 transition group-hover:text-ink-600 dark:text-ink-300/80 dark:group-hover:text-ink-200">
                                                                         {option.description}
                                                                     </span>
                                                                 </span>
-                                                                <ChevronRight className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-300" />
+                                                                <ChevronRight className="h-3.5 w-3.5 text-ink-300 transition group-hover:text-brand-500 dark:text-ink-500 dark:group-hover:text-brand-300" />
                                                             </Link>
                                                         </motion.li>
                                                     ))}

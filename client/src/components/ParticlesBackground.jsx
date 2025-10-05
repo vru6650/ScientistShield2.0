@@ -48,7 +48,7 @@ export default function ParticlesBackground() {
                         distance: 200,
                         links: {
                             opacity: 0.8,
-                            color: currentMode === 'dark' ? "#00e5ff" : "#3b82f6",
+                            color: currentMode === 'dark' ? "#6C85FF" : "#4C62F5",
                         },
                     },
                     push: {
@@ -62,12 +62,12 @@ export default function ParticlesBackground() {
             },
             particles: {
                 color: {
-                    // More vibrant, sci-fi color palette
-                    value: currentMode === 'dark' ? ["#8b5cf6", "#3b82f6", "#00e5ff"] : ["#d1d1d1", "#a0aec0", "#718096"],
+                    // Harmonise particle palette with Aurora Horizon brand hues
+                    value: currentMode === 'dark' ? ["#6C85FF", "#2DD4BF", "#F26B2A"] : ["#8EA6FF", "#2DD4BF", "#F26B2A"],
                 },
                 links: {
                     color: {
-                        value: currentMode === 'dark' ? "#4b5563" : "#d1d1d1",
+                        value: currentMode === 'dark' ? "#1f2937" : "#d8ddff",
                     },
                     distance: 180,
                     enable: true,
@@ -76,7 +76,7 @@ export default function ParticlesBackground() {
                     triangles: {
                         enable: true,
                         color: {
-                            value: currentMode === 'dark' ? "#3b82f6" : "#cbd5e0",
+                            value: currentMode === 'dark' ? "#6C85FF" : "#8EA6FF",
                         },
                         opacity: 0.05,
                     },
