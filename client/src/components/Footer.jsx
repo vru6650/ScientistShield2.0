@@ -120,11 +120,11 @@ export default function FooterCom() {
                 <div className='w-full max-w-7xl mx-auto py-12 px-6 relative z-20'> {/* Increased padding, added z-20 */}
                     <div className='grid w-full justify-between sm:flex md:grid-cols-1'>
                         <div className='mb-8 sm:mb-0'> {/* Increased bottom margin for logo section */}
-                            <Link to='/' className='self-center whitespace-nowrap text-2xl sm:text-3xl font-extrabold dark:text-white'> {/* Larger, bolder logo */}
-                                <span className='px-3 py-1 bg-professional-gradient rounded-lg text-white shadow-lg transition-transform duration-300 hover:scale-105'> {/* Stronger gradient, shadow, hover */}
-                                    Sahand's
+                            <Link to='/' className='self-center whitespace-nowrap text-2xl sm:text-3xl font-extrabold dark:text-white'>
+                                <span className='px-3 py-1 bg-professional-gradient rounded-lg text-white shadow-lg transition-transform duration-300 hover:scale-105'>
+                                    Scientist
                                 </span>
-                                <span className="ml-2">Blog</span> {/* Added margin to "Blog" */}
+                                <span className="ml-2">Shield</span>
                             </Link>
                             <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-sm text-sm">
                                 Explore insightful articles and tutorials on web development, programming, and more. Join our community!
@@ -173,7 +173,7 @@ export default function FooterCom() {
                     </div>
                     <Footer.Divider className="my-10 border-gray-300 dark:border-gray-700" /> {/* More space for divider */}
                     <div className='w-full sm:flex sm:items-center sm:justify-between'>
-                        <Footer.Copyright href='#' by="Sahand's blog" year={new Date().getFullYear()} className="text-gray-600 dark:text-gray-400" />
+                        <Footer.Copyright href='/' by="Scientist Shield" year={new Date().getFullYear()} className="text-gray-600 dark:text-gray-400" />
                         <div className='flex gap-7 sm:mt-0 mt-6 sm:justify-center'> {/* Increased gap, top margin */}
                             {socialMediaLinks.map((social) => (
                                 <Tooltip content={social.name} key={social.name} placement="top"> {/* Tooltip on top */}

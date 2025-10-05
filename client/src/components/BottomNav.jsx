@@ -9,7 +9,8 @@ import {
     quickAddDockItem,
     themeDockItem,
 } from '../data/dockItems';
-import { toggleTheme } from '../redux/theme/themeSlice';
+import { useDock } from '../contexts/DockContext.jsx';
+import { setThemePreference } from '../redux/theme/themeSlice';
 
 const ICON_CONTAINER_BASE =
     'relative flex h-16 w-16 items-center justify-center rounded-[22px] transition-all duration-300 backdrop-blur-2xl will-change-transform';
@@ -204,9 +205,10 @@ QuickAddIllustration.propTypes = {
 export default function BottomNav() {
     const dispatch = useDispatch();
     const { currentUser } = useSelector((state) => state.user);
-    const { theme } = useSelector((state) => state.theme);
+    const { theme, preference } = useSelector((state) => state.theme);
     const location = useLocation();
     const isAdmin = Boolean(currentUser?.isAdmin);
+    const { extraItems: dynamicDockItems } = useDock();
 
     const navItems = useMemo(() => {
         const items = [...baseDockItems];
@@ -216,7 +218,10 @@ export default function BottomNav() {
         return items;
     }, [currentUser]);
 
-    const dockItems = useMemo(() => [...navItems, quickAddDockItem, themeDockItem], [navItems]);
+    const dockItems = useMemo(
+        () => [...navItems, ...dynamicDockItems, quickAddDockItem, themeDockItem],
+        [navItems, dynamicDockItems]
+    );
 
     const quickAddOptions = useMemo(() => {
         const options = [...BASE_QUICK_ADD_OPTIONS];
@@ -234,10 +239,31 @@ export default function BottomNav() {
     const [focusedIndex, setFocusedIndex] = useState(null);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [bouncingIndex, setBouncingIndex] = useState(null);
+    const [dockVisible, setDockVisible] = useState(true);
     const iconRefs = useRef([]);
     const [iconCenters, setIconCenters] = useState([]);
     const quickAddTriggerRef = useRef(null);
     const quickAddMenuRef = useRef(null);
+    const dockRef = useRef(null);
+    const hideTimeoutRef = useRef(null);
+
+    const cancelHide = useCallback(() => {
+        if (hideTimeoutRef.current) {
+            window.clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
+        }
+    }, []);
+
+    const scheduleHide = useCallback(
+        (delay = 1400) => {
+            if (isQuickAddOpen || focusedIndex !== null) return;
+            cancelHide();
+            hideTimeoutRef.current = window.setTimeout(() => {
+                setDockVisible(false);
+            }, delay);
+        },
+        [cancelHide, focusedIndex, isQuickAddOpen]
+    );
 
     const updateIconCenters = useCallback(() => {
         const centers = iconRefs.current.map((element) => {
@@ -281,6 +307,52 @@ export default function BottomNav() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isQuickAddOpen]);
 
+    useEffect(() => {
+        if (isQuickAddOpen) {
+            setDockVisible(true);
+            cancelHide();
+        } else {
+            scheduleHide(1800);
+        }
+    }, [isQuickAddOpen, cancelHide, scheduleHide]);
+
+    useEffect(() => {
+        if (focusedIndex !== null) {
+            setDockVisible(true);
+            cancelHide();
+        }
+    }, [focusedIndex, cancelHide]);
+
+    useEffect(() => {
+        scheduleHide(2600);
+        return () => cancelHide();
+    }, [scheduleHide, cancelHide]);
+
+    useEffect(() => {
+        const handleMouseMove = (event) => {
+            if (event.clientY >= window.innerHeight - 110) {
+                setDockVisible(true);
+                cancelHide();
+            }
+        };
+
+        const handleTouchStart = (event) => {
+            const touch = event.touches?.[0];
+            if (!touch) return;
+            if (touch.clientY >= window.innerHeight - 110) {
+                setDockVisible(true);
+                cancelHide();
+            }
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('touchstart', handleTouchStart, { passive: true });
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('touchstart', handleTouchStart);
+        };
+    }, [cancelHide]);
+
     const getMetrics = useCallback(
         (index, isActive) => {
             const center = iconCenters[index];
@@ -310,50 +382,120 @@ export default function BottomNav() {
         [hoverX, iconCenters]
     );
 
-    const handleFocus = (index) => setFocusedIndex(index);
-    const handleBlur = () => setFocusedIndex(null);
+    const handleFocus = (index) => {
+        setFocusedIndex(index);
+        setDockVisible(true);
+        cancelHide();
+    };
+    const handleBlur = () => {
+        setFocusedIndex(null);
+        scheduleHide();
+    };
 
     const triggerBounce = (index) => {
         setBouncingIndex(index);
         setTimeout(() => setBouncingIndex((prev) => (prev === index ? null : prev)), 520);
     };
 
-    const handleThemeToggle = () => dispatch(toggleTheme());
+    const handleDockEnter = () => {
+        setDockVisible(true);
+        cancelHide();
+    };
+
+    const handleDockLeave = () => {
+        scheduleHide(1200);
+    };
+
+    const handleDockFocus = () => {
+        setDockVisible(true);
+        cancelHide();
+    };
+
+    const handleDockBlurCapture = (event) => {
+        if (dockRef.current?.contains(event.relatedTarget)) return;
+        scheduleHide(1400);
+    };
+
+    const handleThemeToggle = () => {
+        // Cycle between light -> dark -> system -> light
+        if (preference === 'light') return dispatch(setThemePreference('dark'));
+        if (preference === 'dark') return dispatch(setThemePreference('system'));
+        return dispatch(setThemePreference('light'));
+    };
 
     return (
-        <nav className="fixed bottom-6 left-1/2 z-50 flex w-full max-w-4xl -translate-x-1/2 justify-center px-4">
-            <motion.ul
-                className="group relative flex items-end gap-4 overflow-visible rounded-[2.5rem] border border-white/40 bg-white/30 px-6 py-4 shadow-[0_45px_90px_-40px_rgba(14,116,144,0.55)] backdrop-blur-3xl before:absolute before:-top-6 before:left-1/2 before:h-12 before:w-[78%] before:-translate-x-1/2 before:rounded-[999px] before:bg-white/60 before:opacity-70 before:blur-2xl before:content-[''] after:absolute after:-bottom-8 after:left-1/2 after:h-10 after:w-[70%] after:-translate-x-1/2 after:rounded-full after:bg-cyan-500/10 after:blur-3xl after:content-[''] dark:border-slate-100/10 dark:bg-slate-900/40 dark:before:bg-slate-200/30 dark:after:bg-slate-500/20"
-                initial={{ opacity: 0, y: 45 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
-                onMouseMove={(event) => setHoverX(event.clientX)}
-                onMouseLeave={() => setHoverX(null)}
+        <>
+            <div
+                className="fixed bottom-0 left-0 right-0 z-40 h-10"
+                style={{ pointerEvents: dockVisible ? 'none' : 'auto' }}
+                onMouseEnter={handleDockEnter}
+                onTouchStart={handleDockEnter}
+                aria-hidden="true"
+            />
+            <motion.nav
+                ref={dockRef}
+                className="dock-wrapper fixed bottom-6 left-1/2 z-50 -translate-x-1/2 px-4 flex justify-center"
+                initial={false}
+                animate={{ y: dockVisible ? 0 : 96, opacity: dockVisible ? 1 : 0.2 }}
+                transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
+                style={{ pointerEvents: dockVisible ? 'auto' : 'none', perspective: '1600px', transformStyle: 'preserve-3d' }}
+                aria-hidden={!dockVisible}
+                onMouseEnter={handleDockEnter}
+                onMouseLeave={handleDockLeave}
+                onFocusCapture={handleDockFocus}
+                onBlurCapture={handleDockBlurCapture}
             >
-                {dockItems.map((item, index) => {
-                    const isTheme = item.type === 'theme';
-                    const isQuickAdd = item.type === 'quick-add';
-                    const isActive = !isTheme && !isQuickAdd && item.match ? item.match(location.pathname) : false;
-                    let { scale, lift, proximity, rotate } = getMetrics(index, isActive);
+                <motion.span
+                    aria-hidden="true"
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: dockVisible ? 0.75 : 0, y: dockVisible ? 0 : 24 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="pointer-events-none absolute inset-x-12 bottom-[-60px] h-32 rounded-full bg-gradient-to-r from-sky-400/25 via-white/55 to-sky-400/25 blur-3xl dark:from-sky-500/20 dark:via-slate-700/40 dark:to-sky-500/20"
+                />
+                <motion.ul
+                    className="group relative flex items-end gap-4 overflow-visible rounded-[2.75rem] border border-white/45 bg-gradient-to-br from-white/80 via-white/45 to-white/20 px-7 py-4 shadow-[0_52px_120px_-48px_rgba(14,116,144,0.85)] backdrop-blur-[28px] backdrop-saturate-150 before:absolute before:-top-7 before:left-1/2 before:h-14 before:w-[82%] before:-translate-x-1/2 before:rounded-[999px] before:bg-white/75 before:opacity-85 before:blur-2xl before:content-[''] after:absolute after:-bottom-9 after:left-1/2 after:h-12 after:w-[74%] after:-translate-x-1/2 after:rounded-[999px] after:bg-white/30 after:opacity-75 after:blur-2xl after:content-[''] dark:border-slate-100/14 dark:bg-gradient-to-br dark:from-slate-900/85 dark:via-slate-900/60 dark:to-slate-900/35 dark:before:bg-slate-200/25 dark:after:bg-slate-700/25"
+                    initial={false}
+                    style={{ transformStyle: 'preserve-3d' }}
+                    onMouseMove={(event) => setHoverX(event.clientX)}
+                    onMouseLeave={() => setHoverX(null)}
+                >
+                    {dockItems.map((item, index) => {
+                        const isTheme = item.type === 'theme';
+                        const isQuickAdd = item.type === 'quick-add';
+                        const isAction = item.type === 'action';
+                        const isActive = !isTheme && !isQuickAdd && !isAction && item.match ? item.match(location.pathname) : false;
+                        const isActionActive = isAction ? (typeof item.isActive === 'function' ? item.isActive() : Boolean(item.isActive)) : false;
+                        let { scale, lift, proximity, rotate } = getMetrics(index, isActive);
 
-                    if (focusedIndex === index) {
-                        scale = Math.max(scale, 1.3);
-                        lift = Math.min(lift, -18);
-                        proximity = Math.max(proximity, 1);
-                    }
+                        if (focusedIndex === index) {
+                            scale = Math.max(scale, 1.3);
+                            lift = Math.min(lift, -18);
+                            proximity = Math.max(proximity, 1);
+                        }
 
-                    const showLabel = isTheme
-                        ? proximity > 0.6 || focusedIndex === index
-                        : isQuickAdd
-                            ? isQuickAddOpen || proximity > 0.5 || focusedIndex === index
-                            : proximity > 0.55 || isActive || focusedIndex === index;
+                        const showLabel = isTheme
+                            ? proximity > 0.6 || focusedIndex === index
+                            : isQuickAdd
+                                ? isQuickAddOpen || proximity > 0.5 || focusedIndex === index
+                                : isAction
+                                    ? proximity > 0.55 || isActionActive || focusedIndex === index
+                                    : proximity > 0.55 || isActive || focusedIndex === index;
 
-                    const glowOpacity = Math.max(0, proximity - 0.25);
-                    const baseRingOpacity = Math.max(0, proximity - 0.4);
-                    const ringOpacity = isTheme || isQuickAdd ? Math.max(0.25, baseRingOpacity) : baseRingOpacity;
+                        const glowOpacity = Math.max(0, proximity - 0.25);
+                        const baseRingOpacity = Math.max(0, proximity - 0.4);
+                        const ringOpacity = (isTheme || isQuickAdd || isAction) ? Math.max(0.25, baseRingOpacity) : baseRingOpacity;
 
                     const label = item.label;
                     const iconAlt = item.iconAlt ?? label;
+                    const IconComponent = item.Icon;
+                    const isRaised = isTheme
+                        ? theme === 'dark'
+                        : isQuickAdd
+                            ? isQuickAddOpen
+                            : isAction
+                                ? isActionActive
+                                : isActive;
+                    const depthTilt = Math.max(0, Math.min(1, proximity)) * 8;
 
                     return (
                         <motion.li key={item.to ?? item.key ?? label} className="relative flex flex-col items-center">
@@ -365,11 +507,14 @@ export default function BottomNav() {
                             >
                                 <motion.div
                                     className="relative flex flex-col items-center"
+                                    style={{ transformStyle: 'preserve-3d' }}
                                     initial={false}
                                     animate={{
                                         scale,
                                         y: bouncingIndex === index ? [lift, lift - 18, lift, lift - 10, lift] : lift,
                                         rotate,
+                                        z: isRaised ? 22 : 0,
+                                        rotateX: isRaised ? -6 - depthTilt * 0.35 : -depthTilt * 0.15,
                                     }}
                                     transition={{
                                         type: 'spring', stiffness: 320, damping: 22,
@@ -389,6 +534,13 @@ export default function BottomNav() {
                                         initial={false}
                                         animate={{ opacity: Math.max(0, proximity - 0.15), scaleY: 1 + proximity * 0.25 }}
                                         transition={{ duration: 0.2 }}
+                                    />
+                                    <motion.span
+                                        aria-hidden="true"
+                                        className="pointer-events-none absolute left-1/2 top-full z-0 mt-4 h-6 w-16 -translate-x-1/2 rounded-full bg-sky-400/25 blur-lg dark:bg-sky-500/25"
+                                        initial={false}
+                                        animate={{ opacity: Math.max(0, proximity - 0.25) * 0.6, scaleX: 0.8 + proximity * 0.35 }}
+                                        transition={{ duration: 0.25 }}
                                     />
                                     {isTheme ? (
                                         <button
@@ -467,6 +619,45 @@ export default function BottomNav() {
                                                     animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
                                                     transition={{ duration: 0.15 }}
                                                 />
+                                            </div>
+                                        </button>
+                                    ) : isAction ? (
+                                        <button
+                                            type="button"
+                                            aria-label={label}
+                                            aria-pressed={isActionActive}
+                                            onClick={() => {
+                                                triggerBounce(index);
+                                                item.onSelect?.();
+                                            }}
+                                            onFocus={() => handleFocus(index)}
+                                            onBlur={handleBlur}
+                                            className="group relative flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent"
+                                        >
+                                            <div className={`${ICON_CONTAINER_BASE} ${isActionActive ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
+                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
+                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
+                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                                {item.iconSrc ? (
+                                                    <motion.img
+                                                        src={item.iconSrc}
+                                                        alt={iconAlt}
+                                                        className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                        initial={false}
+                                                        animate={{ scale: isActionActive ? 1.05 : 1 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        draggable={false}
+                                                    />
+                                                ) : IconComponent ? (
+                                                    <motion.span
+                                                        className="relative flex h-12 w-12 items-center justify-center text-sky-500 dark:text-sky-300"
+                                                        initial={false}
+                                                        animate={{ scale: isActionActive ? 1.05 : 1 }}
+                                                        transition={{ duration: 0.2 }}
+                                                    >
+                                                        <IconComponent className="h-7 w-7" />
+                                                    </motion.span>
+                                                ) : null}
                                             </div>
                                         </button>
                                     ) : (
@@ -589,8 +780,9 @@ export default function BottomNav() {
                             </div>
                         </motion.li>
                     );
-                })}
-            </motion.ul>
-        </nav>
+                    })}
+                </motion.ul>
+            </motion.nav>
+        </>
     );
 }

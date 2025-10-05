@@ -10,6 +10,25 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
+    <script>
+      // Prevent theme flash before React loads
+      (function() {
+        try {
+          var pref = localStorage.getItem('themePreference');
+          var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = localStorage.getItem('theme');
+          if (pref === 'system' || !pref) {
+            theme = systemDark ? 'dark' : 'light';
+          }
+          if (theme !== 'light' && theme !== 'dark') {
+            theme = systemDark ? 'dark' : 'light';
+          }
+          var root = document.documentElement;
+          root.classList.remove('light', 'dark');
+          root.classList.add(theme);
+        } catch (e) {}
+      })();
+    </script>
     <title>Scientist Shield</title>
   </head>
   <body>

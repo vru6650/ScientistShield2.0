@@ -9,11 +9,11 @@ export const customFlowbiteTheme = {
     color: {
       // Primary maps to professional-blue brand
       primary:
-        'text-white bg-professional-blue-600 hover:bg-professional-blue-700 focus-visible:ring-brand-400',
+        'text-[color:var(--theme-accent-contrast)] bg-[var(--theme-accent)] hover:brightness-110 active:brightness-95 focus-visible:ring-[color:var(--theme-focus-ring)]',
       secondary:
-        'text-ink-800 bg-ink-100 hover:bg-ink-200 focus-visible:ring-ink-300',
+        'text-[color:var(--theme-text-primary)] bg-[var(--theme-surface-alt)] border border-[color:var(--theme-border-soft)] hover:bg-[color-mix(in_srgb,var(--theme-surface-alt)_94%,var(--theme-accent)_6%)] active:brightness-95 focus-visible:ring-[color:var(--theme-border-soft)]',
       light:
-        'text-ink-700 bg-white border border-ink-200 hover:bg-ink-50 focus-visible:ring-ink-300',
+        'text-[color:var(--theme-text-secondary)] bg-[color:var(--theme-surface)] border border-[color:var(--theme-border-soft)] hover:bg-[color-mix(in_srgb,var(--theme-surface-alt)_92%,var(--theme-accent)_8%)] active:brightness-95 focus-visible:ring-[color:var(--theme-focus-ring)]',
       danger: 'text-white bg-red-600 hover:bg-red-700 focus-visible:ring-red-300',
       success:
         'text-white bg-green-600 hover:bg-green-700 focus-visible:ring-green-300',
@@ -35,14 +35,14 @@ export const customFlowbiteTheme = {
   navbar: {
     link: {
       base:
-        'flex items-center gap-2 py-2 px-3 rounded-radius-md text-ink-700 dark:text-ink-100 hover:bg-ink-100 dark:hover:bg-ink-800/60 focus-visible:ring-2 focus-visible:ring-brand-400',
+        'flex items-center gap-2 py-2 px-3 rounded-radius-md text-[color:var(--theme-text-secondary)] hover:bg-[color:var(--theme-surface-alt)] focus-visible:ring-2 focus-visible:ring-[color:var(--theme-focus-ring)]',
       active: {
-        on: 'bg-ink-100 dark:bg-ink-800/60 text-ink-900 dark:text-white',
+        on: 'bg-[color:var(--theme-surface-alt)] text-[color:var(--theme-text-primary)] shadow-soft',
         off: '',
       },
     },
     toggle: {
-      base: 'text-ink-700 hover:text-ink-900 dark:text-ink-100',
+      base: 'text-[color:var(--theme-text-secondary)] hover:text-[color:var(--theme-text-primary)]',
     },
   },
   modal: {
@@ -55,22 +55,22 @@ export const customFlowbiteTheme = {
     },
     content: {
       base:
-        'relative w-full p-0 m-4 sm:m-6 max-w-lg sm:max-w-xl bg-white dark:bg-ink-800 rounded-radius-lg shadow-elevated border border-ink-200/50 dark:border-ink-700/60',
+        'relative w-full p-0 m-4 sm:m-6 max-w-lg sm:max-w-xl bg-[color:var(--theme-surface)] rounded-radius-lg shadow-elevated border border-[color:var(--theme-border-soft)]',
     },
     header: {
-      base: 'flex items-start justify-between py-3 px-4 border-b border-ink-200/60 dark:border-ink-700/60',
-      title: 'text-base font-semibold text-ink-800 dark:text-ink-100',
+      base: 'flex items-start justify-between py-3 px-4 border-b border-[color:var(--theme-border-soft)]',
+      title: 'text-base font-semibold text-[color:var(--theme-text-primary)]',
       close: {
         base:
-          'ml-auto inline-flex items-center rounded-radius-md p-1.5 text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-700/60 hover:text-ink-700 focus-visible:ring-2 focus-visible:ring-brand-400',
+          'ml-auto inline-flex items-center rounded-radius-md p-1.5 text-[color:var(--theme-text-secondary)] hover:bg-[color:var(--theme-surface-alt)] hover:text-[color:var(--theme-text-primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--theme-focus-ring)]',
         icon: 'w-5 h-5',
       },
     },
     body: {
-      base: 'p-4 text-ink-700 dark:text-ink-100',
+      base: 'p-4 text-[color:var(--theme-text-secondary)]',
     },
     footer: {
-      base: 'flex items-center justify-end gap-2 p-4 border-t border-ink-200/60 dark:border-ink-700/60',
+      base: 'flex items-center justify-end gap-2 p-4 border-t border-[color:var(--theme-border-soft)]',
     },
   },
   textInput: {
@@ -78,7 +78,7 @@ export const customFlowbiteTheme = {
       base: 'relative w-full',
       input: {
         base:
-          'block w-full rounded-radius-md border border-ink-300 bg-white text-ink-900 placeholder-ink-400 focus:border-brand-400 focus:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-ink-800 dark:text-ink-100 dark:border-ink-700 dark:placeholder-ink-500',
+          'block w-full rounded-radius-md border border-[color:var(--theme-border-soft)] bg-[color:var(--theme-surface)] text-[color:var(--theme-text-primary)] placeholder-[color:var(--theme-text-subtle)] focus:border-[color:var(--theme-accent)] focus:ring-[color:var(--theme-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60',
         colors: {
           gray: '',
         },
@@ -89,7 +89,7 @@ export const customFlowbiteTheme = {
         },
       },
       addon:
-        'inline-flex items-center rounded-l-radius-md border border-r-0 border-ink-300 bg-ink-100 px-3 text-ink-600 dark:border-ink-700 dark:bg-ink-700 dark:text-ink-200',
+        'inline-flex items-center rounded-l-radius-md border border-r-0 border-[color:var(--theme-border-soft)] bg-[color:var(--theme-surface-alt)] px-3 text-[color:var(--theme-text-secondary)]',
     },
   },
   select: {
@@ -97,7 +97,7 @@ export const customFlowbiteTheme = {
       base: 'relative w-full',
       select: {
         base:
-          'block w-full rounded-radius-md border border-ink-300 bg-white text-ink-900 focus:border-brand-400 focus:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-ink-800 dark:text-ink-100 dark:border-ink-700',
+          'block w-full rounded-radius-md border border-[color:var(--theme-border-soft)] bg-[color:var(--theme-surface)] text-[color:var(--theme-text-primary)] focus:border-[color:var(--theme-accent)] focus:ring-[color:var(--theme-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60',
         sizes: {
           sm: 'p-2 text-sm',
           md: 'p-2.5 text-sm',
@@ -109,12 +109,12 @@ export const customFlowbiteTheme = {
   tooltip: {
     target: 'focus:outline-none',
     base:
-      'absolute z-10 inline-block rounded-radius-md px-3 py-1.5 text-xs font-medium shadow-soft bg-ink-900 text-white dark:bg-ink-700',
+      'absolute z-10 inline-block rounded-radius-md px-3 py-1.5 text-xs font-medium shadow-soft bg-[color:var(--theme-text-primary)] text-[color:var(--theme-accent-contrast)]',
     arrow: {
-      base: 'absolute h-2 w-2 rotate-45 bg-ink-900 dark:bg-ink-700',
+      base: 'absolute h-2 w-2 rotate-45 bg-[color:var(--theme-text-primary)]',
       style: {
-        dark: 'bg-ink-700',
-        light: 'bg-ink-900',
+        dark: 'bg-[color:var(--theme-text-primary)]',
+        light: 'bg-[color:var(--theme-text-primary)]',
       },
       placement: '-4px',
     },
@@ -137,9 +137,8 @@ export const customFlowbiteTheme = {
   },
   spinner: {
     color: {
-      primary: 'fill-brand-500 text-ink-200',
-      gray: 'fill-ink-500 text-ink-200',
+      primary: 'fill-[var(--theme-accent)] text-[color:var(--theme-surface-alt)]',
+      gray: 'fill-[color:var(--theme-text-secondary)] text-[color:var(--theme-surface-alt)]',
     },
   },
 };
-

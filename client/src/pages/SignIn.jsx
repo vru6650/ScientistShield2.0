@@ -13,7 +13,7 @@ import {
 } from '../redux/user/userSlice';
 import { signInUser } from '../services/authService';
 import OAuth from '../components/OAuth';
-import MatrixEffect from '../components/MatrixEffect.jsx'; // Corrected: Default import
+import MatrixEffect from '../components/MatrixEffect.jsx';
 
 // Validation schema using Zod
 const signInSchema = z.object({
@@ -46,23 +46,24 @@ export default function SignIn() {
   };
 
   return (
-      <div className='min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gray-900'>
-        <MatrixEffect />
+      <div className='min-h-screen flex items-center justify-center p-4 relative overflow-hidden'>
+        {/* Subtle on-brand matrix effect for depth */}
+        <MatrixEffect color="#64A2E7" tailColor="rgba(100,162,231,0.45)" />
         <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className='w-full max-w-4xl mx-auto bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl border border-gray-200/20 grid md:grid-cols-2 gap-8'
+            className='w-full max-w-4xl mx-auto bg-white/80 dark:bg-ink-800/80 backdrop-blur-lg p-8 rounded-2xl shadow-xl border border-gray-200/40 dark:border-ink-700/50 grid md:grid-cols-2 gap-8'
         >
           {/* Left Side */}
-          <div className='flex-1 flex flex-col justify-center text-white'>
+          <div className='flex-1 flex flex-col justify-center text-ink-900 dark:text-white'>
             <Link to='/' className='font-bold text-4xl'>
-            <span className='px-2 py-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-lg text-white'>
-              Sahand's
-            </span>
-              Blog
+              <span className='px-2 py-1 bg-professional-gradient rounded-lg text-white'>
+                Scientist
+              </span>
+              <span className='ml-2'>Shield</span>
             </Link>
-            <p className='text-sm mt-5 text-gray-300'>
+            <p className='text-sm mt-5 text-ink-600 dark:text-gray-300'>
               This is a demo project. You can sign in with your email and password
               or with Google.
             </p>
@@ -70,13 +71,13 @@ export default function SignIn() {
 
           {/* Right Side */}
           <div className='flex-1'>
-            <h2 className="text-2xl font-bold text-white mb-6 text-center">Welcome Back</h2>
+            <h2 className="text-2xl font-bold text-ink-900 dark:text-white mb-6 text-center">Welcome Back</h2>
             <form
                 className='flex flex-col gap-4'
                 onSubmit={handleSubmit(handleFormSubmit)}
             >
               <div>
-                <Label value='Your email' className="text-gray-200" />
+                <Label value='Your email' className="text-ink-700 dark:text-gray-200" />
                 <TextInput
                     type='email'
                     placeholder='name@company.com'
@@ -85,13 +86,13 @@ export default function SignIn() {
                     className="mt-1"
                 />
                 {errors.email && (
-                    <p className='text-red-400 text-sm mt-1'>
+                    <p className='text-red-600 dark:text-red-400 text-sm mt-1'>
                       {errors.email.message}
                     </p>
                 )}
               </div>
               <div>
-                <Label value='Your password' className="text-gray-200" />
+                <Label value='Your password' className="text-ink-700 dark:text-gray-200" />
                 <TextInput
                     type='password'
                     placeholder='**********'
@@ -100,13 +101,13 @@ export default function SignIn() {
                     className="mt-1"
                 />
                 {errors.password && (
-                    <p className='text-red-400 text-sm mt-1'>
+                    <p className='text-red-600 dark:text-red-400 text-sm mt-1'>
                       {errors.password.message}
                     </p>
                 )}
               </div>
               <Button
-                  gradientDuoTone='purpleToPink'
+                  color='primary'
                   type='submit'
                   disabled={loading}
                   className="mt-4"
@@ -121,9 +122,9 @@ export default function SignIn() {
                 )}
               </Button>
               <div className="flex items-center my-4">
-                <hr className="flex-grow border-gray-600" />
-                <span className="mx-4 text-gray-400">or</span>
-                <hr className="flex-grow border-gray-600" />
+                <hr className="flex-grow border-gray-200 dark:border-gray-600" />
+                <span className="mx-4 text-gray-500 dark:text-gray-400">or</span>
+                <hr className="flex-grow border-gray-200 dark:border-gray-600" />
               </div>
               <OAuth />
             </form>

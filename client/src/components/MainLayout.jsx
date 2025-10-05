@@ -7,12 +7,13 @@ import ScrollToTop from './ScrollToTop';
 import BottomNav from './BottomNav';
 import RouteProgressBar from './RouteProgressBar.jsx';
 import PageAnnouncer from './PageAnnouncer.jsx';
+import { DockProvider } from '../contexts/DockContext.jsx';
 
 export default function MainLayout() {
     const location = useLocation();
 
     return (
-        <>
+        <DockProvider>
             <ScrollToTop />
             <RouteProgressBar />
             <Header />
@@ -36,6 +37,6 @@ export default function MainLayout() {
             </div>
             <Footer />
             <BottomNav />
-        </>
+        </DockProvider>
     );
 }

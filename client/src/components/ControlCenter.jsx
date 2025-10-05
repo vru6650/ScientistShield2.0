@@ -16,7 +16,7 @@ import {
     HiOutlineBellAlert,
     HiOutlineBolt,
 } from 'react-icons/hi2';
-import { toggleTheme } from '../redux/theme/themeSlice';
+import { toggleTheme, setThemePreference } from '../redux/theme/themeSlice';
 
 const focusModes = [
     { id: 'off', label: 'Off' },
@@ -140,8 +140,14 @@ export default function ControlCenter() {
     const searchInputRef = useRef(null);
 
     const dispatch = useDispatch();
-    const { theme } = useSelector((state) => state.theme);
+    const { theme, preference } = useSelector((state) => state.theme);
     const isDarkMode = theme === 'dark';
+
+    const cycleThemePreference = () => {
+        if (preference === 'light') return dispatch(setThemePreference('dark'));
+        if (preference === 'dark') return dispatch(setThemePreference('system'));
+        return dispatch(setThemePreference('light'));
+    };
 
     const focusSummary = useMemo(() => {
         switch (focusMode) {
@@ -322,11 +328,21 @@ export default function ControlCenter() {
             },
             {
                 id: 'appearance-toggle',
-                label: isDarkMode ? 'Switch to light appearance' : 'Switch to dark appearance',
-                description: isDarkMode ? 'Disable dark theme' : 'Enable dark theme',
-                keywords: ['appearance', 'theme', 'dark mode', 'light mode'],
-                icon: isDarkMode ? HiOutlineMoon : HiOutlineSun,
-                action: () => dispatch(toggleTheme()),
+                label:
+                    preference === 'system'
+                        ? 'Appearance • Auto (System)'
+                        : isDarkMode
+                        ? 'Appearance • Dark'
+                        : 'Appearance • Light',
+                description:
+                    preference === 'system'
+                        ? 'Follow OS preference'
+                        : isDarkMode
+                        ? 'Dark theme enabled'
+                        : 'Light theme enabled',
+                keywords: ['appearance', 'theme', 'dark mode', 'light mode', 'system'],
+                icon: preference === 'system' ? HiOutlineComputerDesktop : isDarkMode ? HiOutlineMoon : HiOutlineSun,
+                action: cycleThemePreference,
             },
             {
                 id: 'focus-dnd',
@@ -560,11 +576,11 @@ export default function ControlCenter() {
                                 onClick={() => setHotspotEnabled((prev) => !prev)}
                             />
                             <QuickToggle
-                                icon={isDarkMode ? HiOutlineMoon : HiOutlineSun}
+                                icon={preference === 'system' ? HiOutlineComputerDesktop : isDarkMode ? HiOutlineMoon : HiOutlineSun}
                                 label="Appearance"
                                 active={isDarkMode}
-                                detail={isDarkMode ? 'Dark theme enabled' : 'Light theme enabled'}
-                                onClick={() => dispatch(toggleTheme())}
+                                detail={preference === 'system' ? 'Auto (System)' : isDarkMode ? 'Dark' : 'Light'}
+                                onClick={cycleThemePreference}
                             />
                         </div>
 

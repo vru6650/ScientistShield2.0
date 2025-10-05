@@ -54,6 +54,7 @@
     "highlight.js": "^11.11.1",
     "html-react-parser": "^5.2.6",
     "lowlight": "^3.3.0",
+    "lucide-react": "^0.544.0",
     "moment": "^2.29.4",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",

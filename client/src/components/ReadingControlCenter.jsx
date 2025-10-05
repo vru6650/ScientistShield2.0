@@ -1,5 +1,5 @@
 // client/src/components/ReadingControlCenter.jsx
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import {
     HiOutlineAdjustmentsHorizontal,
     HiOutlineXMark,
@@ -14,6 +14,8 @@ import {
 import { LuAlignLeft, LuAlignJustify } from 'react-icons/lu';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { marginStyleMap } from '../hooks/useReadingSettings';
+import PropTypes from 'prop-types';
+import { useDock } from '../contexts/DockContext.jsx';
 
 const themeOptions = [
     { id: 'auto', label: 'Auto', swatch: 'bg-gradient-to-r from-slate-200 via-white to-slate-200', description: 'Follow site theme' },
@@ -85,7 +87,14 @@ const themePreviewClassMap = {
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-export default function ReadingControlCenter({ settings, onChange, onReset }) {
+const ReadingControlCenter = forwardRef(function ReadingControlCenter({
+    settings,
+    onChange,
+    onReset,
+    showFloatingTrigger = true,
+    placement = 'bottom-right',
+    onVisibilityChange,
+}, ref) {
     const [isOpen, setIsOpen] = useState(false);
     const panelRef = useRef(null);
     const triggerRef = useRef(null);
@@ -95,6 +104,55 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
     const [isReadingAloud, setIsReadingAloud] = useState(false);
     const [voices, setVoices] = useState([]);
     const scrollRAF = useRef(null);
+    const { registerDockItem } = useDock();
+
+    const placementClass = placement === 'bottom-center'
+        ? 'fixed bottom-8 left-1/2 z-50 flex flex-col items-center gap-4 -translate-x-1/2'
+        : 'fixed bottom-8 right-8 z-50 flex flex-col items-end gap-4';
+
+    const panelOriginClass = placement === 'bottom-center'
+        ? 'origin-bottom'
+        : 'origin-bottom-right';
+    const [isRegisteredWithDock, setIsRegisteredWithDock] = useState(false);
+    const isOpenRef = useRef(isOpen);
+
+    useEffect(() => {
+        isOpenRef.current = isOpen;
+    }, [isOpen]);
+
+    const togglePanel = useCallback(() => {
+        setIsOpen((prev) => !prev);
+    }, []);
+
+    const closePanel = useCallback(() => setIsOpen(false), []);
+
+    useEffect(() => {
+        if (!registerDockItem) return undefined;
+        setIsRegisteredWithDock(true);
+        const unregister = registerDockItem({
+            key: 'reading-controls',
+            type: 'action',
+            label: 'Reading Controls',
+            Icon: HiOutlineAdjustmentsHorizontal,
+            onSelect: togglePanel,
+            isActive: () => isOpenRef.current,
+        });
+        return () => {
+            setIsRegisteredWithDock(false);
+            unregister?.();
+        };
+    }, [registerDockItem, togglePanel]);
+
+    useEffect(() => {
+        onVisibilityChange?.(isOpen);
+    }, [isOpen, onVisibilityChange]);
+
+    useImperativeHandle(ref, () => ({
+        toggle: togglePanel,
+        open: () => setIsOpen(true),
+        close: () => setIsOpen(false),
+        isOpen: () => isOpenRef.current,
+    }), [togglePanel]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -330,18 +388,20 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
 
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-            <motion.button
-                ref={triggerRef}
-                type="button"
-                onClick={() => setIsOpen(prev => !prev)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 rounded-full bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2 shadow-lg shadow-slate-900/20 dark:shadow-slate-900/40 focus:outline-none focus:ring-2 focus:ring-sky-400"
-            >
-                <HiOutlineAdjustmentsHorizontal className="h-5 w-5" />
-                <span className="font-semibold text-sm">Reading Controls</span>
-            </motion.button>
+        <div className={placementClass}>
+            {showFloatingTrigger && !isRegisteredWithDock && (
+                <motion.button
+                    ref={triggerRef}
+                    type="button"
+                    onClick={togglePanel}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 rounded-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white/95 px-5 py-2 shadow-[0_20px_40px_-24px_rgba(14,116,144,0.85)] backdrop-blur-sm transition hover:shadow-[0_24px_50px_-22px_rgba(14,116,144,0.95)] dark:from-slate-100 dark:via-slate-200 dark:to-slate-300 dark:text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400/70"
+                >
+                    <HiOutlineAdjustmentsHorizontal className="h-5 w-5" />
+                    <span className="font-semibold text-sm tracking-wide">Reading Controls</span>
+                </motion.button>
+            )}
 
             <AnimatePresence>
                 {isOpen && (
@@ -352,27 +412,30 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
                         dragControls={dragControls} // 4. Connect controls
                         dragMomentum={false}
                         dragConstraints={{ top: 20, left: 20, right: window.innerWidth - 340, bottom: window.innerHeight - 600 }} // Keep it in viewport
-                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                        initial={{ opacity: 0, y: 24, scale: 0.86, rotateX: -8 }}
+                        animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+                        exit={{ opacity: 0, y: 18, scale: 0.9, rotateX: -6 }}
+                        transition={{ type: 'spring', stiffness: 280, damping: 24 }}
                         id="reading-control-panel"
                         role="dialog"
                         aria-label="Reading Control Center"
-                        className="w-80 max-w-sm rounded-3xl border border-slate-200 bg-white/90 p-5 text-slate-800 shadow-2xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100 origin-bottom-right"
+                        className={`w-[21rem] max-w-sm rounded-[2.2rem] border border-white/40 bg-gradient-to-br from-white/95 via-white/80 to-white/60 p-6 text-slate-800 shadow-[0_55px_120px_-50px_rgba(14,116,144,0.6),0_25px_60px_-40px_rgba(14,116,144,0.45)] backdrop-blur-[22px] backdrop-saturate-150 dark:border-slate-600/40 dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-900/75 dark:to-slate-900/60 dark:text-slate-100 ${panelOriginClass}`}
                     >
                         {/* 5. Create a drag handle */}
                         <motion.div
                             onPointerDown={(e) => dragControls.start(e)}
-                            className="mb-4 flex items-start justify-between cursor-grab active:cursor-grabbing"
+                            className="mb-5 flex items-start justify-between rounded-[1.5rem] bg-slate-100/80 px-4 py-3 cursor-grab shadow-inner shadow-white/40 active:cursor-grabbing dark:bg-slate-800/60"
                         >
                             <div>
-                                <h3 className="text-lg font-semibold">Reading Control Center</h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                    <HiOutlineArrowsPointingOut/> Drag to move panel
+                                <div className="flex items-center gap-2">
+                                    <HiOutlineAdjustmentsHorizontal className="h-5 w-5 text-sky-500 dark:text-sky-300" />
+                                    <h3 className="text-xl font-semibold leading-tight">Reading Control Center</h3>
+                                </div>
+                                <p className="mt-1 flex items-center gap-1 text-[0.7rem] uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                                    <HiOutlineArrowsPointingOut className="h-3 w-3" /> Drag &amp; fine-tune your experience
                                 </p>
                             </div>
-                            <button type="button" onClick={() => setIsOpen(false)} className="rounded-full p-1 text-slate-500 transition hover:bg-slate-200/60 hover:text-slate-900 dark:hover:bg-slate-700/60 cursor-pointer">
+                            <button type="button" onClick={closePanel} className="rounded-full bg-white/70 p-1.5 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400/60 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700">
                                 <HiOutlineXMark className="h-5 w-5" />
                             </button>
                         </motion.div>
@@ -787,4 +850,21 @@ export default function ReadingControlCenter({ settings, onChange, onReset }) {
             </AnimatePresence>
         </div>
     );
-}
+});
+
+ReadingControlCenter.propTypes = {
+    settings: PropTypes.object.isRequired,
+    onChange: PropTypes.func.isRequired,
+    onReset: PropTypes.func.isRequired,
+    showFloatingTrigger: PropTypes.bool,
+    placement: PropTypes.oneOf(['bottom-right', 'bottom-center']),
+    onVisibilityChange: PropTypes.func,
+};
+
+ReadingControlCenter.defaultProps = {
+    showFloatingTrigger: true,
+    placement: 'bottom-right',
+    onVisibilityChange: undefined,
+};
+
+export default ReadingControlCenter;
