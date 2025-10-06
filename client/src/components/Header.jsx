@@ -1,55 +1,15 @@
 // client/src/components/Header.jsx
-import { Avatar, Tooltip } from 'flowbite-react';
+import { Avatar } from 'flowbite-react';
 import { Link, useLocation } from 'react-router-dom';
-import { AiOutlineSearch } from 'react-icons/ai';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { useEffect, useState, useRef, useMemo } from 'react';
-import PropTypes from 'prop-types';
-import { HiOutlineBars3, HiOutlineXMark, HiOutlinePencilSquare } from 'react-icons/hi2';
+import { HiOutlineBars3, HiOutlineXMark } from 'react-icons/hi2';
 
 import { signoutSuccess } from '../redux/user/userSlice';
 import CommandMenu from './CommandMenu';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
 import usePrefersReducedMotion from '../hooks/usePrefersReducedMotion';
-
-// --- Reusable Components ---
-
-function Magnetic({ children }) {
-    const ref = useRef(null);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-
-    const handleMouse = (event) => {
-        if (!ref.current) {
-            return;
-        }
-
-        const { clientX, clientY } = event;
-        const { height, width, left, top } = ref.current.getBoundingClientRect();
-        const middleX = clientX - (left + width / 2);
-        const middleY = clientY - (top + height / 2);
-        setPosition({ x: middleX * 0.1, y: middleY * 0.1 });
-    };
-
-    const reset = () => setPosition({ x: 0, y: 0 });
-    const { x, y } = position;
-
-    return (
-        <motion.div
-            ref={ref}
-            onMouseMove={handleMouse}
-            onMouseLeave={reset}
-            animate={{ x, y }}
-            transition={{ type: 'spring', stiffness: 350, damping: 5, mass: 0.5 }}
-        >
-            {children}
-        </motion.div>
-    );
-}
-
-Magnetic.propTypes = {
-    children: PropTypes.node.isRequired,
-};
 
 const spotlightColors = {
     light: 'rgba(108, 133, 255, 0.18)',
@@ -267,44 +227,8 @@ export default function Header() {
                             </nav>
 
                             <div className="col-span-12 flex flex-wrap items-center justify-end gap-2 sm:gap-3 lg:col-span-3">
-                                <Magnetic>
-                                    <Tooltip content="Open universal search (⌘+K)">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsCommandMenuOpen(true)}
-                                            aria-controls="command-menu"
-                                            aria-expanded={isCommandMenuOpen}
-                                            className="hidden md:inline-flex min-w-[210px] items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/75 px-3 py-2 text-sm font-medium text-gray-500 shadow-sm transition hover:bg-white hover:text-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:border-gray-700/60 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:text-brand-200"
-                                        >
-                                            <span className="inline-flex items-center gap-2">
-                                                <AiOutlineSearch className="h-4 w-4" />
-                                                <span>Search the library</span>
-                                            </span>
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                                                ⌘<span>K</span>
-                                            </span>
-                                        </button>
-                                    </Tooltip>
-                                </Magnetic>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCommandMenuOpen(true)}
-                                    aria-label="Open search"
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/60 bg-white/75 text-gray-600 hover:bg-white hover:text-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:border-gray-700/60 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:text-brand-200 md:hidden"
-                                >
-                                    <AiOutlineSearch className="h-5 w-5" />
-                                </button>
-
                                 {currentUser ? (
                                     <>
-                                        <Link
-                                            to="/create-post"
-                                            className="hidden sm:inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/40"
-                                        >
-                                            <HiOutlinePencilSquare className="h-4 w-4" />
-                                            New Post
-                                        </Link>
                                         <div className="hidden xl:flex flex-col text-right text-xs leading-tight text-gray-500 dark:text-gray-400">
                                             <span className="uppercase tracking-[0.32em] text-[10px] text-gray-400 dark:text-gray-500">
                                                 Welcome back
@@ -442,28 +366,6 @@ export default function Header() {
                                     className="mt-3 rounded-2xl border border-white/60 bg-white/90 p-4 text-sm shadow-xl backdrop-blur-xl dark:border-gray-700/60 dark:bg-gray-900/90 lg:hidden"
                                     id="mobile-menu-panel"
                                 >
-                                    <div className="mb-4 flex flex-col gap-2 md:hidden">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setIsCommandMenuOpen(true);
-                                                setIsMobileMenuOpen(false);
-                                            }}
-                                            className="w-full rounded-2xl border border-white/60 bg-white/80 px-3 py-2 text-left font-semibold text-ink-600 shadow-sm hover:bg-white hover:text-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:border-gray-700/60 dark:bg-gray-900/70 dark:text-ink-100"
-                                        >
-                                            Explore the workspace
-                                        </button>
-                                        {currentUser ? (
-                                            <Link
-                                                to="/create-post"
-                                                onClick={() => setIsMobileMenuOpen(false)}
-                                                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/40"
-                                            >
-                                                <HiOutlinePencilSquare className="h-4 w-4" />
-                                                New Post
-                                            </Link>
-                                        ) : null}
-                                    </div>
 
                                     <nav className="space-y-2">
                                         {navLinks.map((link) => (
