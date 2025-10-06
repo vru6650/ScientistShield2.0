@@ -4,23 +4,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { AiOutlineSearch } from 'react-icons/ai';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import {
-    HiOutlineSparkles,
-    HiOutlineClock,
-    HiOutlineCalendarDays,
-    HiOutlineBars3,
-    HiOutlineXMark,
-    HiOutlinePencilSquare,
-    HiOutlineWifi,
-    HiOutlineSpeakerWave,
-} from 'react-icons/hi2';
+import { HiOutlineBars3, HiOutlineXMark, HiOutlinePencilSquare } from 'react-icons/hi2';
 
 import { signoutSuccess } from '../redux/user/userSlice';
 import CommandMenu from './CommandMenu';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
-import ControlCenter from './ControlCenter.jsx';
 import usePrefersReducedMotion from '../hooks/usePrefersReducedMotion';
 
 // --- Reusable Components ---
@@ -75,12 +65,6 @@ const navLinks = [
     { label: 'Code Visualizer', path: '/visualizer' },
 ];
 
-const windowControls = [
-    { id: 'close', label: 'Close window', color: 'bg-[#ff5f57]' },
-    { id: 'minimize', label: 'Minimize window', color: 'bg-[#febb2e]' },
-    { id: 'maximize', label: 'Zoom window', color: 'bg-[#28c840]' },
-];
-
 // --- Main Header Component ---
 export default function Header() {
     const path = useLocation().pathname;
@@ -95,7 +79,6 @@ export default function Header() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isSigningOut, setIsSigningOut] = useState(false);
-    const [currentMoment, setCurrentMoment] = useState(() => new Date());
 
     const { scrollY } = useScroll();
     const headerRef = useRef(null);
@@ -135,11 +118,6 @@ export default function Header() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
-
-    useEffect(() => {
-        const interval = setInterval(() => setCurrentMoment(new Date()), 60_000);
-        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
@@ -187,31 +165,6 @@ export default function Header() {
         setIsLogoutModalOpen(true);
     };
 
-    const formattedTime = useMemo(
-        () => currentMoment.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        [currentMoment],
-    );
-
-    const formattedDate = useMemo(
-        () =>
-            currentMoment.toLocaleDateString([], {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-            }),
-        [currentMoment],
-    );
-
-    const statusItems = useMemo(
-        () => [
-            { icon: HiOutlineWifi, label: 'Wi-Fi' },
-            { icon: HiOutlineSpeakerWave, label: 'Sound' },
-            { icon: HiOutlineClock, label: formattedTime },
-            { icon: HiOutlineCalendarDays, label: formattedDate },
-        ],
-        [formattedDate, formattedTime],
-    );
-
     const dropdownVariants = useMemo(() => {
         const d = prefersReducedMotion ? 0 : 0.2;
         return {
@@ -258,40 +211,7 @@ export default function Header() {
                         )}
                     </motion.div>
 
-                    <div className="relative z-10 flex flex-col gap-6 px-4 py-5 sm:px-6 lg:px-7">
-                        <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] font-medium tracking-[0.28em] text-ink-400 dark:text-ink-300">
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2" aria-hidden="true">
-                                    {windowControls.map(({ id, label, color }) => (
-                                        <span
-                                            key={id}
-                                            className={`h-3.5 w-3.5 rounded-full ${color} shadow-sm ring-1 ring-black/5 dark:ring-white/10`}
-                                            title={label}
-                                        />
-                                    ))}
-                                </div>
-                                <span className="hidden md:inline-flex items-center gap-2 text-ink-500">
-                                    <HiOutlineSparkles className="h-3.5 w-3.5" />
-                                    Creator Mode Active
-                                </span>
-                                <span className="sr-only">Application window controls</span>
-                            </div>
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-ink-500 sm:hidden">
-                                {formattedTime}
-                            </span>
-                            <div className="hidden sm:flex flex-wrap items-center gap-2 sm:gap-3">
-                                {statusItems.map(({ icon: Icon, label }) => (
-                                    <span
-                                        key={label}
-                                        className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-ink-400 shadow-sm dark:border-gray-700/60 dark:bg-gray-900/70 dark:text-ink-100"
-                                    >
-                                        <Icon className="h-3.5 w-3.5" />
-                                        {label}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-
+                    <div className="relative z-10 flex flex-col gap-5 px-4 py-5 sm:px-6 lg:px-7">
                         <div className="grid grid-cols-12 items-center gap-4">
                             <div className="col-span-12 md:col-span-4 flex items-center gap-4">
                                 <Link
@@ -375,10 +295,6 @@ export default function Header() {
                                 >
                                     <AiOutlineSearch className="h-5 w-5" />
                                 </button>
-
-                                <div className="hidden sm:block">
-                                    <ControlCenter />
-                                </div>
 
                                 {currentUser ? (
                                     <>
@@ -477,17 +393,6 @@ export default function Header() {
                             </div>
                         </div>
 
-                        <div className="hidden md:flex items-center justify-between rounded-2xl border border-white/60 bg-white/70 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-ink-400 shadow-sm dark:border-gray-700/60 dark:bg-gray-900/70 dark:text-ink-200">
-                            <span className="flex items-center gap-2">
-                                <span className="inline-flex h-2 w-2 rounded-full bg-brand-500" aria-hidden />
-                                Mission Control Ready
-                            </span>
-                            <span className="flex items-center gap-2 text-ink-500 dark:text-ink-300">
-                                <HiOutlineClock className="h-4 w-4" />
-                                {formattedDate} · {formattedTime}
-                            </span>
-                        </div>
-
                         <div className="flex flex-col gap-3 lg:hidden">
                             <div className="flex items-center gap-3">
                                 <div className="flex flex-1 items-center gap-2 overflow-x-auto rounded-2xl border border-white/60 bg-white/80 px-2 py-2 shadow-sm dark:border-gray-700/60 dark:bg-gray-900/80">
@@ -525,10 +430,6 @@ export default function Header() {
                                     )}
                                 </button>
                             </div>
-                            <div className="flex items-center justify-between rounded-2xl border border-dashed border-brand-500/30 bg-brand-500/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600 dark:border-brand-400/20 dark:bg-brand-400/10 dark:text-brand-200">
-                                <span>Focus Mode</span>
-                                <span>{formattedDate}</span>
-                            </div>
                         </div>
 
                         <AnimatePresence>
@@ -552,9 +453,6 @@ export default function Header() {
                                         >
                                             Explore the workspace
                                         </button>
-                                        <div className="rounded-2xl border border-dashed border-brand-500/30 bg-brand-500/5 px-3 py-2 dark:border-brand-400/20 dark:bg-brand-400/10">
-                                            <ControlCenter />
-                                        </div>
                                         {currentUser ? (
                                             <Link
                                                 to="/create-post"
