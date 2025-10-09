@@ -154,20 +154,18 @@ export default function Header() {
         >
           <div ref={headerRef} onMouseMove={handleMouseMove} className="relative mx-auto max-w-6xl">
             <motion.div
-                className="absolute inset-0 h-full w-full rounded-radius-full border shadow-lg backdrop-blur-lg overflow-hidden"
+                className="bigsur-menubar absolute inset-0 h-full w-full overflow-hidden rounded-radius-full shadow-lg"
                 style={{
-                  borderColor: theme === 'light' ? 'rgba(229, 231, 235, 0.7)' : 'rgba(55, 65, 81, 0.7)',
-                  backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(23, 31, 42, 0.6)',
-                  '--spotlight-color-light': 'rgba(200, 200, 200, 0.1)',
-                  '--spotlight-color-dark': 'rgba(255, 255, 255, 0.05)',
+                  '--bigsur-menubar-spotlight':
+                        theme === 'light'
+                            ? 'rgba(255, 255, 255, 0.65)'
+                            : 'rgba(148, 163, 184, 0.28)',
                 }}
             >
               <motion.div
-                  className="absolute inset-0"
+                  className="bigsur-menubar__spotlight absolute inset-0"
                   style={{
-                    backgroundImage: `radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${
-                        theme === 'light' ? 'var(--spotlight-color-light)' : 'var(--spotlight-color-dark)'
-                    }, transparent 35%)`,
+                    backgroundImage: `radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--bigsur-menubar-spotlight), transparent 35%)`,
                   }}
               />
             </motion.div>

@@ -164,6 +164,280 @@ button:focus-visible {
 }
 
 /*
+ * --- Big Sur Scenic Wallpaper Layer ---
+ * Creates a luminous, soft-focus background inspired by macOS Big Sur.
+ */
+.bigsur-theme {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+  color: var(--color-text-primary);
+  background: radial-gradient(circle at 50% -30%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.35)),
+    linear-gradient(180deg, var(--color-bg-secondary), rgba(255, 255, 255, 0.4));
+}
+
+.dark .bigsur-theme {
+  color: var(--color-text-primary);
+  background: radial-gradient(circle at 50% -20%, rgba(30, 64, 175, 0.22), rgba(15, 23, 42, 0.82)),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.88));
+}
+
+.bigsur-backdrop {
+  position: fixed;
+  inset: -25vh -25vw;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1200px 680px at 15% -15%, rgba(10, 132, 255, 0.25), transparent 60%),
+    radial-gradient(900px 580px at 85% -5%, rgba(255, 105, 180, 0.22), transparent 60%),
+    radial-gradient(1200px 640px at 40% 110%, rgba(53, 184, 168, 0.18), transparent 70%),
+    linear-gradient(140deg, rgba(246, 248, 254, 0.95), rgba(235, 245, 255, 0.75));
+  transform: translate3d(0, 0, 0);
+  opacity: 0.95;
+}
+
+.dark .bigsur-backdrop {
+  background-image:
+    radial-gradient(1200px 720px at 15% -15%, rgba(30, 64, 175, 0.28), transparent 60%),
+    radial-gradient(900px 580px at 85% -5%, rgba(236, 72, 153, 0.22), transparent 60%),
+    radial-gradient(1200px 640px at 40% 110%, rgba(14, 165, 233, 0.16), transparent 70%),
+    linear-gradient(140deg, rgba(5, 11, 27, 0.95), rgba(15, 23, 42, 0.9));
+  opacity: 0.85;
+}
+
+.bigsur-haze {
+  position: fixed;
+  inset: 15% 12% -35% 12%;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
+  filter: blur(140px);
+  opacity: 0.65;
+  mix-blend-mode: lighten;
+}
+
+.dark .bigsur-haze {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0));
+  opacity: 0.45;
+  mix-blend-mode: normal;
+}
+
+.bigsur-highlight {
+  position: fixed;
+  width: clamp(28rem, 38vw, 36rem);
+  aspect-ratio: 1 / 1;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.45;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bigsur-highlight--left {
+  top: 8vh;
+  left: -12vw;
+  background: radial-gradient(circle at 30% 30%, rgba(10, 132, 255, 0.3), rgba(10, 132, 255, 0));
+}
+
+.bigsur-highlight--right {
+  right: -8vw;
+  bottom: -12vh;
+  background: radial-gradient(circle at 70% 70%, rgba(255, 105, 180, 0.28), rgba(255, 105, 180, 0));
+}
+
+.dark .bigsur-highlight {
+  mix-blend-mode: normal;
+  opacity: 0.3;
+}
+
+.dark .bigsur-highlight--left {
+  background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0));
+}
+
+.dark .bigsur-highlight--right {
+  background: radial-gradient(circle at 70% 70%, rgba(139, 92, 246, 0.32), rgba(139, 92, 246, 0));
+}
+
+.bigsur-aurora {
+  z-index: 2;
+}
+
+.bigsur-aurora__orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(140px);
+  opacity: 0.22;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.bigsur-aurora__orb--mint {
+  top: -18%;
+  left: 6%;
+  width: 34rem;
+  height: 34rem;
+  background: radial-gradient(circle, rgba(53, 184, 168, 0.25), rgba(53, 184, 168, 0));
+}
+
+.bigsur-aurora__orb--blue {
+  bottom: -22%;
+  right: 4%;
+  width: 36rem;
+  height: 36rem;
+  background: radial-gradient(circle, rgba(10, 132, 255, 0.24), rgba(10, 132, 255, 0));
+}
+
+.bigsur-aurora__orb--violet {
+  top: 30%;
+  left: 45%;
+  width: 28rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.18), rgba(139, 92, 246, 0));
+  opacity: 0.18;
+}
+
+.dark .bigsur-aurora__orb {
+  opacity: 0.16;
+}
+
+.bigsur-main {
+  position: relative;
+  z-index: 3;
+}
+
+.bigsur-shell {
+  position: relative;
+  z-index: 3;
+  padding-top: clamp(2rem, 6vw, 4.5rem);
+  padding-bottom: clamp(2rem, 6vw, 4.5rem);
+}
+
+.bigsur-shell::before {
+  content: '';
+  position: absolute;
+  inset: clamp(-3rem, -6vw, -2rem);
+  border-radius: clamp(2.5rem, 5vw, 3.5rem);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(186, 230, 253, 0.45));
+  opacity: 0.45;
+  filter: blur(120px);
+  z-index: -2;
+  pointer-events: none;
+}
+
+.bigsur-shell::after {
+  content: '';
+  position: absolute;
+  inset: clamp(-1.4rem, -3vw, -1rem);
+  border-radius: clamp(2rem, 4vw, 3rem);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.25));
+  opacity: 0.55;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.dark .bigsur-shell::before {
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.4), rgba(14, 165, 233, 0.2));
+  opacity: 0.3;
+}
+
+.dark .bigsur-shell::after {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.65), rgba(15, 23, 42, 0.45));
+  opacity: 0.4;
+}
+
+.bigsur-shell > * {
+  position: relative;
+  z-index: 3;
+}
+
+.bigsur-menubar {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.88), rgba(246, 249, 255, 0.68));
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  transition: background-color 400ms ease, border-color 400ms ease, box-shadow 400ms ease;
+}
+
+.dark .bigsur-menubar {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: linear-gradient(120deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.72));
+}
+
+.bigsur-menubar__spotlight {
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0.9;
+  transition: opacity 300ms ease;
+}
+
+.dark .bigsur-menubar__spotlight {
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
+@keyframes bigsur-pan {
+  0% {
+    transform: translate3d(-6%, -4%, 0) scale(1.03);
+  }
+  50% {
+    transform: translate3d(4%, 5%, 0) scale(1.05);
+  }
+  100% {
+    transform: translate3d(-3%, -3%, 0) scale(1.03);
+  }
+}
+
+@keyframes bigsur-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(32px, -42px, 0) scale(1.05);
+  }
+}
+
+@keyframes bigsur-orb {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(45px, -35px, 0) scale(1.08);
+  }
+  66% {
+    transform: translate3d(-35px, 25px, 0) scale(0.96);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bigsur-backdrop {
+    animation: bigsur-pan 48s ease-in-out infinite alternate;
+  }
+
+  .bigsur-highlight {
+    animation: bigsur-float 28s ease-in-out infinite;
+  }
+
+  .bigsur-highlight--right {
+    animation-delay: 12s;
+  }
+
+  .bigsur-aurora__orb {
+    animation: bigsur-orb 32s ease-in-out infinite;
+  }
+
+  .bigsur-aurora__orb--violet {
+    animation-duration: 38s;
+    animation-direction: alternate-reverse;
+  }
+}
+
+/*
 * --- Theme Toggling ---
  * Applies the main theme colors to the body based on the class.
  */

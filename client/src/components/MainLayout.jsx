@@ -22,7 +22,7 @@ export default function MainLayout() {
                     id="main-content"
                     role="main"
                     tabIndex={-1}
-                    className="min-h-screen transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/70"
+                    className="bigsur-main min-h-screen transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/70"
                 >
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -32,7 +32,7 @@ export default function MainLayout() {
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="container">
+                            <div className="container bigsur-shell">
                                 <Outlet />
                             </div>
                         </motion.div>
