@@ -214,8 +214,9 @@ export default function Home() {
                 if (!active) return;
                 setError('Failed to load content. Please try again.');
             } finally {
-                if (!active) return;
-                setLoading(false);
+                if (active) {
+                    setLoading(false);
+                }
             }
         })();
         return () => {

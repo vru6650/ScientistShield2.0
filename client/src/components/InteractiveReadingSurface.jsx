@@ -332,6 +332,9 @@ const InteractiveReadingSurface = ({
                                        surfaceClass,
                                        className,
                                        chapterId,
+                                       readingMinutes,
+                                       hideUtilityBar,
+                                       hideHighlightsPanel,
                                    }) => {
     const containerRef = useRef(null);
     const selectionMenuRef = useRef(null);
@@ -348,8 +351,22 @@ const InteractiveReadingSurface = ({
     });
     const [selectionFeedback, setSelectionFeedback] = useState('');
     const [isSpeaking, setIsSpeaking] = useState(false);
+    // NEW: In-page search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchHits, setSearchHits] = useState([]); // [{start, end}]
+    const [currentHit, setCurrentHit] = useState(-1);
+    const [searchCaseSensitive, setSearchCaseSensitive] = useState(false);
+    const [searchWholeWord, setSearchWholeWord] = useState(false);
+    const [showHighlights, setShowHighlights] = useState(true);
+    const [progress, setProgress] = useState(0);
+    const searchInputRef = useRef(null);
 
     const parsedContent = useMemo(() => parse(content || '', parserOptions), [content, parserOptions]);
+
+    // Define early so effects can reference it safely
+    const closeSelectionMenu = useCallback(() => {
+        setSelectionMenu(null);
+    }, []);
 
     useEffect(() => {
         if (!chapterId || typeof window === 'undefined') {
@@ -416,13 +433,194 @@ const InteractiveReadingSurface = ({
 
         unwrapMarks(container, 'data-reader-highlight');
 
+        if (!showHighlights) return;
+
         const ordered = [...highlights].sort((a, b) => a.start - b.start);
         ordered.forEach((highlight) => applyHighlightRange(container, { ...highlight }));
-    }, [content, highlights]);
+    }, [content, highlights, showHighlights]);
 
-    const closeSelectionMenu = useCallback(() => {
-        setSelectionMenu(null);
+    // Helpers to manage search wrappers
+    const removeSearchMarks = useCallback((container) => {
+        if (!container) return;
+        const marks = container.querySelectorAll('mark[data-reader-search]');
+        marks.forEach((mark) => {
+            const parent = mark.parentNode;
+            if (!parent) return;
+            while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+            parent.removeChild(mark);
+        });
     }, []);
+
+    const applySearchMark = (container, start, end, active = false) => {
+        const range = createRangeFromOffsets(container, start, end);
+        if (!range) return;
+        const wrap = document.createElement('mark');
+        wrap.dataset.readerSearch = 'true';
+        wrap.className = `reader-search-hit ${active ? 'reader-search-hit-active' : ''}`;
+        wrap.appendChild(range.extractContents());
+        range.insertNode(wrap);
+        range.detach();
+    };
+
+    // Recompute and render search hits when content or query changes
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        removeSearchMarks(container);
+        setSearchHits([]);
+        setCurrentHit(-1);
+        const q = (searchQuery || '').trim();
+        if (!q || q.length < 2) return;
+        const fullText = container.textContent || '';
+        const hits = [];
+        // Build regex based on flags
+        const flags = searchCaseSensitive ? 'g' : 'gi';
+        const escaped = q.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+        const pattern = searchWholeWord ? `\\b${escaped}\\b` : escaped;
+        let re;
+        try { re = new RegExp(pattern, flags); } catch (_) { return; }
+        let m;
+        while ((m = re.exec(fullText)) !== null) {
+            hits.push({ start: m.index, end: m.index + m[0].length });
+            if (m.index === re.lastIndex) re.lastIndex++; // avoid zero-length loops
+        }
+        if (hits.length === 0) return;
+
+        // Render wrappers; mark first as active by default
+        hits.forEach((h, i) => applySearchMark(container, h.start, h.end, i === 0));
+        setSearchHits(hits);
+        setCurrentHit(0);
+        // Scroll to first
+        const first = container.querySelector('mark.reader-search-hit');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [searchQuery, content, removeSearchMarks, searchCaseSensitive, searchWholeWord]);
+
+    const jumpToHit = useCallback((direction) => {
+        if (searchHits.length === 0) return;
+        const container = containerRef.current;
+        if (!container) return;
+        // Clear active class
+        container.querySelectorAll('mark.reader-search-hit-active').forEach((el) => el.classList.remove('reader-search-hit-active'));
+        let next = currentHit + (direction === 'prev' ? -1 : 1);
+        if (next < 0) next = searchHits.length - 1;
+        if (next >= searchHits.length) next = 0;
+        setCurrentHit(next);
+        const mark = container.querySelectorAll('mark.reader-search-hit')[next];
+        if (mark) {
+            mark.classList.add('reader-search-hit-active');
+            mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [searchHits.length, currentHit]);
+
+    const clearSearch = useCallback(() => {
+        const container = containerRef.current;
+        if (container) removeSearchMarks(container);
+        setSearchQuery('');
+        setSearchHits([]);
+        setCurrentHit(-1);
+    }, [removeSearchMarks]);
+
+    // Progress: compute relative scroll progress through the reading surface
+    useEffect(() => {
+        const onScroll = () => {
+            const c = containerRef.current;
+            if (!c) return;
+            const rect = c.getBoundingClientRect();
+            const start = window.scrollY + rect.top;
+            const end = start + c.scrollHeight - window.innerHeight;
+            const denom = Math.max(1, end - start);
+            const raw = (window.scrollY - start) / denom;
+            const pct = Math.min(1, Math.max(0, raw)) * 100;
+            setProgress(pct);
+            // Persist reading progress per chapter for resume feature
+            try {
+                if (chapterId) {
+                    const key = `reading-progress:${chapterId}`;
+                    const value = (pct / 100).toFixed(4);
+                    localStorage.setItem(key, value);
+                }
+            } catch (_) {
+                // ignore persistence errors
+            }
+        };
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+        };
+    }, [chapterId]);
+
+    // Add anchor buttons to headings for easy permalinks
+    useEffect(() => {
+        const c = containerRef.current;
+        if (!c) return;
+        const heads = c.querySelectorAll('h2[id], h3[id]');
+        heads.forEach((h) => {
+            if (h.querySelector('.heading-anchor')) return;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'heading-anchor';
+            btn.setAttribute('aria-label', 'Copy link to section');
+            btn.textContent = '§';
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const id = h.getAttribute('id');
+                if (!id) return;
+                const url = `${window.location.origin}${window.location.pathname}#${id}`;
+                if (navigator?.clipboard?.writeText) {
+                    navigator.clipboard.writeText(url).catch(() => {});
+                }
+                try {
+                    h.classList.add('heading-anchor-copied');
+                    setTimeout(() => h.classList.remove('heading-anchor-copied'), 1200);
+                } catch (_) {}
+            });
+            h.appendChild(btn);
+        });
+    }, [content, parserOptions]);
+
+    // Keyboard shortcuts for navigation (active when not typing in inputs)
+    useEffect(() => {
+        const onKey = (e) => {
+            const tag = (e.target?.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return;
+            if (e.key === '/') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            } else if (e.key === 'Enter') {
+                if (e.shiftKey) jumpToHit('prev'); else jumpToHit('next');
+            } else if (e.key === 'n') {
+                jumpToHit(e.shiftKey ? 'prev' : 'next');
+            } else if (e.key === 'h') {
+                // previous heading
+                const c = containerRef.current; if (!c) return;
+                const hs = Array.from(c.querySelectorAll('h2, h3'));
+                const y = window.scrollY + 8;
+                const prev = hs.filter(h => h.getBoundingClientRect().top + window.scrollY < y).pop();
+                if (prev) prev.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (e.key === 'H') {
+                // next heading
+                const c = containerRef.current; if (!c) return;
+                const hs = Array.from(c.querySelectorAll('h2, h3'));
+                const y = window.scrollY + 8;
+                const next = hs.find(h => h.getBoundingClientRect().top + window.scrollY > y);
+                if (next) next.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (e.key === 'e') {
+                // export highlights
+                navigator.clipboard.writeText(JSON.stringify(highlights, null, 2)).then(() => setSelectionFeedback('Exported highlights.')).catch(() => setSelectionFeedback('Export failed.'));
+            } else if (e.key === 'i') {
+                navigator.clipboard.readText().then((t) => { const d = JSON.parse(t); if (Array.isArray(d)) setHighlights(d); }).catch(() => setSelectionFeedback('Import failed.'));
+            } else if (e.key === 'Escape') {
+                closeSelectionMenu();
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [jumpToHit, highlights, closeSelectionMenu]);
+
 
     const captureSelection = useCallback(() => {
         const container = containerRef.current;
@@ -781,7 +979,148 @@ const InteractiveReadingSurface = ({
 
     return (
         <div className="space-y-6">
-            <div className="reader-utility-bar" />
+            {!hideUtilityBar && (
+                <div className="reader-utility-bar" role="toolbar" aria-label="Reading tools">
+                    <div className="flex items-center gap-2">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search in page…"
+                                ref={searchInputRef}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') { e.preventDefault(); if (e.shiftKey) jumpToHit('prev'); else jumpToHit('next'); }
+                                }}
+                                className="w-56 rounded-lg border border-slate-200 bg-white py-1.5 px-2 text-sm text-slate-700 outline-none ring-brand-400 focus:border-brand-400 focus:ring-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                    onClick={clearSearch}
+                                    aria-label="Clear search"
+                                >
+                                    <HiOutlineX />
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                            <span>{searchHits.length > 0 ? `${currentHit + 1}/${searchHits.length}` : '0/0'}</span>
+                            <button type="button" className="reader-nav-btn" onClick={() => jumpToHit('prev')} aria-label="Previous match">
+                                <HiOutlineChevronLeft />
+                            </button>
+                            <button type="button" className="reader-nav-btn" onClick={() => jumpToHit('next')} aria-label="Next match">
+                                <HiOutlineChevronRight />
+                            </button>
+                            <button
+                                type="button"
+                                className={`reader-toggle ${searchCaseSensitive ? 'active' : ''}`}
+                                onClick={() => setSearchCaseSensitive((v) => !v)}
+                                aria-pressed={searchCaseSensitive}
+                                title="Case sensitive"
+                            >
+                                Aa
+                            </button>
+                            <button
+                                type="button"
+                                className={`reader-toggle ${searchWholeWord ? 'active' : ''}`}
+                                onClick={() => setSearchWholeWord((v) => !v)}
+                                aria-pressed={searchWholeWord}
+                                title="Whole word"
+                            >
+                                W
+                            </button>
+                        </div>
+
+                        <div className="ml-2 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                            <button
+                                type="button"
+                                className="reader-nav-btn"
+                                onClick={() => {
+                                    const c = containerRef.current; if (!c) return;
+                                    const hs = Array.from(c.querySelectorAll('h2, h3'));
+                                    const y = window.scrollY + 8;
+                                    const prev = hs.filter(h => h.getBoundingClientRect().top + window.scrollY < y).pop();
+                                    if (prev) prev.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }}
+                                aria-label="Previous heading"
+                            >
+                                <HiOutlineChevronDoubleLeft />
+                            </button>
+                            <button
+                                type="button"
+                                className="reader-nav-btn"
+                                onClick={() => {
+                                    const c = containerRef.current; if (!c) return;
+                                    const hs = Array.from(c.querySelectorAll('h2, h3'));
+                                    const y = window.scrollY + 8;
+                                    const next = hs.find(h => h.getBoundingClientRect().top + window.scrollY > y);
+                                    if (next) next.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }}
+                                aria-label="Next heading"
+                            >
+                                <HiOutlineChevronDoubleRight />
+                            </button>
+                        </div>
+
+                        {highlights.length > 0 && (
+                            <div className="ml-3 flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    className="reader-nav-btn"
+                                    onClick={async () => {
+                                        try {
+                                            await navigator.clipboard.writeText(JSON.stringify(highlights, null, 2));
+                                            setSelectionFeedback('Exported highlights to clipboard.');
+                                        } catch (_) {
+                                            setSelectionFeedback('Unable to copy highlights.');
+                                        }
+                                    }}
+                                    aria-label="Export highlights"
+                                    title="Export highlights"
+                                >
+                                    Export
+                                </button>
+                                <button
+                                    type="button"
+                                    className="reader-nav-btn"
+                                    onClick={async () => {
+                                        try {
+                                            const text = await navigator.clipboard.readText();
+                                            const data = JSON.parse(text);
+                                            if (Array.isArray(data)) {
+                                                setHighlights(data);
+                                                setSelectionFeedback('Imported highlights from clipboard.');
+                                            } else {
+                                                setSelectionFeedback('Clipboard does not contain a highlight list.');
+                                            }
+                                        } catch (_) {
+                                            setSelectionFeedback('Unable to import highlights. Copy JSON first.');
+                                        }
+                                    }}
+                                    aria-label="Import highlights"
+                                    title="Import highlights"
+                                >
+                                    Import
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`reader-toggle ${showHighlights ? 'active' : ''}`}
+                                    onClick={() => setShowHighlights((v) => !v)}
+                                    aria-pressed={showHighlights}
+                                    title={showHighlights ? 'Hide highlights' : 'Show highlights'}
+                                >
+                                    HL
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    <div className="reader-progress" aria-hidden="true">
+                        <div className="reader-progress-bar" style={{ width: `${progress}%` }} />
+                    </div>
+                </div>
+            )}
 
             <motion.div
                 ref={containerRef}
@@ -796,11 +1135,23 @@ const InteractiveReadingSurface = ({
                 {parsedContent}
             </motion.div>
 
-            {highlights.length > 0 && (
+            {/* Time-left indicator */}
+            {typeof document !== 'undefined' && !hideUtilityBar && (readingMinutes || 0) > 0 &&
+                createPortal(
+                    <div
+                        className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-full border border-slate-200/70 bg-white/90 px-3 py-1.5 text-xs text-slate-700 shadow-lg backdrop-blur dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-200"
+                        aria-live="polite"
+                    >
+                        {Math.round(progress)}% · {Math.max(0, Math.ceil((readingMinutes || 0) * (1 - progress / 100)))} min left
+                    </div>,
+                    document.body
+                )}
+
+            {!hideHighlightsPanel && highlights.length > 0 && (
                 <div className="reader-highlights-panel">
                     <div className="reader-highlights-header">
                         <div className="flex items-center gap-2">
-                            <FaHighlighter aria-hidden />
+                            <FaHighlighter aria-hidden="true" />
                             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Your Highlights</h3>
                         </div>
                         <button
@@ -840,6 +1191,20 @@ const InteractiveReadingSurface = ({
                                                 Jump
                                             </button>
                                         </Tooltip>
+                                        <Tooltip content="Edit note">
+                                            <button
+                                                type="button"
+                                                className="reader-highlight-jump"
+                                                onClick={() => {
+                                                    const note = prompt('Edit note (markdown supported):', highlight.note || '');
+                                                    if (note !== null) {
+                                                        setHighlights((prev) => prev.map((h) => (h.id === highlight.id ? { ...h, note } : h)));
+                                                    }
+                                                }}
+                                            >
+                                                Note
+                                            </button>
+                                        </Tooltip>
                                         <button
                                             type="button"
                                             className="reader-highlight-delete"
@@ -848,6 +1213,11 @@ const InteractiveReadingSurface = ({
                                             Remove
                                         </button>
                                     </div>
+                                    {highlight.note && (
+                                        <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                                            {highlight.note}
+                                        </div>
+                                    )}
                                 </li>
                             ))}
                     </ul>
@@ -865,7 +1235,7 @@ const InteractiveReadingSurface = ({
                     >
                         <div className="reader-dictionary-header">
                             <div className="flex items-center gap-2">
-                                <HiOutlineBookOpen aria-hidden />
+                                <HiOutlineBookOpen aria-hidden="true" />
                                 <h4 className="text-sm font-semibold">Dictionary · {dictionaryState.word}</h4>
                             </div>
                             <button type="button" onClick={closeDictionary} aria-label="Close dictionary">
@@ -1044,6 +1414,9 @@ InteractiveReadingSurface.propTypes = {
     surfaceClass: PropTypes.string,
     className: PropTypes.string,
     chapterId: PropTypes.string,
+    readingMinutes: PropTypes.number,
+    hideUtilityBar: PropTypes.bool,
+    hideHighlightsPanel: PropTypes.bool,
 };
 
 export default InteractiveReadingSurface;

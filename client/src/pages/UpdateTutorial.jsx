@@ -1,4 +1,6 @@
 import { Alert, Button, FileInput, Select, TextInput, Spinner, Modal } from 'flowbite-react';
+import { CircularProgressbar } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
 import TiptapEditor from '../components/TiptapEditor'; //
 import { useState, useReducer, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';

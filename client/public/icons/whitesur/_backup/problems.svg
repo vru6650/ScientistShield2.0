@@ -1,0 +1,17 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="problems-gradient" x1="18" y1="12" x2="62" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FB7185" />
+      <stop offset="1" stop-color="#6366F1" />
+    </linearGradient>
+    <linearGradient id="problems-bulb" x1="32" y1="20" x2="48" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.92" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.3" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#problems-gradient)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.32" stroke-width="1.5" />
+  <path d="M40 20C32.8203 20 27 25.8203 27 33C27 37.651 29.2431 41.7968 32.9104 44.148C34.1657 44.9733 34.9196 46.3393 34.9196 47.8091V50.5C34.9196 51.8807 36.0389 53 37.4196 53H42.5804C43.9611 53 45.0804 51.8807 45.0804 50.5V47.8091C45.0804 46.3393 45.8343 44.9733 47.0896 44.148C50.7569 41.7968 53 37.651 53 33C53 25.8203 47.1797 20 40 20Z" fill="url(#problems-bulb)" />
+  <path d="M34 56C34 54.8954 34.8954 54 36 54H44C45.1046 54 46 54.8954 46 56C46 57.1046 45.1046 58 44 58H36C34.8954 58 34 57.1046 34 56Z" fill="#F8FAFC" fill-opacity="0.7" />
+  <path d="M38 61C38 59.8954 38.8954 59 40 59C41.1046 59 42 59.8954 42 61C42 62.1046 41.1046 63 40 63C38.8954 63 38 62.1046 38 61Z" fill="#F8FAFC" fill-opacity="0.7" />
+</svg>

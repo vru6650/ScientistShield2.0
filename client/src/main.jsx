@@ -6,6 +6,7 @@ import { store, persistor } from './redux/store.js';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import ThemeProvider from './components/ThemeProvider.jsx';
+import ToastProvider from './components/ui/ToastProvider.jsx';
 import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // 1. Import
 
@@ -21,7 +22,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
                 <HelmetProvider>
                     <ThemeProvider>
-                        <App />
+                        <ToastProvider>
+                            <App />
+                        </ToastProvider>
                     </ThemeProvider>
                 </HelmetProvider>
                 </QueryClientProvider>

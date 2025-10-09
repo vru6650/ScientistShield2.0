@@ -5,6 +5,8 @@ import Header from './Header';
 import Footer from './Footer';
 import ScrollToTop from './ScrollToTop';
 import BottomNav from './BottomNav';
+import RouteProgressBar from './RouteProgressBar.jsx';
+import PageAnnouncer from './PageAnnouncer.jsx';
 
 export default function MainLayout() {
     const location = useLocation();
@@ -12,9 +14,16 @@ export default function MainLayout() {
     return (
         <>
             <ScrollToTop />
+            <RouteProgressBar />
             <Header />
+            <PageAnnouncer />
             <div className="pt-20">
-                <motion.main className="min-h-screen transition-all duration-300">
+                <motion.main
+                    id="main-content"
+                    role="main"
+                    tabIndex={-1}
+                    className="min-h-screen transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/70"
+                >
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={location.pathname}
@@ -23,7 +32,9 @@ export default function MainLayout() {
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <Outlet />
+                            <div className="container">
+                                <Outlet />
+                            </div>
                         </motion.div>
                     </AnimatePresence>
                 </motion.main>

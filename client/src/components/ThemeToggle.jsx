@@ -18,7 +18,8 @@ export default function ThemeToggle({ className = '', ...props }) {
         <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => dispatch(toggleTheme())}
-            className={`flex items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 focus:outline-none ${className}`}
+            className={`flex items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 shadow-soft hover:shadow-elevated transition-all
+                       bg-white/80 text-ink-700 backdrop-blur dark:bg-ink-800/80 dark:text-ink-100 ${className}`}
             aria-label="Toggle theme"
             {...props}
         >

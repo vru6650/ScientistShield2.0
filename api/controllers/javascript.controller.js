@@ -1,43 +1,44 @@
 // In api/controllers/javascript.controller.js
 
-import { spawn } from 'child_process';
+import vm from 'node:vm';
 import { errorHandler } from '../utils/error.js';
 
+// Executes user-provided JavaScript in a restricted VM context
+// Captures console output and returns it as the response
 export const runJavascriptCode = async (req, res, next) => {
-    const { code } = req.body ?? {};
+  const { code } = req.body ?? {};
 
-    if (!code || typeof code !== 'string') {
-        return next(errorHandler(400, 'JavaScript code is required.'));
-    }
+  if (!code || typeof code !== 'string') {
+    return next(errorHandler(400, 'JavaScript code is required.'));
+  }
 
-    // Use spawn for a more secure and robust execution
-    const child = spawn('node', ['-e', code]);
+  // Capture console output
+  let output = '';
+  const sandboxConsole = {
+    log: (...args) => {
+      output += `${args.map(String).join(' ')}\n`;
+    },
+    error: (...args) => {
+      output += `${args.map(String).join(' ')}\n`;
+    },
+    warn: (...args) => {
+      output += `${args.map(String).join(' ')}\n`;
+    },
+    info: (...args) => {
+      output += `${args.map(String).join(' ')}\n`;
+    },
+  };
 
-    let stdout = '';
-    let stderr = '';
+  // Minimal, locked-down global context
+  const context = vm.createContext({ console: sandboxConsole });
 
-    return new Promise((resolve) => {
-        child.stdout.on('data', (data) => {
-            stdout += data.toString();
-        });
+  try {
+    const script = new vm.Script(code, { displayErrors: true });
+    // Limit execution time and disable async require/import
+    script.runInContext(context, { timeout: 1000 });
+  } catch (err) {
+    return next(errorHandler(400, String(err && err.message ? err.message : err)));
+  }
 
-        child.stderr.on('data', (data) => {
-            stderr += data.toString();
-        });
-
-        child.on('close', (exitCode) => {
-            if (exitCode !== 0 || stderr) {
-                next(errorHandler(400, stderr || `Execution failed with exit code ${exitCode}`));
-                return resolve();
-            }
-
-            res.status(200).json({ output: stdout, error: false });
-            resolve();
-        });
-
-        child.on('error', (err) => {
-            next(errorHandler(500, `Failed to start process: ${err.message}`));
-            resolve();
-        });
-    });
+  return res.status(200).json({ output, error: false });
 };

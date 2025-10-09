@@ -96,7 +96,7 @@ const CardHeader = ({ userId, fallbackUsername, category }) => {
     const showFallbackAvatar = !avatarSrc || error;
 
     return (
-        <div className="flex items-center justify-between gap-3 p-3">
+        <div className="flex items-center justify-between gap-3 p-4">
             <div className="flex items-center gap-3">
                 {showFallbackAvatar ? (
                     <FaUserCircle className='w-10 h-10 text-gray-400 dark:text-gray-500' aria-hidden />
@@ -104,11 +104,11 @@ const CardHeader = ({ userId, fallbackUsername, category }) => {
                     <img
                         src={avatarSrc}
                         alt={displayName}
-                        className='w-10 h-10 rounded-full object-cover border-2 border-gray-300 dark:border-gray-500'
+                        className='w-10 h-10 rounded-full object-cover ring-2 ring-white/70 dark:ring-slate-700'
                     />
                 )}
                 <span className='font-bold text-sm text-gray-800 dark:text-gray-200'>{displayName}</span>
-                <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wide font-semibold bg-professional-blue-50 dark:bg-professional-blue-900/40 text-professional-blue-600 dark:text-professional-blue-300 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wide font-semibold text-professional-blue-600 dark:text-professional-blue-300 px-2.5 py-0.5 rounded-full border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-800/50 backdrop-blur shadow-sm">
                     <FaTag aria-hidden />
                     {formatCategory(category)}
                 </span>
@@ -116,7 +116,7 @@ const CardHeader = ({ userId, fallbackUsername, category }) => {
             <button
                 type='button'
                 aria-label='More options'
-                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full p-2"
+                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-professional-blue-500/60"
             >
                 <HiDotsHorizontal size={20} />
             </button>
@@ -126,7 +126,22 @@ const CardHeader = ({ userId, fallbackUsername, category }) => {
 CardHeader.propTypes = { userId: PropTypes.string, fallbackUsername: PropTypes.string, category: PropTypes.string };
 
 
-const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
+const CardMedia = ({
+    post,
+    onDoubleClick,
+    showLikeHeart,
+    onLikeClick,
+    onBookmarkClick,
+    onShareClick,
+    isLiked = false,
+    isBookmarked = false,
+    disableLikes = false,
+    disableBookmarks = false,
+    disableShare = false,
+    readingLabel,
+    isTrending = false,
+    isFresh = false,
+}) => {
     const mediaType = post.mediaType || 'image';
     const fallbackImage = post.image || null;
     const mediaUrl = post.mediaUrl || fallbackImage;
@@ -169,7 +184,7 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
         setMediaDimensions({ width: null, height: null });
     }, [mediaUrl]);
 
-    const baseClass = 'relative w-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer';
+    const baseClass = 'group relative w-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer';
 
     const computedAspectRatio = useMemo(() => {
         if (!mediaUrl) return null;
@@ -250,7 +265,7 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
                         loading='lazy'
                         onLoad={handleImageLoad}
                         onError={handleMediaError}
-                        className='h-full w-full object-cover transition-opacity duration-300'
+                        className='h-full w-full object-cover transition-all duration-500 ease-out transform-gpu group-hover:scale-[1.02]'
                         style={{ opacity: isMediaLoading ? 0 : 1 }}
                     />
                 )
@@ -259,6 +274,63 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
                     Media unavailable
                 </div>
             )}
+
+            {/* Gradient overlays for readability */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/50 via-black/20 to-transparent opacity-90 transition-opacity group-hover:opacity-100" />
+
+            {/* Top-left status badges */}
+            <div className="absolute left-3 top-3 z-10 flex flex-col gap-2">
+                {isTrending && (
+                    <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500/90 to-rose-500/90 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-amber-500/20">
+                        <FaFire aria-hidden /> Trending
+                    </span>
+                )}
+                {!isTrending && isFresh && (
+                    <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/90 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-emerald-500/20">
+                        New
+                    </span>
+                )}
+            </div>
+
+            {/* Bottom-left reading label */}
+            {readingLabel && (
+                <div className="pointer-events-none absolute bottom-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-800 shadow-md backdrop-blur dark:bg-slate-900/80 dark:text-slate-100">
+                    <FaClock className="text-sky-500" aria-hidden />
+                    {readingLabel}
+                </div>
+            )}
+
+            {/* Top-right quick actions */}
+            <div className="absolute right-3 top-3 z-10 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                <button
+                    type="button"
+                    aria-label={isLiked ? 'Unlike' : 'Like'}
+                    disabled={disableLikes}
+                    onClick={onLikeClick}
+                    className={`rounded-full border border-white/30 bg-white/80 p-2 text-slate-700 shadow-md backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-professional-blue-500/60 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-500/50 dark:bg-slate-800/80 dark:text-slate-100 ${disableLikes ? 'cursor-not-allowed' : ''}`}
+                >
+                    {isLiked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+                </button>
+                <button
+                    type="button"
+                    aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                    disabled={disableBookmarks}
+                    onClick={onBookmarkClick}
+                    className={`rounded-full border border-white/30 bg-white/80 p-2 text-slate-700 shadow-md backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-professional-blue-500/60 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-500/50 dark:bg-slate-800/80 dark:text-slate-100 ${disableBookmarks ? 'cursor-not-allowed' : ''}`}
+                >
+                    {isBookmarked ? <FaBookmark className="text-professional-blue-500" /> : <FaRegBookmark />}
+                </button>
+                <button
+                    type="button"
+                    aria-label="Share"
+                    disabled={disableShare}
+                    onClick={onShareClick}
+                    className={`rounded-full border border-white/30 bg-white/80 p-2 text-slate-700 shadow-md backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-professional-blue-500/60 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-500/50 dark:bg-slate-800/80 dark:text-slate-100 ${disableShare ? 'cursor-not-allowed' : ''}`}
+                    title={disableShare ? 'Link unavailable' : 'Share'}
+                >
+                    <FaShareAlt />
+                </button>
+            </div>
             <AnimatePresence>
                 {showLikeHeart && (
                     <motion.div
@@ -275,7 +347,22 @@ const CardMedia = ({ post, onDoubleClick, showLikeHeart }) => {
         </div>
     );
 };
-CardMedia.propTypes = { post: PropTypes.object.isRequired, onDoubleClick: PropTypes.func, showLikeHeart: PropTypes.bool };
+CardMedia.propTypes = {
+    post: PropTypes.object.isRequired,
+    onDoubleClick: PropTypes.func,
+    showLikeHeart: PropTypes.bool,
+    onLikeClick: PropTypes.func,
+    onBookmarkClick: PropTypes.func,
+    onShareClick: PropTypes.func,
+    isLiked: PropTypes.bool,
+    isBookmarked: PropTypes.bool,
+    disableLikes: PropTypes.bool,
+    disableBookmarks: PropTypes.bool,
+    disableShare: PropTypes.bool,
+    readingLabel: PropTypes.string,
+    isTrending: PropTypes.bool,
+    isFresh: PropTypes.bool,
+};
 
 
 const CardActions = ({ likeProps, bookmarkProps, onActionClick, onShareClick, shareTooltip, disableLikes, disableBookmarks, disableShare }) => {
@@ -299,7 +386,7 @@ const CardActions = ({ likeProps, bookmarkProps, onActionClick, onShareClick, sh
     };
 
     return (
-        <div className="flex justify-between items-center px-3 py-2">
+        <div className="flex justify-between items-center px-3 py-2 border-t border-gray-100/60 dark:border-slate-700/60 bg-white/60 dark:bg-slate-900/40 backdrop-blur supports-[backdrop-filter]:bg-white/40">
             <div className="flex items-center gap-4">
                 <Tooltip content={disableLikes ? 'Likes unavailable' : (likeProps.isLiked ? 'Unlike' : 'Like')}>
                     <motion.button
@@ -307,7 +394,8 @@ const CardActions = ({ likeProps, bookmarkProps, onActionClick, onShareClick, sh
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => !disableLikes && onActionClick(e, likeProps.handleLike)}
                         disabled={likeProps.isLoading || disableLikes}
-                        className={`relative flex items-center gap-2 text-2xl text-gray-700 dark:text-gray-300 ${disableLikes ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        aria-pressed={likeProps.isLiked}
+                        className={`relative flex items-center gap-2 text-2xl text-gray-700 dark:text-gray-300 transition-colors rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-professional-blue-500/50 hover:text-professional-blue-600 dark:hover:text-professional-blue-300 ${disableLikes ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {likeProps.isLoading ? <Spinner size="sm" /> :
                             <>
@@ -356,7 +444,7 @@ const CardActions = ({ likeProps, bookmarkProps, onActionClick, onShareClick, sh
                         onClick={handleShare}
                         disabled={disableShare}
                         aria-disabled={disableShare}
-                        className={`text-2xl text-gray-700 dark:text-gray-300 ${disableShare ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`text-2xl text-gray-700 dark:text-gray-300 transition-colors rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-professional-blue-500/50 hover:text-professional-blue-600 dark:hover:text-professional-blue-300 ${disableShare ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <FaShareAlt />
                     </motion.button>
@@ -368,7 +456,8 @@ const CardActions = ({ likeProps, bookmarkProps, onActionClick, onShareClick, sh
                     whileTap={{ scale: 0.9 }}
                     onClick={(e) => !disableBookmarks && onActionClick(e, bookmarkProps.handleBookmark)}
                     disabled={bookmarkProps.isLoading || disableBookmarks}
-                    className={`text-2xl text-gray-700 dark:text-gray-300 ${disableBookmarks ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    aria-pressed={bookmarkProps.isBookmarked}
+                    className={`text-2xl text-gray-700 dark:text-gray-300 transition-colors rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-professional-blue-500/50 hover:text-professional-blue-600 dark:hover:text-professional-blue-300 ${disableBookmarks ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                     {bookmarkProps.isLoading ? <Spinner size="sm" /> :
                         <motion.span
@@ -505,7 +594,7 @@ const CardBody = ({ post, likeCount, authorUsername }) => {
                     formattedCategory={formattedCategory}
                 />
 
-                <div className="rounded-xl border border-gray-200/70 bg-white/70 px-4 py-3 text-[15px] leading-relaxed text-gray-700 shadow-sm transition-all hover:border-professional-blue-200 hover:shadow-md dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-gray-300">
+                <div className="rounded-xl border border-gray-200/70 bg-white/70 px-4 py-3 text-[15px] leading-relaxed text-gray-700 shadow-sm transition-all hover:border-professional-blue-300/60 hover:shadow-md group-hover:bg-white/75 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-gray-300 dark:group-hover:bg-slate-900/70">
                     <p className="line-clamp-4">{safeCaption}</p>
                     {showMoreLink ? (
                         <Link
@@ -689,40 +778,67 @@ export default function PostCard({ post }) {
         updateShareTooltip(copied ? 'Link copied!' : 'Copy failed');
     };
 
+    // Compute quick insights for media overlays and badges
+    const insights = useMemo(() => buildPostInsights(post.content, post.title), [post.content, post.title]);
+    const likeTotal = Number.isFinite(likeCount) ? likeCount : 0;
+    const isTrending = likeTotal >= 50;
+    const isFresh = post?.createdAt ? moment().diff(moment(post.createdAt), 'hours') <= 48 : false;
+
     return (
         <motion.div
             layoutId={`post-card-${post.slug || post._id || 'unknown'}`}
-            className='w-full border dark:border-slate-700 border-gray-200 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col bg-white dark:bg-slate-800 overflow-hidden'
+            className='group relative rounded-2xl p-[1px] bg-gradient-to-br from-professional-blue-500/20 via-indigo-500/10 to-rose-500/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl'
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.1 }}
             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-            onClick={handleCardClick}
         >
-            <CardHeader
-                userId={post.userId}
-                fallbackUsername={post?.authorName || post?.username || post?.author}
-                category={post?.category}
-            />
+            <div
+                onClick={handleCardClick}
+                className='w-full rounded-2xl border border-gray-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/50 backdrop-blur shadow-md flex flex-col overflow-hidden'
+            >
+                <CardHeader
+                    userId={post.userId}
+                    fallbackUsername={post?.authorName || post?.username || post?.author}
+                    category={post?.category}
+                />
 
-            <CardMedia post={post} onDoubleClick={canInteractWithPost ? handleMediaDoubleClick : undefined} showLikeHeart={showLikeHeart} />
+                <CardMedia
+                    post={post}
+                    onDoubleClick={canInteractWithPost ? handleMediaDoubleClick : undefined}
+                    showLikeHeart={showLikeHeart}
+                    // Overlay quick actions
+                    onLikeClick={(e) => !isLikeLoading && handleActionClick(e, handleLike)}
+                    onBookmarkClick={(e) => !isBookmarkLoading && handleActionClick(e, handleBookmark)}
+                    onShareClick={handleShareClick}
+                    isLiked={isLiked}
+                    isBookmarked={isBookmarked}
+                    disableLikes={!canInteractWithPost || isLikeLoading}
+                    disableBookmarks={!canInteractWithPost || isBookmarkLoading}
+                    disableShare={!post?.slug}
+                    // Badges
+                    readingLabel={insights.readingMinutes > 0 ? insights.readingLabel : undefined}
+                    isTrending={isTrending}
+                    isFresh={isFresh}
+                />
 
-            <CardActions
-                likeProps={{ isLiked, isLoading: isLikeLoading, handleLike }}
-                bookmarkProps={{ isBookmarked, isLoading: isBookmarkLoading, handleBookmark }}
-                onActionClick={handleActionClick}
-                onShareClick={handleShareClick}
-                shareTooltip={shareTooltip}
-                disableLikes={!canInteractWithPost}
-                disableBookmarks={!canInteractWithPost}
-                disableShare={!post?.slug}
-            />
+                <CardActions
+                    likeProps={{ isLiked, isLoading: isLikeLoading, handleLike }}
+                    bookmarkProps={{ isBookmarked, isLoading: isBookmarkLoading, handleBookmark }}
+                    onActionClick={handleActionClick}
+                    onShareClick={handleShareClick}
+                    shareTooltip={shareTooltip}
+                    disableLikes={!canInteractWithPost}
+                    disableBookmarks={!canInteractWithPost}
+                    disableShare={!post?.slug}
+                />
 
-            <CardBody
-                post={post}
-                likeCount={likeCount}
-                authorUsername={author?.username || '...'}
-            />
+                <CardBody
+                    post={post}
+                    likeCount={likeCount}
+                    authorUsername={author?.username || '...'}
+                />
+            </div>
         </motion.div>
     );
 }

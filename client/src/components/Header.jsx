@@ -8,6 +8,7 @@ import { useEffect, useState, useRef } from 'react';
 
 import { signoutSuccess } from '../redux/user/userSlice';
 import CommandMenu from './CommandMenu';
+import MacWindowControls from './MacWindowControls.jsx';
 import ControlCenter from './ControlCenter.jsx';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
 
@@ -171,15 +172,18 @@ export default function Header() {
               />
             </motion.div>
             <Navbar fluid rounded className="bg-transparent dark:bg-transparent relative z-10">
-              <Link
-                  to="/"
-                  className="text-sm sm:text-xl font-semibold font-heading text-gray-700 dark:text-white"
-              >
-              <span className="px-space-sm py-space-xs bg-professional-gradient rounded-radius-lg text-white animated-gradient">
-                Scientist
-              </span>
-                Shield
-              </Link>
+              <div className="flex items-center gap-3">
+                <MacWindowControls className="hidden sm:flex" />
+                <Link
+                    to="/"
+                    className="text-sm sm:text-xl font-semibold font-heading text-gray-700 dark:text-white"
+                >
+                  <span className="px-space-sm py-space-xs bg-professional-gradient rounded-radius-lg text-white">
+                    Scientist
+                  </span>
+                  {' '}Shield
+                </Link>
+              </div>
               <motion.div
                   className="hidden lg:flex items-center gap-space-xs"
                   variants={navContainerVariants}
@@ -192,7 +196,7 @@ export default function Header() {
                       <motion.div variants={navItemVariants} key={link.path}>
                         <Link
                             to={link.path}
-                            className="relative px-space-md py-space-sm text-sm text-gray-700 dark:text-gray-300 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
+                            className="relative px-space-md py-space-sm text-sm text-gray-700 dark:text-gray-300 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors link-premium"
                         >
                           {isActive && (
                               <motion.span
@@ -319,7 +323,7 @@ export default function Header() {
                       </Button>
                     </Link>
                 )}
-                <Navbar.Toggle />
+                <Navbar.Toggle aria-label="Toggle navigation menu" />
               </div>
               <Navbar.Collapse>
                 {navLinks.map((link) => (
