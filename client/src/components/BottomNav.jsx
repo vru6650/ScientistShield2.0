@@ -31,6 +31,8 @@ const DEFAULT_DOCK_SETTINGS = {
     magnifyEnabled: true, // macOS-like magnification toggle
     animateOnOpen: true, // bounce/animate on open
     showRecents: true, // show recent items section
+    position: 'bottom', // 'bottom' or 'left'
+    showLabels: false, // always show labels
 };
 
 const storage = {
@@ -257,6 +259,18 @@ export default function BottomNav() {
         });
     }, []);
 
+    // Listen for external dock settings changes (Control Center)
+    useEffect(() => {
+        const applyExternal = (e) => {
+            try {
+                const latest = storage.get(LS_KEYS.settings, DEFAULT_DOCK_SETTINGS);
+                setSettings(latest);
+            } catch {}
+        };
+        window.addEventListener('dock-settings-changed', applyExternal);
+        return () => window.removeEventListener('dock-settings-changed', applyExternal);
+    }, []);
+
     // Hidden keys and custom order (for primary items only)
     const [hiddenKeys, setHiddenKeys] = useState(() => storage.get(LS_KEYS.hidden, []));
     const [customOrder, setCustomOrder] = useState(() => storage.get(LS_KEYS.order, []));
@@ -327,10 +341,12 @@ export default function BottomNav() {
     }, [isAdmin, currentUser]);
 
     const [hoverX, setHoverX] = useState(null);
+    const isVertical = settings.position === 'left';
     const [focusedIndex, setFocusedIndex] = useState(null);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [isRecentsOpen, setIsRecentsOpen] = useState(false);
     const [bouncingIndex, setBouncingIndex] = useState(null);
+    const [pulseIndex, setPulseIndex] = useState(null);
     const iconRefs = useRef([]);
     const [iconCenters, setIconCenters] = useState([]);
     const quickAddTriggerRef = useRef(null);
@@ -342,23 +358,33 @@ export default function BottomNav() {
     // Dock container ref (focus/keyboard nav)
     const dockRef = useRef(null);
 
-    // Reduced motion preference (respect OS setting)
+    // Reduced motion preference (respect OS setting + Control Center override)
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     useEffect(() => {
-        try {
-            const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-            const apply = (e) => setPrefersReducedMotion(Boolean(e.matches));
-            apply(mq);
-            if (mq.addEventListener) mq.addEventListener('change', apply);
-            else if (mq.addListener) mq.addListener(apply);
-            return () => {
-                if (mq.removeEventListener) mq.removeEventListener('change', apply);
-                else if (mq.removeListener) mq.removeListener(apply);
-            };
-        } catch {
-            setPrefersReducedMotion(false);
-            return () => {};
-        }
+        const readReduce = () => {
+            let system = false;
+            try {
+                const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+                system = Boolean(mq.matches);
+                const apply = (e) => setPrefersReducedMotion(Boolean(e.matches) || Boolean(JSON.parse(localStorage.getItem('ui.effects.v1') || '{}')?.reduceMotion));
+                if (mq.addEventListener) mq.addEventListener('change', apply);
+                else if (mq.addListener) mq.addListener(apply);
+            } catch {}
+            try {
+                const appReduce = Boolean(JSON.parse(localStorage.getItem('ui.effects.v1') || '{}')?.reduceMotion);
+                setPrefersReducedMotion(system || appReduce);
+            } catch {
+                setPrefersReducedMotion(system);
+            }
+        };
+        readReduce();
+        const onEffect = () => readReduce();
+        window.addEventListener('ui-effects-changed', onEffect);
+        window.addEventListener('storage', onEffect);
+        return () => {
+            window.removeEventListener('ui-effects-changed', onEffect);
+            window.removeEventListener('storage', onEffect);
+        };
     }, []);
 
     // Auto-hide removed; dock remains visible
@@ -367,10 +393,10 @@ export default function BottomNav() {
         const centers = iconRefs.current.map((element) => {
             if (!element) return null;
             const rect = element.getBoundingClientRect();
-            return rect.left + rect.width / 2;
+            return isVertical ? (rect.top + rect.height / 2) : (rect.left + rect.width / 2);
         });
         setIconCenters(centers);
-    }, []);
+    }, [isVertical]);
 
     useEffect(() => {
         iconRefs.current = Array.from({ length: dockItems.length }, (_, index) => iconRefs.current[index] ?? null);
@@ -442,7 +468,7 @@ export default function BottomNav() {
             const scaleBoost = prefersReducedMotion ? Math.min(0.15, enabledBoost) : enabledBoost;
             const scale = (isActive ? 1.2 : 1) + clamped * scaleBoost;
             const lift = (isActive ? -10 : 0) - clamped * (prefersReducedMotion ? 12 : 26);
-            const rotate = prefersReducedMotion ? 0 : (hoverX - center) / 100;
+            const rotate = isVertical ? 0 : (prefersReducedMotion ? 0 : (hoverX - center) / 100);
 
             return {
                 scale,
@@ -451,7 +477,7 @@ export default function BottomNav() {
                 rotate,
             };
         },
-        [hoverX, iconCenters, settings.influenceDistance, settings.magnifyBoost, settings.magnifyBoostActive, settings.magnifyEnabled, prefersReducedMotion]
+        [hoverX, iconCenters, settings.influenceDistance, settings.magnifyBoost, settings.magnifyBoostActive, settings.magnifyEnabled, prefersReducedMotion, isVertical]
     );
 
     const handleFocus = (index) => setFocusedIndex(index);
@@ -461,6 +487,9 @@ export default function BottomNav() {
         if (!settings.animateOnOpen) return;
         setBouncingIndex(index);
         setTimeout(() => setBouncingIndex((prev) => (prev === index ? null : prev)), 520);
+        // brief pulse halo for click feedback
+        setPulseIndex(index);
+        setTimeout(() => setPulseIndex((prev) => (prev === index ? null : prev)), 360);
     };
 
     const handleThemeToggle = () => dispatch(toggleTheme());
@@ -533,9 +562,11 @@ export default function BottomNav() {
     const longPressTimerRef = useRef(null);
     const longPressTriggeredRef = useRef(false);
     const startLongPress = (e, item) => {
-        if (e.button !== 0) return; // only primary button
+        // Support mouse primary button and touch start
+        if ('button' in e && e.button !== 0) return; // only primary button for mouse
         longPressTriggeredRef.current = false;
-        const { clientX, clientY } = e;
+        const point = 'touches' in e && e.touches?.length ? e.touches[0] : e;
+        const { clientX, clientY } = point || {};
         if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
         longPressTimerRef.current = setTimeout(() => {
             longPressTriggeredRef.current = true;
@@ -570,16 +601,24 @@ export default function BottomNav() {
         focusItemAt(idx);
     }, [dockItems, focusedIndex, focusItemAt]);
 
+    const containerPositionClass = isVertical
+        ? 'fixed left-6 top-1/2 -translate-y-1/2 z-50'
+        : 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4';
+
+    const containerDecorClass = isVertical
+        ? "group relative flex flex-col items-center gap-4 overflow-visible rounded-[2.5rem] border border-white/40 bg-white/30 px-4 py-6 shadow-[0_45px_90px_-40px_rgba(14,116,144,0.55)] backdrop-blur-3xl before:absolute before:left-full before:top-1/2 before:h-[78%] before:w-12 before:-translate-y-1/2 before:rounded-[999px] before:bg-white/60 before:opacity-70 before:blur-2xl before:content-[''] after:absolute after:right-8 after:top-1/2 after:h-[70%] after:w-10 after:-translate-y-1/2 after:rounded-full after:bg-cyan-500/10 after:blur-3xl after:content-[''] dark:border-slate-100/10 dark:bg-slate-900/40 dark:before:bg-slate-200/30 dark:after:bg-slate-500/20"
+        : "group relative flex items-end gap-4 overflow-visible rounded-[2.5rem] border border-white/40 bg-white/30 px-6 py-4 shadow-[0_45px_90px_-40px_rgba(14,116,144,0.55)] backdrop-blur-3xl before:absolute before:-top-6 before:left-1/2 before:h-12 before:w-[78%] before:-translate-x-1/2 before:rounded-[999px] before:bg-white/60 before:opacity-70 before:blur-2xl before:content-[''] after:absolute after:-bottom-8 after:left-1/2 after:h-10 after:w-[70%] after:-translate-x-1/2 after:rounded-full after:bg-cyan-500/10 after:blur-3xl after:content-[''] dark:border-slate-100/10 dark:bg-slate-900/40 dark:before:bg-slate-200/30 dark:after:bg-slate-500/20";
+
     return (
-        <nav className="fixed bottom-6 left-1/2 z-50 flex w-full max-w-4xl -translate-x-1/2 justify-center px-4">
+        <nav className={containerPositionClass + ' flex justify-center'} aria-label="Dock navigation">
             <motion.ul
                 ref={dockRef}
-                className="group relative flex items-end gap-4 overflow-visible rounded-[2.5rem] border border-white/40 bg-white/30 px-6 py-4 shadow-[0_45px_90px_-40px_rgba(14,116,144,0.55)] backdrop-blur-3xl before:absolute before:-top-6 before:left-1/2 before:h-12 before:w-[78%] before:-translate-x-1/2 before:rounded-[999px] before:bg-white/60 before:opacity-70 before:blur-2xl before:content-[''] after:absolute after:-bottom-8 after:left-1/2 after:h-10 after:w-[70%] after:-translate-x-1/2 after:rounded-full after:bg-cyan-500/10 after:blur-3xl after:content-[''] dark:border-slate-100/10 dark:bg-slate-900/40 dark:before:bg-slate-200/30 dark:after:bg-slate-500/20"
+                className={containerDecorClass}
                 style={{ scale: settings.scale, pointerEvents: 'auto' }}
                 initial={{ opacity: 0, y: 45 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: prefersReducedMotion ? 0.0 : 0.35, ease: 'easeOut' }}
-                onMouseMove={(event) => setHoverX(event.clientX)}
+                onMouseMove={(event) => setHoverX(isVertical ? event.clientY : event.clientX)}
                 onMouseLeave={() => { setHoverX(null); }}
                 onContextMenu={(e) => openContextMenu(e, null)}
                 onKeyDown={(e) => {
@@ -588,12 +627,17 @@ export default function BottomNav() {
                     else if (e.key === 'Escape') {
                         if (isQuickAddOpen) setIsQuickAddOpen(false);
                         if (isRecentsOpen) setIsRecentsOpen(false);
+                    } else if (e.key === 'Enter' || e.key === ' ') {
+                        const el = focusRefs.current[focusedIndex ?? 0];
+                        if (el && typeof el.click === 'function') el.click();
                     }
                 }}
             >
                 {dockItems.map((item, index) => {
                     if (item.type === 'separator') {
-                        return (
+                        return isVertical ? (
+                            <li key="separator" className="w-10 h-px -mx-2 self-stretch bg-gradient-to-r from-transparent via-slate-300/60 to-transparent dark:via-slate-600/60" aria-hidden />
+                        ) : (
                             <li key="separator" className="h-10 w-px -mb-2 self-stretch bg-gradient-to-b from-transparent via-slate-300/60 to-transparent dark:via-slate-600/60" aria-hidden />
                         );
                     }
@@ -609,13 +653,15 @@ export default function BottomNav() {
                         proximity = Math.max(proximity, 1);
                     }
 
-                    const showLabel = isTheme
-                        ? proximity > 0.6 || focusedIndex === index
-                        : isQuickAdd
-                            ? isQuickAddOpen || proximity > 0.5 || focusedIndex === index
-                            : isRecents
-                                ? isRecentsOpen || proximity > 0.5 || focusedIndex === index
-                                : proximity > 0.55 || isActive || focusedIndex === index;
+                    const showLabel = settings.showLabels || (
+                        isTheme
+                            ? proximity > 0.6 || focusedIndex === index
+                            : isQuickAdd
+                                ? isQuickAddOpen || proximity > 0.5 || focusedIndex === index
+                                : isRecents
+                                    ? isRecentsOpen || proximity > 0.5 || focusedIndex === index
+                                    : proximity > 0.55 || isActive || focusedIndex === index
+                    );
 
                     const glowOpacity = Math.max(0, proximity - 0.25);
                     const baseRingOpacity = Math.max(0, proximity - 0.4);
@@ -636,6 +682,26 @@ export default function BottomNav() {
                             onDragEnd={handleDragEnd}
                             onContextMenu={(e) => openContextMenu(e, item)}
                         >
+                            {/* Reorder insertion indicator */}
+                            {dragOverKey === item.key && !item.type && !settings.lockReorder && draggingKeyRef.current ? (
+                                (() => {
+                                    const keys = orderedNavItems.map((it) => it.key);
+                                    const fromIdx = keys.indexOf(draggingKeyRef.current);
+                                    const toIdx = keys.indexOf(item.key);
+                                    const insertBefore = fromIdx > toIdx; // heuristic when dragging over item
+                                    return isVertical ? (
+                                        <span
+                                            aria-hidden
+                                            className={`pointer-events-none absolute ${insertBefore ? '-top-2' : '-bottom-2'} left-2 right-2 h-0.5 rounded-full bg-gradient-to-r from-cyan-400/70 via-sky-400/70 to-blue-400/70 shadow-sm`}
+                                        />
+                                    ) : (
+                                        <span
+                                            aria-hidden
+                                            className={`pointer-events-none absolute top-2 bottom-2 ${insertBefore ? '-left-2' : '-right-2'} w-0.5 rounded-full bg-gradient-to-b from-cyan-400/70 via-sky-400/70 to-blue-400/70 shadow-sm`}
+                                        />
+                                    );
+                                })()
+                            ) : null}
                             <div
                                 ref={(element) => {
                                     iconRefs.current[index] = element;
@@ -647,7 +713,10 @@ export default function BottomNav() {
                                     initial={false}
                                     animate={{
                                         scale,
-                                        y: prefersReducedMotion ? lift : (bouncingIndex === index ? [lift, lift - 18, lift, lift - 10, lift] : lift),
+                                        ...(isVertical
+                                            ? { x: prefersReducedMotion ? lift : (bouncingIndex === index ? [lift, lift - 18, lift, lift - 10, lift] : lift) }
+                                            : { y: prefersReducedMotion ? lift : (bouncingIndex === index ? [lift, lift - 18, lift, lift - 10, lift] : lift) }
+                                        ),
                                         rotate,
                                     }}
                                     transition={{
@@ -661,6 +730,13 @@ export default function BottomNav() {
                                         initial={false}
                                         animate={{ opacity: glowOpacity }}
                                         transition={{ duration: 0.18 }}
+                                    />
+                                    <motion.span
+                                        aria-hidden
+                                        className="pointer-events-none absolute inset-0 rounded-[22px] ring-4 ring-sky-300/40 dark:ring-cyan-300/30"
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={pulseIndex === index ? { opacity: 1, scale: 1.06 } : { opacity: 0, scale: 0.98 }}
+                                        transition={{ duration: 0.28, ease: 'easeOut' }}
                                     />
                                     <motion.span
                                         aria-hidden="true"
@@ -698,28 +774,29 @@ export default function BottomNav() {
                                                     transition={{ type: 'spring', stiffness: 240, damping: 18 }}
                                                     draggable={false}
                                                 />
-                                                {/* macOS-like reflection */}
-                                                <motion.img
-                                                    src={item.iconSrc}
-                                                    onError={(e) => {
-                                                        if (e.currentTarget.dataset.fallbackApplied) return;
-                                                        e.currentTarget.dataset.fallbackApplied = '1';
-                                                        if (item.fallbackIconSrc) e.currentTarget.src = item.fallbackIconSrc;
-                                                    }}
-                                                    alt=""
-                                                    aria-hidden
-                                                    className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
-                                                    style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
-                                                    initial={false}
-                                                    animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
-                                                    transition={{ duration: 0.15 }}
-                                                />
+                                                {!isVertical && (
+                                                    <motion.img
+                                                        src={item.iconSrc}
+                                                        onError={(e) => {
+                                                            if (e.currentTarget.dataset.fallbackApplied) return;
+                                                            e.currentTarget.dataset.fallbackApplied = '1';
+                                                            if (item.fallbackIconSrc) e.currentTarget.src = item.fallbackIconSrc;
+                                                        }}
+                                                        alt=""
+                                                        aria-hidden
+                                                        className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                        style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
+                                                        initial={false}
+                                                        animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                        transition={{ duration: 0.15 }}
+                                                    />
+                                                )}
                                             </div>
                                         </button>
                                     ) : isQuickAdd ? (
                                         <button
                                             type="button"
-                                            ref={quickAddTriggerRef}
+                                            
                                             aria-label={label}
                                             aria-haspopup="menu"
                                             aria-expanded={isQuickAddOpen}
@@ -732,7 +809,7 @@ export default function BottomNav() {
                                                 }
                                                 handleBlur();
                                             }}
-                                            ref={(el) => { focusRefs.current[index] = el; }}
+                                            ref={(el) => { focusRefs.current[index] = el; quickAddTriggerRef.current = el; }}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${isQuickAddOpen ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
                                                 <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
@@ -752,28 +829,29 @@ export default function BottomNav() {
                                                     transition={{ duration: 0.2 }}
                                                     draggable={false}
                                                 />
-                                                {/* macOS-like reflection */}
-                                                <motion.img
-                                                    src={item.iconSrc}
-                                                    onError={(e) => {
-                                                        if (e.currentTarget.dataset.fallbackApplied) return;
-                                                        e.currentTarget.dataset.fallbackApplied = '1';
-                                                        if (item.fallbackIconSrc) e.currentTarget.src = item.fallbackIconSrc;
-                                                    }}
-                                                    alt=""
-                                                    aria-hidden
-                                                    className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
-                                                    style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
-                                                    initial={false}
-                                                    animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
-                                                    transition={{ duration: 0.15 }}
-                                                />
+                                                {!isVertical && (
+                                                    <motion.img
+                                                        src={item.iconSrc}
+                                                        onError={(e) => {
+                                                            if (e.currentTarget.dataset.fallbackApplied) return;
+                                                            e.currentTarget.dataset.fallbackApplied = '1';
+                                                            if (item.fallbackIconSrc) e.currentTarget.src = item.fallbackIconSrc;
+                                                        }}
+                                                        alt=""
+                                                        aria-hidden
+                                                        className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                        style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
+                                                        initial={false}
+                                                        animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                        transition={{ duration: 0.15 }}
+                                                    />
+                                                )}
                                             </div>
                                         </button>
                                     ) : isRecents ? (
                                         <button
                                             type="button"
-                                            ref={recentsTriggerRef}
+                                            
                                             aria-label={label}
                                             aria-haspopup="menu"
                                             aria-expanded={isRecentsOpen}
@@ -786,7 +864,7 @@ export default function BottomNav() {
                                                 }
                                                 handleBlur();
                                             }}
-                                            ref={(el) => { focusRefs.current[index] = el; }}
+                                            ref={(el) => { focusRefs.current[index] = el; recentsTriggerRef.current = el; }}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${isRecentsOpen ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
                                                 <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
@@ -810,6 +888,9 @@ export default function BottomNav() {
                                             onMouseDown={(e) => { triggerBounce(index); startLongPress(e, item); }}
                                             onMouseUp={() => cancelLongPress()}
                                             onMouseLeave={() => cancelLongPress()}
+                                            onTouchStart={(e) => { triggerBounce(index); startLongPress(e.nativeEvent, item); }}
+                                            onTouchEnd={() => cancelLongPress()}
+                                            onTouchCancel={() => cancelLongPress()}
                                             onClick={(e) => { if (longPressTriggeredRef.current) { e.preventDefault(); e.stopPropagation(); longPressTriggeredRef.current = false; } else { triggerBounce(index); } }}
                                             onAuxClick={(e) => { if (e.button === 1 && item.to) { e.preventDefault(); window.open(item.to, '_blank', 'noopener'); } }}
                                             ref={(el) => { focusRefs.current[index] = el; }}
@@ -827,17 +908,18 @@ export default function BottomNav() {
                                                     transition={{ duration: 0.2 }}
                                                     draggable={false}
                                                 />
-                                                {/* macOS-like reflection */}
-                                                <motion.img
-                                                    src={item.iconSrc}
-                                                    alt=""
-                                                    aria-hidden
-                                                    className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
-                                                    style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
-                                                    initial={false}
-                                                    animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
-                                                    transition={{ duration: 0.15 }}
-                                                />
+                                                {!isVertical && (
+                                                    <motion.img
+                                                        src={item.iconSrc}
+                                                        alt=""
+                                                        aria-hidden
+                                                        className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                        style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
+                                                        initial={false}
+                                                        animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                        transition={{ duration: 0.15 }}
+                                                    />
+                                                )}
                                             </div>
                                         </Link>
                                     )}
@@ -853,10 +935,13 @@ export default function BottomNav() {
                                             <motion.span
                                                 key="label"
                                                 initial={{ opacity: 0, y: 6 }}
-                                                animate={{ opacity: 1, y: -4 }}
-                                                exit={{ opacity: 0, y: 4 }}
+                                                animate={isVertical ? { opacity: 1, x: 4 } : { opacity: 1, y: -4 }}
+                                                exit={isVertical ? { opacity: 0, x: 2 } : { opacity: 0, y: 4 }}
                                                 transition={{ duration: 0.18 }}
-                                                className="absolute -top-10 whitespace-nowrap rounded-full bg-slate-900/95 px-3 py-1 text-xs font-semibold text-white shadow-lg shadow-slate-900/40 ring-1 ring-white/20 dark:bg-slate-200/95 dark:text-slate-900 dark:shadow-none"
+                                                className={isVertical
+                                                    ? 'absolute left-[4.25rem] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-slate-900/95 px-3 py-1 text-xs font-semibold text-white shadow-lg shadow-slate-900/40 ring-1 ring-white/20 dark:bg-slate-200/95 dark:text-slate-900 dark:shadow-none'
+                                                    : 'absolute -top-10 whitespace-nowrap rounded-full bg-slate-900/95 px-3 py-1 text-xs font-semibold text-white shadow-lg shadow-slate-900/40 ring-1 ring-white/20 dark:bg-slate-200/95 dark:text-slate-900 dark:shadow-none'
+                                                }
                                             >
                                                 {label}
                                             </motion.span>
@@ -865,7 +950,10 @@ export default function BottomNav() {
                                     {isRunning ? (
                                         <motion.span
                                             layoutId={`dock-indicator-${item.key}`}
-                                            className={`absolute -bottom-2 h-1.5 w-1.5 rounded-full ${isActive ? 'bg-gradient-to-r from-cyan-400 to-blue-400 dark:from-cyan-300 dark:to-sky-400' : 'bg-slate-400/80 dark:bg-slate-500/80'}`}
+                                            className={isVertical
+                                                ? `absolute -right-2 h-1.5 w-1.5 rounded-full ${isActive ? 'bg-gradient-to-r from-cyan-400 to-blue-400 dark:from-cyan-300 dark:to-sky-400' : 'bg-slate-400/80 dark:bg-slate-500/80'}`
+                                                : `absolute -bottom-2 h-1.5 w-1.5 rounded-full ${isActive ? 'bg-gradient-to-r from-cyan-400 to-blue-400 dark:from-cyan-300 dark:to-sky-400' : 'bg-slate-400/80 dark:bg-slate-500/80'}`
+                                            }
                                             initial={{ opacity: 0, scale: 0.4 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.4 }}
@@ -877,11 +965,14 @@ export default function BottomNav() {
                                             <motion.div
                                                 key="quick-add-menu"
                                                 ref={quickAddMenuRef}
-                                                initial={{ opacity: 0, y: 16, scale: 0.96 }}
-                                                animate={{ opacity: 1, y: -14, scale: 1 }}
-                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                initial={{ opacity: 0, ...(isVertical ? { x: 16 } : { y: 16 }), scale: 0.96 }}
+                                                animate={{ opacity: 1, ...(isVertical ? { x: -14 } : { y: -14 }), scale: 1 }}
+                                                exit={{ opacity: 0, ...(isVertical ? { x: 10 } : { y: 10 }), scale: 0.95 }}
                                                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                                                className="absolute bottom-24 left-1/2 w-[19rem] max-w-xs -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-[0_35px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-slate-800/60 dark:bg-slate-900/95"
+                                                className={isVertical
+                                                    ? 'absolute left-24 top-1/2 w-[19rem] max-w-xs -translate-y-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-[0_35px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-slate-800/60 dark:bg-slate-900/95'
+                                                    : 'absolute bottom-24 left-1/2 w-[19rem] max-w-xs -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-[0_35px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-slate-800/60 dark:bg-slate-900/95'
+                                                }
                                                 role="menu"
                                                 aria-label="Quick add shortcuts"
                                             >
@@ -922,11 +1013,14 @@ export default function BottomNav() {
                                                 <motion.div
                                                     key="recents-grid"
                                                     ref={recentsMenuRef}
-                                                    initial={{ opacity: 0, y: 16, scale: 0.96 }}
-                                                    animate={{ opacity: 1, y: -14, scale: 1 }}
-                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    initial={{ opacity: 0, ...(isVertical ? { x: 16 } : { y: 16 }), scale: 0.96 }}
+                                                    animate={{ opacity: 1, ...(isVertical ? { x: -14 } : { y: -14 }), scale: 1 }}
+                                                    exit={{ opacity: 0, ...(isVertical ? { x: 10 } : { y: 10 }), scale: 0.95 }}
                                                     transition={{ duration: 0.2, ease: 'easeOut' }}
-                                                    className="absolute bottom-24 left-1/2 w-[19rem] max-w-xs -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-[0_35px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-slate-800/60 dark:bg-slate-900/95"
+                                                    className={isVertical
+                                                        ? 'absolute left-24 top-1/2 w-[19rem] max-w-xs -translate-y-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-[0_35px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-slate-800/60 dark:bg-slate-900/95'
+                                                        : 'absolute bottom-24 left-1/2 w-[19rem] max-w-xs -translate-x-1/2 rounded-3xl border border-white/60 bg-white/95 p-4 shadow-[0_35px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-slate-800/60 dark:bg-slate-900/95'
+                                                    }
                                                     role="menu"
                                                     aria-label="Recent items"
                                                 >
@@ -958,7 +1052,10 @@ export default function BottomNav() {
                                                     animate={{ opacity: 1 }}
                                                     exit={{ opacity: 0 }}
                                                     transition={{ duration: 0.18 }}
-                                                    className="pointer-events-auto absolute bottom-20 left-1/2 -translate-x-1/2 select-none"
+                                                    className={isVertical
+                                                        ? 'pointer-events-auto absolute left-20 top-1/2 -translate-y-1/2 select-none'
+                                                        : 'pointer-events-auto absolute bottom-20 left-1/2 -translate-x-1/2 select-none'
+                                                    }
                                                     aria-label="Recent items fan"
                                                     role="menu"
                                                 >
@@ -1119,6 +1216,25 @@ export default function BottomNav() {
                         >
                             <div className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Dock Preferences</div>
                             <div className="space-y-4 text-sm">
+                                <div className="block">
+                                    <span className="mb-1 block text-slate-600 dark:text-slate-300">Position</span>
+                                    <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200/70 p-1 dark:border-slate-700/60">
+                                        <button
+                                            type="button"
+                                            className={`rounded-xl px-3 py-1.5 text-sm ${settings.position === 'bottom' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-700 dark:text-slate-300'}`}
+                                            onClick={() => updateSettings({ position: 'bottom' })}
+                                        >
+                                            Bottom
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`rounded-xl px-3 py-1.5 text-sm ${settings.position === 'left' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-700 dark:text-slate-300'}`}
+                                            onClick={() => updateSettings({ position: 'left' })}
+                                        >
+                                            Left
+                                        </button>
+                                    </div>
+                                </div>
                                 <label className="block">
                                     <span className="mb-1 block text-slate-600 dark:text-slate-300">Size</span>
                                     <input type="range" min="0.8" max="1.4" step="0.05" value={settings.scale} onChange={(e) => updateSettings({ scale: Number(e.target.value) })} className="w-full" />
@@ -1134,6 +1250,10 @@ export default function BottomNav() {
                                 <label className="flex items-center gap-3">
                                     <input type="checkbox" checked={Boolean(settings.magnifyEnabled)} onChange={(e) => updateSettings({ magnifyEnabled: e.target.checked })} className="h-4 w-4" />
                                     <span className="text-slate-700 dark:text-slate-300">Enable Magnification</span>
+                                </label>
+                                <label className="flex items-center gap-3">
+                                    <input type="checkbox" checked={Boolean(settings.showLabels)} onChange={(e) => updateSettings({ showLabels: e.target.checked })} className="h-4 w-4" />
+                                    <span className="text-slate-700 dark:text-slate-300">Always Show Labels</span>
                                 </label>
                                 <div className="block">
                                     <span className="mb-1 block text-slate-600 dark:text-slate-300">Recents Stack Style</span>

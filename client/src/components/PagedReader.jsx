@@ -74,6 +74,32 @@ export default function PagedReader({
     };
   }, [updatePages, pages]);
 
+  // Recalculate pagination when the container layout changes (fonts/width/theme)
+  useEffect(() => {
+    const el = containerRef.current; if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => updatePages());
+    try { ro.observe(el); } catch { /* noop */ }
+    return () => { try { ro.disconnect(); } catch { /* noop */ } };
+  }, [updatePages]);
+
+  // Resume last reading progress when available
+  const didRestoreRef = useRef(false);
+  useEffect(() => {
+    if (didRestoreRef.current) return;
+    if (!chapterId) return;
+    if (pages <= 1) return;
+    try {
+      const raw = localStorage.getItem(`reading-progress:${chapterId}`);
+      if (!raw) { didRestoreRef.current = true; return; }
+      const frac = Number(raw);
+      if (!Number.isFinite(frac) || frac <= 0) { didRestoreRef.current = true; return; }
+      const target = Math.round(frac * (pages - 1));
+      const el = containerRef.current; if (!el) return;
+      el.scrollTo({ left: target * el.clientWidth, behavior: 'instant' in el ? 'instant' : 'auto' });
+      didRestoreRef.current = true;
+    } catch { didRestoreRef.current = true; }
+  }, [chapterId, pages]);
+
   const go = useCallback((dir) => {
     const el = containerRef.current;
     if (!el) return;
@@ -105,6 +131,12 @@ export default function PagedReader({
         const el = containerRef.current; if (el) el.scrollTo({ left: 0, behavior: 'smooth' });
       } else if (e.key === 'End') {
         const el = containerRef.current; if (el) el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+      } else if (e.key.toLowerCase() === 't') {
+        setShowToc((s) => !s);
+      } else if (e.key.toLowerCase() === 'b') {
+        saveBookmark();
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullscreen();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -142,12 +174,36 @@ export default function PagedReader({
     } catch (_) {}
   }, [chapterId, page, pages]);
 
+  // Estimate total reading time if not provided
+  const computedReadingMinutes = useMemo(() => {
+    if (readingMinutes && Number.isFinite(readingMinutes)) return Number(readingMinutes);
+    if (!content) return null;
+    try {
+      const text = String(content).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const words = text ? text.split(' ').length : 0;
+      if (!words) return null;
+      const wpm = 220; // average words per minute
+      return Math.max(1, Math.ceil(words / wpm));
+    } catch { return null; }
+  }, [readingMinutes, content]);
+
   const minutesLeft = useMemo(() => {
-    if (!readingMinutes || !Number.isFinite(readingMinutes) || pages <= 0) return null;
+    if (!computedReadingMinutes || !Number.isFinite(computedReadingMinutes) || pages <= 0) return null;
     const fracDone = pages > 1 ? page / (pages - 1) : 1;
-    const rem = Math.max(0, Math.ceil(readingMinutes * (1 - fracDone)));
+    const rem = Math.max(0, Math.ceil(computedReadingMinutes * (1 - fracDone)));
     return rem;
-  }, [readingMinutes, page, pages]);
+  }, [computedReadingMinutes, page, pages]);
+
+  // Auto-advance pages when auto-scroll is enabled in reading settings
+  useEffect(() => {
+    if (!settings?.autoScroll) return undefined;
+    const el = containerRef.current; if (!el) return undefined;
+    if (page >= pages - 1) return undefined;
+    const pxPerSec = Number(settings.autoScrollSpeed ?? 40);
+    const seconds = Math.max(2, Math.round((el.clientWidth + 100) / Math.max(10, pxPerSec)));
+    const id = setTimeout(() => { go('next'); }, seconds * 1000);
+    return () => clearTimeout(id);
+  }, [settings?.autoScroll, settings?.autoScrollSpeed, page, pages, go]);
 
   // UI helpers
   const canPrev = page > 0;
@@ -186,7 +242,8 @@ export default function PagedReader({
     setShowToc(false);
   };
 
-  // Make progress bar clickable to jump to page
+  // Make progress bar clickable and draggable to scrub pages
+  const progressRef = useRef(null);
   const onProgressClick = (e) => {
     const bar = e.currentTarget;
     const rect = bar.getBoundingClientRect();
@@ -195,6 +252,64 @@ export default function PagedReader({
     const target = Math.round(frac * Math.max(0, pages - 1));
     goto(target);
   };
+
+  // Drag to scrub handler
+  useEffect(() => {
+    const bar = progressRef.current;
+    if (!bar) return undefined;
+    let dragging = false;
+    const onDown = (e) => { dragging = true; scrub(e); window.addEventListener('mousemove', onMove, { passive: false }); window.addEventListener('mouseup', onUp); };
+    const onMove = (e) => { if (!dragging) return; e.preventDefault(); scrub(e); };
+    const onUp = () => { dragging = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    const scrub = (e) => {
+      const rect = bar.getBoundingClientRect();
+      const x = Math.min(rect.width, Math.max(0, (e.clientX ?? 0) - rect.left));
+      const frac = rect.width ? (x / rect.width) : 0;
+      const target = Math.round(frac * Math.max(0, pages - 1));
+      goto(target);
+    };
+    bar.addEventListener('mousedown', onDown);
+    return () => {
+      bar.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [pages]);
+
+  // Bookmark current page and recall
+  const bookmarkKey = chapterId ? `reading-bookmark:${chapterId}` : null;
+  const [bookmarkPage, setBookmarkPage] = useState(null);
+  useEffect(() => {
+    if (!bookmarkKey) return; try {
+      const raw = localStorage.getItem(bookmarkKey); if (!raw) return;
+      const idx = Number(raw); if (Number.isFinite(idx)) setBookmarkPage(idx);
+    } catch {}
+  }, [bookmarkKey]);
+  const saveBookmark = () => {
+    if (!bookmarkKey) return;
+    try { localStorage.setItem(bookmarkKey, String(page)); setBookmarkPage(page); } catch {}
+  };
+  const gotoBookmark = () => { if (bookmarkPage == null) return; goto(bookmarkPage); };
+
+  // Fullscreen toggle for immersive reading
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const toggleFullscreen = async () => {
+    try {
+      const node = containerRef.current?.parentElement; // the reader wrapper
+      if (!document.fullscreenElement && node?.requestFullscreen) {
+        await node.requestFullscreen();
+        setIsFullscreen(true);
+      } else if (document.exitFullscreen) {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch { /* ignore */ }
+  };
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
 
   // Desktop drag to flip (mouse)
   useEffect(() => {
@@ -226,6 +341,8 @@ export default function PagedReader({
     return () => el.removeEventListener('wheel', handler);
   }, [go]);
 
+  const percent = pages > 1 ? Math.round((page / (pages - 1)) * 100) : 0;
+
   return (
     <div className={`paged-reader ${isTurning ? `tilt-${isTurning}` : ''} ${className}`} style={style}>
       {showReadingControls && (
@@ -238,7 +355,7 @@ export default function PagedReader({
       <div className="paged-toolbar">
         <button type="button" className="paged-btn" onClick={() => goto(0)} aria-label="First page" disabled={!canPrev}>«</button>
         <button type="button" className="paged-btn" onClick={() => go('prev')} aria-label="Previous page" disabled={!canPrev}>‹</button>
-        <div className="paged-indicator" aria-live="polite">Page {page + 1} / {pages}{minutesLeft !== null ? ` · ${minutesLeft} min left` : ''}</div>
+        <div className="paged-indicator" aria-live="polite">Page {page + 1} / {pages} · {percent}%{minutesLeft !== null ? ` · ${minutesLeft} min left` : ''}</div>
         <button type="button" className="paged-btn" onClick={() => go('next')} aria-label="Next page" disabled={!canNext}>›</button>
         <button type="button" className="paged-btn" onClick={() => goto(pages - 1)} aria-label="Last page" disabled={!canNext}>»</button>
         <div className="paged-size">
@@ -246,13 +363,20 @@ export default function PagedReader({
           <button type="button" className={`paged-size-btn ${size === 'm' ? 'active' : ''}`} onClick={() => changeSize('m')} aria-label="Comfort">M</button>
           <button type="button" className={`paged-size-btn ${size === 'l' ? 'active' : ''}`} onClick={() => changeSize('l')} aria-label="Spacious">L</button>
         </div>
-        {headings.length > 0 && (
-          <div className="paged-actions">
+        <div className="paged-actions">
+          {headings.length > 0 && (
             <button type="button" className="paged-btn" onClick={() => setShowToc((s) => !s)} aria-label="Table of contents">TOC</button>
-          </div>
-        )}
+          )}
+          {chapterId && (
+            <button type="button" className="paged-btn" onClick={saveBookmark} aria-label="Bookmark this page" title="Bookmark this page">★</button>
+          )}
+          {chapterId && bookmarkPage != null && (
+            <button type="button" className="paged-btn" onClick={gotoBookmark} aria-label="Go to bookmark" title="Go to bookmark">⤴︎</button>
+          )}
+          <button type="button" className="paged-btn" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'} title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}>{isFullscreen ? '⤢' : '⤢'}</button>
+        </div>
       </div>
-      <div className="paged-progress" role="slider" aria-label="Reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pages > 1 ? Math.round((page / (pages - 1)) * 100) : 0} onClick={onProgressClick}>
+      <div ref={progressRef} className="paged-progress" role="slider" aria-label="Reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pages > 1 ? Math.round((page / (pages - 1)) * 100) : 0} onClick={onProgressClick}>
         <div className="paged-progress-bar" style={{ width: pages > 1 ? `${(page / (pages - 1)) * 100}%` : '0%' }} />
       </div>
 

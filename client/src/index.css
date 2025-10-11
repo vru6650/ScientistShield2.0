@@ -103,12 +103,76 @@ button:focus-visible {
   --color-accent: #0A84FF; /* macOS Big Sur blue */
   --color-border: #e5e7eb;
 
+  /* Glass/vibrancy controls (overridable via Control Center) */
+  --glass-bg-alpha: 0.62; /* toolbar/card background alpha */
+  --glass-border-alpha: 0.38; /* toolbar/card border alpha */
+  --glass-blur: 20px; /* backdrop blur radius */
+
   /* Sidebar variables for light mode */
   --color-sidebar-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(241, 245, 249, 0.55) 100%);
   --color-sidebar-border: rgba(226, 232, 240, 0.6);
 
   /* System accent for form controls */
   accent-color: var(--color-accent);
+}
+
+/*
+ * --- White Big Sur Utilities ---
+ * Reusable classes for macOS Big Sur white style.
+ */
+.btn-aqua {
+  /* Aqua-style primary button */
+  background-image: linear-gradient(180deg, #0A84FF 0%, #007aff 100%);
+  color: #ffffff;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 10px 24px -12px rgba(10, 132, 255, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: saturate(180%) blur(10px);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  transition: transform 0.12s ease, filter 0.2s ease, background 0.2s ease;
+}
+.btn-aqua:hover {
+  transform: translateY(-1px);
+  background-image: linear-gradient(180deg, #3395ff 0%, #0070f3 100%);
+  filter: saturate(110%);
+}
+.btn-aqua:active {
+  transform: translateY(0);
+  filter: saturate(100%);
+}
+.btn-aqua:focus-visible {
+  outline: 2px solid rgba(10, 132, 255, 0.55);
+  outline-offset: 2px;
+}
+.dark .btn-aqua {
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 10px 24px -12px rgba(2, 132, 199, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.card-surface {
+  /* Big Sur frosted surface */
+  background: rgba(255, 255, 255, calc(var(--glass-bg-alpha) + 0.12));
+  border: 1px solid rgba(255, 255, 255, calc(var(--glass-border-alpha) + 0.04));
+  border-radius: 1rem;
+  backdrop-filter: saturate(180%) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--glass-blur));
+  box-shadow: 0 30px 80px -40px rgba(15, 23, 42, 0.28);
+}
+.dark .card-surface {
+  background: rgba(15, 23, 42, calc(var(--glass-bg-alpha) + 0.0));
+  border-color: rgba(148, 163, 184, calc(var(--glass-border-alpha) + 0.0));
+}
+
+.toolbar-translucent {
+  /* Translucent toolbar/navbar container */
+  background: rgba(255, 255, 255, var(--glass-bg-alpha));
+  border: 1px solid rgba(255, 255, 255, var(--glass-border-alpha));
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+.dark .toolbar-translucent {
+  background: rgba(2, 6, 23, var(--glass-bg-alpha));
+  border-color: rgba(148, 163, 184, var(--glass-border-alpha));
 }
 
 /*

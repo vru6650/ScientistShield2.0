@@ -70,7 +70,7 @@ export default function Hero() {
                     />
                     <Button
                         type="submit"
-                        className="bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white !rounded-none rounded-r-radius-full h-11 w-20 transition-colors duration-300 transform hover:scale-105"
+                        className="btn-aqua !rounded-none rounded-r-radius-full h-11 w-20 transform hover:scale-105"
                     >
                         Go
                     </Button>

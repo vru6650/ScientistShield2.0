@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import CodeEditor from '../components/CodeEditor';
-import { Alert, Button } from 'flowbite-react';
-import { FaExternalLinkAlt, FaLaptopCode } from 'react-icons/fa';
+import { Alert } from 'flowbite-react';
+import { FaLaptopCode } from 'react-icons/fa';
 
 export default function TryItPage() {
     const location = useLocation();
@@ -50,14 +50,9 @@ console.log('Happy coding with Node.js!');
                     language={editorLanguage}
                 />
 
-                <Alert color="purple" className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex items-center gap-3 text-sm sm:text-base">
-                        <FaLaptopCode className="text-xl" />
-                        <span>Need to walk through execution line-by-line? Open the interactive code visualizer.</span>
-                    </div>
-                    <Button gradientDuoTone="purpleToBlue" as={Link} to="/visualizer">
-                        <FaExternalLinkAlt className="mr-2" /> Launch Visualizer
-                    </Button>
+                <Alert color="purple" className="mt-6 flex items-center gap-3 text-sm sm:text-base">
+                    <FaLaptopCode className="text-xl" />
+                    <span>Experiment freely—your code runs in a safe sandbox with no saved changes.</span>
                 </Alert>
             </div>
         </div>

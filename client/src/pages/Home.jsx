@@ -600,7 +600,7 @@ export default function Home() {
                                 <Button
                                     pill
                                     size="lg"
-                                    className="bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-white/90"
+                                    className="btn-aqua"
                                 >
                                     Create free account
                                 </Button>

@@ -427,9 +427,6 @@ export default function Tools() {
                             <Button as={Link} to="/tryit" color="light" className="text-gray-900">
                                 Launch Playground
                             </Button>
-                            <Button as={Link} to="/visualizer" color="light" outline className="text-white border-white">
-                                Inspect Algorithms
-                            </Button>
                         </div>
                         <div className="grid gap-space-md sm:grid-cols-3 text-sm">
                             <div className="rounded-radius-md bg-white/10 p-space-md">

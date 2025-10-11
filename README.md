@@ -99,6 +99,27 @@ Notes on runners:
 - Runtimes are optional; if missing, endpoints return a helpful message rather than crashing.
 - Never expose unrestricted code execution to untrusted users in production.
 
+## Step‑by‑Step Debugger
+The in‑app Code Editor includes an interactive, step‑by‑step debugger (Thonny‑style) for Python, C/C++, JavaScript, and Java.
+
+- Open any editor (e.g., Try It page or Interactive Code Block) and click `Debug`.
+- Use the controls to step through execution and inspect state:
+  - Play/Pause: Continue or pause (`F5`)
+  - Step Into: Move into calls (`F11`)
+  - Step Over: Skip over calls (`F10`)
+  - Step Out: Finish current frame (`Shift+F11`)
+  - Next/Prev: Move between recorded steps
+  - Run to Cursor: Continue until the cursor line (`Ctrl/Cmd+F10`)
+  - Breakpoints: Toggle with gutter click or (`F9`); clear with (`Shift+F9`)
+- Visual cues:
+  - Current line is highlighted in green; next line in red
+  - Breakpoints are shown as pink dots in the gutter
+- Data panels show current locals, call stack, heap objects (when available), and stdout.
+
+Notes:
+- Python runs locally via a tracing script; other languages use Python Tutor to generate traces.
+- If your server cannot reach external services, non‑Python visualization may be unavailable.
+
 ## Testing
 Run server tests:
 ```bash

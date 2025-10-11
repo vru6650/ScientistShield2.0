@@ -3,7 +3,6 @@ import tutorialsIcon from '../assets/dock/tutorials.svg';
 import quizzesIcon from '../assets/dock/quizzes.svg';
 import toolsIcon from '../assets/dock/tools.svg';
 import problemsIcon from '../assets/dock/problems.svg';
-import visualizerIcon from '../assets/dock/visualizer.svg';
 import dashboardIcon from '../assets/dock/dashboard.svg';
 import quickAddIcon from '../assets/dock/quick-add.svg';
 import themeIcon from '../assets/dock/theme.svg';
@@ -71,15 +70,6 @@ export const baseDockItems = [
         fallbackIconSrc: problemsIcon,
         iconAlt: 'Problems dock icon',
         match: (path) => path.startsWith('/problems'),
-    },
-    {
-        key: 'visualizer',
-        to: '/visualizer',
-        label: 'Code Visualizer',
-        iconSrc: buildIconSrc('visualizer', visualizerIcon),
-        fallbackIconSrc: visualizerIcon,
-        iconAlt: 'Visualizer dock icon',
-        match: (path) => path.startsWith('/visualizer'),
     },
 ];
 

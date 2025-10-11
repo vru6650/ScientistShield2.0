@@ -3,12 +3,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Button from './ui/Button';
 
-const languages = ['javascript', 'cpp', 'python', 'java', 'csharp'];
+const defaultLanguages = ['javascript', 'cpp', 'python', 'java', 'csharp'];
 const languageLabels = {
     csharp: 'C#',
 };
 
-export default function LanguageSelector({ selectedLanguage, setSelectedLanguage }) {
+export default function LanguageSelector({ selectedLanguage, setSelectedLanguage, languages = defaultLanguages }) {
     return (
         <motion.div
             layout

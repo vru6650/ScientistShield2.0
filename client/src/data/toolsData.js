@@ -3,7 +3,6 @@ import {
     FaBolt,
     FaMagic,
     FaLaptopCode,
-    FaProjectDiagram,
     FaChalkboardTeacher,
     FaQuestionCircle,
     FaPuzzlePiece,
@@ -11,6 +10,7 @@ import {
     FaSearch,
     FaClipboardCheck,
     FaLayerGroup,
+    FaProjectDiagram,
 } from 'react-icons/fa';
 
 export const workspaceTools = [
@@ -73,14 +73,15 @@ export const resourceTools = [
         isFeatured: true,
     },
     {
-        id: 'code-visualizer',
+        id: 'algorithm-visualizer',
         name: 'Algorithm Visualizer',
-        description: 'Step through algorithms line-by-line to understand exactly how your code executes.',
+        description: 'Animate classic algorithms with step-by-step code, pseudocode, and data structure views.',
         icon: FaProjectDiagram,
         category: 'Developer Tools',
-        href: '/visualizer',
-        tags: ['debugging', 'visual'],
-        highlight: 'Great for data structure walkthroughs',
+        href: '/algorithm-visualizer',
+        tags: ['algorithms', 'visualization', 'learning'],
+        isFeatured: true,
+        highlight: 'New • Animate bubble sort, insertion sort, and binary search',
     },
     {
         id: 'tutorial-library',
