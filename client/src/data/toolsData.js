@@ -11,6 +11,7 @@ import {
     FaClipboardCheck,
     FaLayerGroup,
     FaProjectDiagram,
+    FaCodeBranch,
 } from 'react-icons/fa';
 
 export const workspaceTools = [
@@ -82,6 +83,17 @@ export const resourceTools = [
         tags: ['algorithms', 'visualization', 'learning'],
         isFeatured: true,
         highlight: 'New • Animate bubble sort, insertion sort, and binary search',
+    },
+    {
+        id: 'code-visualizer',
+        name: 'Code Visualizer Studio',
+        description: 'Follow highlighted code and live state panels inspired by staying.fun walkthroughs.',
+        icon: FaCodeBranch,
+        category: 'Developer Tools',
+        href: '/code-visualizer',
+        tags: ['visualization', 'code flow'],
+        isFeatured: true,
+        highlight: 'New • Step through binary search, debounce, and BFS',
     },
     {
         id: 'tutorial-library',
