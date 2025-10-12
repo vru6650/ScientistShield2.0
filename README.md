@@ -1,152 +1,196 @@
 # ScientistShield 2.0
 
-Modern MERN knowledge platform with tutorials, quizzes, problem solving, full‑text search, and safe multi‑language code runners.
+![Node.js](https://img.shields.io/badge/node-%3E%3D18.0-brightgreen) ![MongoDB](https://img.shields.io/badge/MongoDB-6.x-green) ![License](https://img.shields.io/badge/license-MIT-blue) ![Build](https://img.shields.io/badge/build-Vite%20%2B%20Express-orange)
+
+ScientistShield 2.0 is a modern MERN knowledge platform that bundles tutorials, quizzes, problems, search, and safe multi‑language code runners into a single learning experience. The project ships with a production-ready Express backend, a Vite + React frontend, and optional Elasticsearch integration for full‑text search.
+
+---
+
+## Table of Contents
+- [Features](#features)
+- [Architecture](#architecture)
+- [Directory Layout](#directory-layout)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Available Scripts](#available-scripts)
+- [API Highlights](#api-highlights)
+- [Code Runners & Debugger](#code-runners--debugger)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [WhiteSur Theme](#whitesur-theme)
 
 ## Features
-- Tutorials, posts, and pages with rich editor (TipTap) and reading tools
-- Quizzes with grading and admin management
-- Problems with hints, constraints, and starter code
-- Search powered by optional Elasticsearch (MongoDB fallback messaging)
-- Safe code execution endpoints: JavaScript, Python, C/C++, Java, C#
-- Authentication with JWT and cookies; role‑based routes
-- Production build served by Express; Vite dev with API proxy
+- **Content Authoring** – Tutorials, posts, and rich pages powered by TipTap with reading helpers, syntax highlighting, and media embedding.
+- **Assessments** – Quiz builder with grading workflows, result storage, and admin tools.
+- **Problem Solving** – Competitive programming style problems that expose hints, starter code, and constraints to learners.
+- **Search** – Full‑text search backed by Elasticsearch (with graceful fallbacks if disabled).
+- **Safe Execution** – Sandbox endpoints for JavaScript, Python, C/C++, Java, and C# with defensive timeouts and helpful failure messages.
+- **Authentication** – JWT + cookie sessions, role‑based routes, and secure API middlewares.
+- **Operations Ready** – Production build script, shared logger, centralized error handler, and environment driven configuration.
 
-## Tech Stack
-- Backend: Node.js, Express, Mongoose, JWT, Cookie Parser, CORS
-- Frontend: React 18, Vite, Redux Toolkit + Persist, React Router, Tailwind CSS
-- Editor/UX: TipTap, Lowlight/Highlight.js, Framer Motion, Tippy.js
-- Search: Elasticsearch (optional; see env vars) with REST integration
+## Architecture
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                               Client                              │
+│  React 18 + Vite • Redux Toolkit • Tailwind • TipTap • Framer     │
+└───────────────▲──────────────────────────────┬────────────────────┘
+                │                              │ REST / WebSockets*
+                │                              │
+┌───────────────┴──────────────────────────────▼────────────────────┐
+│                             API (Node)                            │
+│ Express • Mongoose • JWT • Cookie Parser • Code Runner Services   │
+└───────────────▲──────────────────────────────┬────────────────────┘
+                │                              │
+                │ MongoDB                      │ Optional Elasticsearch
+                ▼                              ▼
+        Persistence Layer              Full‑Text Search Layer
+```
+\* WebSockets are an optional extension point for real‑time collaboration or notifications.
 
-## Directory Structure
-- `api/` – Express API (routes, controllers, models, services, utils)
-- `client/` – React app (Vite) with pages, components, hooks, and services
-- `temp/` – ephemeral workspace for code runners (created at runtime)
+The `temp/` directory is created at runtime to host transient files for code execution. It is ignored by git and safe to purge between runs.
 
-## Quick Start
-Prerequisites:
-- Node.js 18+ and npm
-- MongoDB running locally or remotely
-- Optional: Elasticsearch (for full search); otherwise set `ELASTICSEARCH_DISABLED=true`
+## Directory Layout
+- `api/` – Express API with routes, controllers, models, services, middleware, and utilities.
+- `client/` – Vite + React application featuring pages, components, hooks, and service modules.
+- `temp/` – Ephemeral workspace for code runners. Generated on demand.
+- `package.json` – Manages shared scripts for both workspaces.
 
-1) Install dependencies
+## Getting Started
+### Prerequisites
+- Node.js **18+** and npm
+- MongoDB instance (local or hosted)
+- Optional: Elasticsearch node for full search (otherwise disable it)
+
+### 1. Install dependencies
 ```bash
 npm install
 npm install --prefix client
 ```
 
-2) Configure environment
-Create `.env` in the project root (an example is already present). Minimum recommended:
+### 2. Configure environment
+Create a `.env` file in the project root. A sample with sensible defaults is provided. Minimum recommended values:
+
 ```env
 JWT_SECRET=change-me
 MONGO_URI=mongodb://127.0.0.1:27017/scientistshield
 PORT=3000
 CORS_ORIGIN=http://localhost:5173
 
-# Client -> API base (leave empty for same-origin/proxy in dev)
+# Client -> API base (leave empty to rely on same-origin/proxy in dev)
 VITE_API_URL=http://localhost:3000
 
 # Optional search (disable if not using)
 ELASTICSEARCH_DISABLED=true
-# Or configure instead:
+# or supply connection credentials:
 # ELASTICSEARCH_NODE=http://localhost:9200
-# ELASTICSEARCH_USERNAME=your-username
-# ELASTICSEARCH_PASSWORD=your-password
-# ELASTICSEARCH_API_KEY=your-api-key
+# ELASTICSEARCH_USERNAME=elastic
+# ELASTICSEARCH_PASSWORD=changeme
+# ELASTICSEARCH_API_KEY=<base64>
 # ELASTICSEARCH_INDEX_PREFIX=scientistshield
 ```
 
-3) Run in development (two terminals)
+### 3. Run in development
+Use two terminals so both servers stay hot-reloaded.
+
 ```bash
-# Terminal A – API (Express)
+# Terminal A – API
 npm run dev
 
 # Terminal B – Client (Vite)
 npm run dev --prefix client
 ```
-Vite proxies `/api/*` to `http://localhost:3000` during development.
 
-4) Build and run in production
+Vite proxies `/api/*` requests to `http://localhost:3000` during development.
+
+### 4. Build for production
 ```bash
-npm run build     # builds client
-npm start         # starts Express and serves built client
+npm run build     # builds the React client into client/dist
+npm start         # serves Express API + static client bundle
 ```
-The server serves the SPA from `client/dist` and exposes the API under `/api`.
+
+The Express server serves the SPA from `client/dist` and exposes the API under `/api`.
 
 ## Environment Variables
-- `JWT_SECRET` – required; signs JWTs
-- `MONGO_URI` – MongoDB connection string (default `mongodb://0.0.0.0:27017/myappp`)
-- `PORT` – API port (default `3000`)
-- `CORS_ORIGIN` – allowed origin for cookies/CORS (default `http://localhost:5173`)
-- `VITE_API_URL` – client Axios base URL; set to API origin in production; empty uses same origin/proxy
-- `ELASTICSEARCH_DISABLED` – set to `true`/`1` to fully disable external search integration
-- `ELASTICSEARCH_NODE` – e.g. `http://localhost:9200`
-- `ELASTICSEARCH_USERNAME` / `ELASTICSEARCH_PASSWORD` – basic auth credentials
-- `ELASTICSEARCH_API_KEY` – alternative to user/pass (takes precedence)
-- `ELASTICSEARCH_INDEX_PREFIX` – index name prefix (default `scientistshield`)
+| Name | Required | Default | Description |
+| ---- | -------- | ------- | ----------- |
+| `JWT_SECRET` | ✅ | — | Secret used to sign JWTs. |
+| `MONGO_URI` | ✅ | `mongodb://0.0.0.0:27017/myappp` | MongoDB connection string. |
+| `PORT` | ➖ | `3000` | Express server port. |
+| `CORS_ORIGIN` | ➖ | `http://localhost:5173` | Allowed origin for cookies/CORS. |
+| `VITE_API_URL` | ➖ | *(empty)* | Client Axios base URL; empty uses same origin/proxy. |
+| `ELASTICSEARCH_DISABLED` | ➖ | `false` | Set `true`/`1` to fully disable external search integration. |
+| `ELASTICSEARCH_NODE` | ➖ | — | Elasticsearch node URL. |
+| `ELASTICSEARCH_USERNAME` / `ELASTICSEARCH_PASSWORD` | ➖ | — | Basic auth credentials for Elasticsearch. |
+| `ELASTICSEARCH_API_KEY` | ➖ | — | Alternative to user/password; takes precedence if present. |
+| `ELASTICSEARCH_INDEX_PREFIX` | ➖ | `scientistshield` | Prefix applied to search indices. |
+
+## Available Scripts
+| Command | Location | Description |
+| ------- | -------- | ----------- |
+| `npm run dev` | root | Starts the Express API with nodemon + ts-node/register. |
+| `npm run dev --prefix client` | root | Launches Vite dev server with hot module replacement. |
+| `npm run build` | root | Builds the client and copies artifacts into `client/dist`. |
+| `npm start` | root | Starts Express in production mode serving the built client. |
+| `npm test` | root | Runs backend unit/integration tests using Node's native test runner. |
+
+Run commands from the repository root unless otherwise noted.
 
 ## API Highlights
-- Content: `/api/post`, `/api/tutorial`, `/api/problems`, `/api/pages`
-- Auth: `/api/auth` (signup/signin), `/api/user`
-- Search: `/api/search` (uses Elasticsearch when enabled)
-- Code execution (POST JSON `{ code: string }`):
-  - JavaScript: `/api/code/run-js` (runs in a restricted VM sandbox)
-  - Python: `/api/code/run-python` (requires `python3` or `python` on server)
-  - C/C++: `/api/code/run-cpp` (requires compiler/runtime)
-  - Java: `/api/code/run-java` (requires JDK)
-  - C#: `/api/code/run-csharp` (prefers .NET SDK; also supports dotnet‑script/csi/scriptcs)
+- **Content**: `/api/post`, `/api/tutorial`, `/api/problems`, `/api/pages`
+- **Auth**: `/api/auth` (signup/signin), `/api/user`
+- **Search**: `/api/search` (automatically falls back when Elasticsearch is disabled)
+- **Code execution** (`POST { code: string }`):
+  - `/api/code/run-js` – Restricted VM sandbox for JavaScript
+  - `/api/code/run-python` – Requires `python3`/`python` binary
+  - `/api/code/run-cpp` – Requires a C/C++ toolchain
+  - `/api/code/run-java` – Requires JDK
+  - `/api/code/run-csharp` – Prefers .NET SDK but supports dotnet-script/csi/scriptcs
 
-Notes on runners:
-- Runtimes are optional; if missing, endpoints return a helpful message rather than crashing.
-- Never expose unrestricted code execution to untrusted users in production.
+Runtimes are optional. If missing, endpoints respond with friendly guidance instead of throwing.
 
-## Step‑by‑Step Debugger
-The in‑app Code Editor includes an interactive, step‑by‑step debugger (Thonny‑style) for Python, C/C++, JavaScript, and Java.
+## Code Runners & Debugger
+The in-app code editor features an interactive step-by-step debugger inspired by Thonny that supports Python, C/C++, JavaScript, and Java.
 
-- Open any editor (e.g., Try It page or Interactive Code Block) and click `Debug`.
-- Use the controls to step through execution and inspect state:
-  - Play/Pause: Continue or pause (`F5`)
-  - Step Into: Move into calls (`F11`)
-  - Step Over: Skip over calls (`F10`)
-  - Step Out: Finish current frame (`Shift+F11`)
-  - Next/Prev: Move between recorded steps
-  - Run to Cursor: Continue until the cursor line (`Ctrl/Cmd+F10`)
-  - Breakpoints: Toggle with gutter click or (`F9`); clear with (`Shift+F9`)
-- Visual cues:
-  - Current line is highlighted in green; next line in red
-  - Breakpoints are shown as pink dots in the gutter
-- Data panels show current locals, call stack, heap objects (when available), and stdout.
+**Usage**
+1. Open any editor (Try It page or Interactive Code Block) and click **Debug**.
+2. Control execution with Play/Pause (`F5`), Step Into (`F11`), Step Over (`F10`), Step Out (`Shift+F11`), Run to Cursor (`Ctrl/Cmd+F10`), and breakpoint toggles (`F9`, `Shift+F9`).
+3. Inspect locals, call stack, heap objects, and stdout from the side panels.
 
-Notes:
-- Python runs locally via a tracing script; other languages use Python Tutor to generate traces.
-- If your server cannot reach external services, non‑Python visualization may be unavailable.
+Visual cues highlight the current line (green), next line (red), and breakpoints (pink dots). Python traces run locally while other languages leverage the Python Tutor service; when offline, non-Python visualisations may be unavailable.
 
 ## Testing
-Run server tests:
+Run server tests from the project root:
+
 ```bash
 npm test
 ```
-Includes controllers, routes, services, and utilities. Tests use Node’s native runner.
+
+The suite covers controllers, routes, services, and utilities using Node's built-in test runner.
 
 ## Troubleshooting
-- Cannot connect to MongoDB: verify `MONGO_URI` and that MongoDB is running.
-- CORS/auth issues in dev: confirm `CORS_ORIGIN` matches Vite URL and that Vite proxy is active.
-- Elasticsearch errors: set `ELASTICSEARCH_DISABLED=true` to suppress integration, or configure node/credentials.
-- Missing runtimes (Python/.NET/Java): install language toolchains, or expect graceful messages from code endpoints.
+- **MongoDB connection failures** – Verify `MONGO_URI` and ensure the database is running/accessible.
+- **CORS or auth issues in dev** – Confirm `CORS_ORIGIN` matches the Vite URL and the proxy is active.
+- **Elasticsearch errors** – Set `ELASTICSEARCH_DISABLED=true` to suppress integration or provide valid credentials.
+- **Missing runtimes** – Install the necessary language toolchains or expect graceful error messages from the code execution endpoints.
 
 ## Contributing
 1. Create a feature branch from `main`.
-2. Add focused changes and unit tests where practical.
-3. Run `npm test` and ensure all tests pass.
-4. Open a PR with a clear description and screenshots if UI changes.
+2. Implement focused changes and include tests where practical.
+3. Run `npm test` and confirm all checks pass.
+4. Submit a pull request with a clear description and screenshots for UI updates.
+
+---
+
+## WhiteSur Theme
+The client UI adopts a WhiteSur (macOS Big Sur) inspired theme featuring frosted glass surfaces, rounded corners, and a signature blue accent (`#0A84FF`).
+
+- Icons live under `client/public/icons/whitesur`. Switch packs at runtime:
+  - `localStorage.setItem('iconPack', 'whitesur'); location.reload();`
+  - Reset with `localStorage.removeItem('iconPack'); location.reload();`
+- The header features macOS-style window controls. Glass surfaces use the `glass-effect` utility to adapt across light/dark modes.
+- The PWA manifest `theme_color` matches the accent color for cohesive installations.
 
 ---
 
 Versions: ScientistShield_0.1 · ScientistShield0.2 · ScientistShield1.0 · ScientistShield2.0
-
-## WhiteSur Theme
-- The client UI adopts a WhiteSur (macOS Big Sur) inspired theme: frosted glass surfaces, rounded corners, and the Blue accent (`#0A84FF`).
-- A curated WhiteSur icon pack is available under `client/public/icons/whitesur`. Switch at runtime via:
-  - In DevTools: `localStorage.setItem('iconPack', 'whitesur'); location.reload();`
-  - Reset: `localStorage.removeItem('iconPack'); location.reload();`
-- The header features macOS-style window controls. Glass surfaces use the `glass-effect` utility and adapt to light/dark.
-- The PWA manifest `theme_color` is set to `#0A84FF` to match WhiteSur.
