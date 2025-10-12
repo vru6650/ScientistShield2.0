@@ -504,6 +504,176 @@ export const algorithmGroups = [
         ],
     },
     {
+        id: 'searching',
+        label: 'Searching algorithms',
+        description: 'Observe how iterative and divide-and-conquer strategies locate a target.',
+        algorithms: [
+            {
+                id: 'linear-search',
+                name: 'Linear Search',
+                summary: 'Scan each element sequentially until the desired value is found.',
+                templates: {
+                    javascript: `function runAlgorithm(config, emit) {
+  const data = [...config.array];
+  const target = config.target;
+
+  const snapshot = (stage, message, highlights = {}, variables = {}) => {
+    emit({
+      mode: 'sorting',
+      array: [...data],
+      stage,
+      message,
+      highlights,
+      debug: {
+        stack: [\`linearSearch(array, target=\${target})\`],
+        variables,
+      },
+    });
+  };
+
+  snapshot('start', \`Locate \${target} using linear search\`, { window: [0, data.length - 1] }, { target, length: data.length });
+
+  for (let index = 0; index < data.length; index += 1) {
+    snapshot('scan', \`Inspect index \${index}\`, { keyIndex: index, window: [0, index] }, { target, index, value: data[index] });
+    if (data[index] === target) {
+      snapshot('found', \`Found \${target} at index \${index}\`, { targetIndex: index, keyIndex: index }, { target, index, value: data[index] });
+      snapshot('complete', 'Linear search complete', { targetIndex: index }, { target, index });
+      return { index };
+    }
+  }
+
+  snapshot('complete', \`\${target} was not located in the array\`, {}, { target, index: -1 });
+  return { index: -1 };
+}`,
+                    python: `def run_algorithm(config, emit):
+    data = list(config['array'])
+    target = config['target']
+
+    def snapshot(stage, message, highlights=None, variables=None):
+        emit({
+            'mode': 'sorting',
+            'array': list(data),
+            'stage': stage,
+            'message': message,
+            'highlights': highlights or {},
+            'debug': {
+                'stack': [f"linearSearch(array, target={target})"],
+                'variables': variables or {}
+            }
+        })
+
+    snapshot('start', f'Locate {target} using linear search', {'window': [0, len(data) - 1]}, {'target': target, 'length': len(data)})
+
+    for index, value in enumerate(data):
+        snapshot('scan', f'Inspect index {index}', {'keyIndex': index, 'window': [0, index]}, {'target': target, 'index': index, 'value': value})
+        if value == target:
+            snapshot('found', f'Found {target} at index {index}', {'targetIndex': index, 'keyIndex': index}, {'target': target, 'index': index, 'value': value})
+            snapshot('complete', 'Linear search complete', {'targetIndex': index}, {'target': target, 'index': index})
+            return {'index': index}
+
+    snapshot('complete', f'{target} was not located in the array', {}, {'target': target, 'index': -1})
+    return {'index': -1}
+`,
+                },
+            },
+            {
+                id: 'binary-search',
+                name: 'Binary Search',
+                summary: 'Halve the remaining search window by comparing against the midpoint.',
+                templates: {
+                    javascript: `function runAlgorithm(config, emit) {
+  const data = [...config.array];
+  const target = config.target;
+  let low = 0;
+  let high = data.length - 1;
+
+  const snapshot = (stage, message, highlights = {}, variables = {}) => {
+    emit({
+      mode: 'sorting',
+      array: [...data],
+      stage,
+      message,
+      highlights,
+      debug: {
+        stack: [\`binarySearch(array, target=\${target})\`],
+        variables,
+      },
+    });
+  };
+
+  snapshot('start', \`Locate \${target} using binary search\`, { window: [low, high] }, { target, low, high });
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const value = data[mid];
+
+    snapshot('compare', \`Compare index \${mid}\`, { window: [low, high], pivot: mid }, { target, low, high, mid, value });
+
+    if (value === target) {
+      snapshot('found', \`Target \${target} located at index \${mid}\`, { window: [mid, mid], targetIndex: mid, pivot: mid }, { target, index: mid, value });
+      snapshot('complete', 'Binary search complete', { targetIndex: mid }, { target, index: mid });
+      return { index: mid };
+    }
+
+    if (value < target) {
+      low = mid + 1;
+      snapshot('narrow', \`Discard left half up to index \${mid}\`, { window: [low, high] }, { target, low, high, mid, value });
+    } else {
+      high = mid - 1;
+      snapshot('narrow', \`Discard right half from index \${mid}\`, { window: [low, high] }, { target, low, high, mid, value });
+    }
+  }
+
+  snapshot('complete', \`\${target} was not located in the array\`, {}, { target, index: -1 });
+  return { index: -1 };
+}`,
+                    python: `def run_algorithm(config, emit):
+    data = list(config['array'])
+    target = config['target']
+    low = 0
+    high = len(data) - 1
+
+    def snapshot(stage, message, highlights=None, variables=None):
+        emit({
+            'mode': 'sorting',
+            'array': list(data),
+            'stage': stage,
+            'message': message,
+            'highlights': highlights or {},
+            'debug': {
+                'stack': [f"binarySearch(array, target={target})"],
+                'variables': variables or {}
+            }
+        })
+
+    snapshot('start', f'Locate {target} using binary search', {'window': [low, high]}, {'target': target, 'low': low, 'high': high})
+
+    while low <= high:
+        mid = (low + high) // 2
+        value = data[mid]
+
+        snapshot('compare', f'Compare index {mid}', {'window': [low, high], 'pivot': mid}, {'target': target, 'low': low, 'high': high, 'mid': mid, 'value': value})
+
+        if value == target:
+            snapshot('found', f'Target {target} located at index {mid}', {'window': [mid, mid], 'targetIndex': mid, 'pivot': mid}, {'target': target, 'index': mid, 'value': value})
+            snapshot('complete', 'Binary search complete', {'targetIndex': mid}, {'target': target, 'index': mid})
+            return {'index': mid}
+
+        if value < target:
+            low = mid + 1
+            snapshot('narrow', f'Discard left half up to index {mid}', {'window': [low, high]}, {'target': target, 'low': low, 'high': high, 'mid': mid, 'value': value})
+        else:
+            high = mid - 1
+            snapshot('narrow', f'Discard right half from index {mid}', {'window': [low, high]}, {'target': target, 'low': low, 'high': high, 'mid': mid, 'value': value})
+
+    snapshot('complete', f'{target} was not located in the array', {}, {'target': target, 'index': -1})
+    return {'index': -1}
+`,
+                },
+            },
+        ],
+    },
+    {
         id: 'graph',
         label: 'Graph traversal',
         description: 'Track how breadth-first and depth-first search explore a connected graph.',
@@ -907,6 +1077,194 @@ export const algorithmGroups = [
             snapshot('complete', 'BST insertion complete', {'value': value})
 
     return {'nodeCount': len(config['values'])}
+`,
+                },
+            },
+        ],
+    },
+    {
+        id: 'recursion',
+        label: 'Recursion walkthroughs',
+        description: 'See how recursive calls expand and unwind on the call stack.',
+        algorithms: [
+            {
+                id: 'factorial-recursion',
+                name: 'Factorial (recursive)',
+                summary: 'Trace factorial(n) as each call pushes a frame and returns its contribution.',
+                templates: {
+                    javascript: `function runAlgorithm(config, emit) {
+  const stack = [];
+  let frameId = 0;
+  const input = typeof config.value === 'number' ? config.value : 5;
+
+  const snapshot = (stage, message, highlightId = null, options = {}) => {
+    const stackFrames = stack.map((frame, index) => ({
+      id: frame.id,
+      label: frame.label,
+      value: frame.value,
+      status: frame.status,
+      result: frame.result ?? null,
+      depth: index + 1,
+    }));
+    const highlights = { ...(options.highlights || {}) };
+    if (highlightId) {
+      highlights.currentFrame = highlightId;
+    }
+    emit({
+      mode: 'stack',
+      stage,
+      message,
+      stack: stackFrames,
+      highlights,
+      debug: {
+        stack: stackFrames.slice().reverse().map((frame) => frame.label),
+        variables: options.variables ?? undefined,
+      },
+    });
+  };
+
+  const pushFrame = (n) => {
+    frameId += 1;
+    const frame = {
+      id: \`frame-\${frameId}\`,
+      label: \`factorial(\${n})\`,
+      value: n,
+      status: 'active',
+      result: null,
+    };
+    stack.push(frame);
+    return frame;
+  };
+
+  const factorial = (n) => {
+    const frame = pushFrame(n);
+    snapshot('call', \`Call factorial(\${n})\`, frame.id, { variables: { n } });
+
+    if (n <= 1) {
+      frame.status = 'base';
+      frame.result = 1;
+      snapshot('base', \`Base case for n = \${n}\`, frame.id, {
+        highlights: { returnValue: 1 },
+        variables: { n, result: 1 },
+      });
+      frame.status = 'returning';
+      snapshot('return', \`Return 1 from factorial(\${n})\`, frame.id, {
+        highlights: { returnValue: 1 },
+        variables: { n, result: 1 },
+      });
+      stack.pop();
+      return 1;
+    }
+
+    frame.status = 'suspended';
+    snapshot('recurse', \`Recurse with factorial(\${n - 1})\`, frame.id, {
+      variables: { n, next: n - 1 },
+    });
+
+    const subResult = factorial(n - 1);
+
+    frame.status = 'returning';
+    frame.result = n * subResult;
+    snapshot('combine', \`Combine \${n} × \${subResult}\`, frame.id, {
+      highlights: { returnValue: frame.result },
+      variables: { n, subResult, result: frame.result },
+    });
+
+    snapshot('return', \`Return \${frame.result} from factorial(\${n})\`, frame.id, {
+      highlights: { returnValue: frame.result },
+      variables: { n, result: frame.result },
+    });
+
+    stack.pop();
+    if (stack.length) {
+      stack[stack.length - 1].status = 'active';
+    }
+    return frame.result;
+  };
+
+  const result = factorial(input);
+  snapshot('complete', \`Factorial(\${input}) = \${result}\`, null, {
+    highlights: { returnValue: result },
+    variables: { n: input, result },
+  });
+  return { result };
+}`,
+                    python: `def run_algorithm(config, emit):
+    value = config.get('value', 5)
+    stack = []
+    frame_id = 0
+
+    def snapshot(stage, message, highlight_id=None, highlights=None, variables=None):
+        frames = [
+            {
+                'id': frame['id'],
+                'label': frame['label'],
+                'value': frame['value'],
+                'status': frame['status'],
+                'result': frame.get('result'),
+                'depth': index + 1,
+            }
+            for index, frame in enumerate(stack)
+        ]
+        effective = dict(highlights or {})
+        if highlight_id:
+            effective['currentFrame'] = highlight_id
+        emit({
+            'mode': 'stack',
+            'stage': stage,
+            'message': message,
+            'stack': frames,
+            'highlights': effective,
+            'debug': {
+                'stack': [frame['label'] for frame in reversed(frames)],
+                'variables': variables,
+            },
+        })
+
+    def push_frame(n):
+        nonlocal frame_id
+        frame_id += 1
+        frame = {
+            'id': f'frame-{frame_id}',
+            'label': f'factorial({n})',
+            'value': n,
+            'status': 'active',
+            'result': None,
+        }
+        stack.append(frame)
+        return frame
+
+    def factorial(n):
+        frame = push_frame(n)
+        snapshot('call', f'Call factorial({n})', frame['id'], variables={'n': n})
+
+        if n <= 1:
+            frame['status'] = 'base'
+            frame['result'] = 1
+            snapshot('base', f'Base case for n = {n}', frame['id'], highlights={'returnValue': 1}, variables={'n': n, 'result': 1})
+            frame['status'] = 'returning'
+            snapshot('return', f'Return 1 from factorial({n})', frame['id'], highlights={'returnValue': 1}, variables={'n': n, 'result': 1})
+            stack.pop()
+            return 1
+
+        frame['status'] = 'suspended'
+        snapshot('recurse', f'Recurse with factorial({n - 1})', frame['id'], variables={'n': n, 'next': n - 1})
+
+        sub_result = factorial(n - 1)
+
+        frame['status'] = 'returning'
+        frame['result'] = n * sub_result
+        snapshot('combine', f'Combine {n} × {sub_result}', frame['id'], highlights={'returnValue': frame['result']}, variables={'n': n, 'subResult': sub_result, 'result': frame['result']})
+        snapshot('return', f'Return {frame['result']} from factorial({n})', frame['id'], highlights={'returnValue': frame['result']}, variables={'n': n, 'result': frame['result']})
+
+        stack.pop()
+        if stack:
+            stack[-1]['status'] = 'active'
+        return frame['result']
+
+    result = factorial(value)
+    snapshot('complete', f'Factorial({value}) = {result}', highlights={'returnValue': result}, variables={'n': value, 'result': result})
+    return {'result': result}
 `,
                 },
             },
