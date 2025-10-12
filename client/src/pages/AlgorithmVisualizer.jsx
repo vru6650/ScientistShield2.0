@@ -4,6 +4,15 @@ import SortingCanvas from '../components/visualizer/SortingCanvas';
 import StructureCanvas from '../components/visualizer/StructureCanvas';
 import StackCanvas from '../components/visualizer/StackCanvas';
 import { algorithmGroups, findAlgorithmById } from '../data/visualizerCatalog';
+import {
+    HiOutlineSquares2X2,
+    HiOutlineLink,
+    HiOutlineQueueList,
+    HiOutlineRectangleGroup,
+    HiOutlineHashtag,
+    HiOutlineGlobeAlt,
+    HiOutlineBeaker,
+} from 'react-icons/hi2';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -37,6 +46,58 @@ const LANGUAGE_OPTIONS = [
         label: 'C#',
         runtime: 'Visualizer engine',
         description: 'Harness the visualizer’s runtime while managed language support matures.',
+    },
+];
+
+const DATA_STRUCTURE_SHOWCASE = [
+    {
+        id: 'arrays',
+        title: 'Arrays',
+        description:
+            'Watch values shift in contiguous memory, understand index math, and see how partitioning powers sorting routines.',
+        icon: HiOutlineSquares2X2,
+    },
+    {
+        id: 'linked-lists',
+        title: 'Linked Lists',
+        description:
+            'Traverse node-to-node pointers, surface head/tail operations, and animate insertions without shifting the full set.',
+        icon: HiOutlineLink,
+    },
+    {
+        id: 'stacks',
+        title: 'Stacks',
+        description:
+            'Peek at the top of the call stack, visualize push/pop lifecycles, and connect recursion traces to tangible frames.',
+        icon: HiOutlineQueueList,
+    },
+    {
+        id: 'queues',
+        title: 'Queues',
+        description:
+            'Follow front/back pointers in motion, highlight breadth-first traversals, and experiment with circular buffer flow.',
+        icon: HiOutlineRectangleGroup,
+    },
+    {
+        id: 'binary-trees',
+        title: 'Binary Trees',
+        description:
+            'Grow balanced hierarchies, color-code depth-first paths, and clarify how rotations reshape search tree performance.',
+        icon: HiOutlineBeaker,
+    },
+    {
+        id: 'hash-tables',
+        title: 'Hash Tables',
+        description:
+            'Inspect hashing buckets, collision strategies, and probe sequences to see how constant-time lookups are achieved.',
+        icon: HiOutlineHashtag,
+    },
+    {
+        id: 'graphs',
+        title: 'Graphs',
+        description:
+            'Manipulate weighted networks, surface visited/frontier sets, and compare search patterns in real time.',
+        icon: HiOutlineGlobeAlt,
     },
 ];
 
@@ -957,13 +1018,53 @@ const AlgorithmVisualizer = () => {
                             )}
                         </div>
                     </div>
-                </div>
             </div>
+        </div>
 
-            <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6 shadow-[0_0_40px_rgba(15,23,42,0.55)]">
-                <div className="mb-4 flex items-center justify-between">
-                    <div>
-                        <h2 className="text-lg font-semibold text-white">Algorithm code</h2>
+        <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6 shadow-[0_0_40px_rgba(15,23,42,0.55)]">
+            <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold text-white">Interactive data structure visualizations</h2>
+                    <p className="text-sm text-slate-300">
+                        Staying.fun now showcases a dedicated gallery of core data structures so you can see how the
+                        algorithm visualizer animates memory layouts, pointer updates, and traversal order in real time.
+                    </p>
+                </div>
+                <span className="inline-flex items-center rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-200">
+                    New showcase
+                </span>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {DATA_STRUCTURE_SHOWCASE.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <div
+                            key={item.id}
+                            className="rounded-2xl border border-slate-800/60 bg-slate-950/60 p-4 transition hover:border-cyan-500/60 hover:bg-slate-950/80"
+                        >
+                            <div className="flex items-start gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800/70 text-cyan-300">
+                                    <Icon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-semibold text-white">{item.title}</h3>
+                                    <p className="mt-1 text-sm leading-5 text-slate-300">{item.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            <p className="mt-6 text-xs text-slate-400">
+                Choose an algorithm above, then pair it with one of these structures to demystify how data is stored and
+                manipulated as each step plays out.
+            </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6 shadow-[0_0_40px_rgba(15,23,42,0.55)]">
+            <div className="mb-4 flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold text-white">Algorithm code</h2>
                         <p className="text-xs text-slate-400">
                             The backend executes this snippet inside a sandboxed runtime and streams the emitted steps to the frontend.
                         </p>
