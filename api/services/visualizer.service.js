@@ -11,6 +11,7 @@ const TEMP_DIR = path.join(__dirname, 'temp', 'visualizer');
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const normalizeLanguage = (value) => (typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : 'javascript');
 
 const ensureTempDir = async () => {
     await fs.promises.mkdir(TEMP_DIR, { recursive: true });
@@ -903,24 +904,35 @@ const sanitizeStep = (algorithmId, config, step, index) => {
 
 export const runAlgorithmVisualization = async ({ algorithmId, language, code, params }) => {
     const config = buildConfig(algorithmId, params);
+    const requestedLanguage = normalizeLanguage(language);
 
     let result = null;
+    let runtime = requestedLanguage;
 
-    if (language === 'javascript' && code) {
+    if (requestedLanguage === 'javascript' && code) {
         result = runJavaScriptSandbox(code, config);
-    } else if (language === 'python' && code) {
+    } else if (requestedLanguage === 'python' && code) {
         result = await runPythonSandbox(code, config);
     }
 
     if (!result || result.error || !Array.isArray(result.steps) || result.steps.length === 0) {
         result = runBuiltIn(algorithmId, config);
+        runtime = 'builtin';
     }
 
     const steps = (result.steps || []).map((step, index) => sanitizeStep(algorithmId, config, step, index));
+    const baseSummary = typeof result.summary === 'object' && result.summary ? result.summary : {};
 
     return {
         steps,
-        summary: result.summary || {},
+        summary: {
+            ...baseSummary,
+            algorithmId,
+            language: requestedLanguage,
+            runtime,
+            fallback: runtime === 'builtin' && requestedLanguage !== 'builtin',
+            stepCount: steps.length,
+        },
         config,
     };
 };
