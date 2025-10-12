@@ -96,6 +96,27 @@ const sendPong = (socket, payload) => {
 
 const contexts = new WeakMap();
 
+const emitStep = (socket, index) => {
+    const context = contexts.get(socket);
+    if (!context || !Array.isArray(context.steps) || context.steps.length === 0) {
+        return false;
+    }
+
+    const clampedIndex = Math.min(Math.max(index, 0), context.steps.length - 1);
+    const step = context.steps[clampedIndex];
+
+    sendFrame(socket, {
+        type: 'step',
+        index: clampedIndex,
+        totalSteps: context.steps.length,
+        step,
+    });
+
+    context.currentIndex = clampedIndex;
+    context.stepIndex = clampedIndex + 1;
+    return true;
+};
+
 const scheduleNextStep = (socket) => {
     const context = contexts.get(socket);
     if (!context || context.paused) return;
@@ -107,14 +128,11 @@ const scheduleNextStep = (socket) => {
         return;
     }
 
-    const step = context.steps[context.stepIndex];
-    sendFrame(socket, {
-        type: 'step',
-        index: context.stepIndex,
-        totalSteps: context.steps.length,
-        step,
-    });
-    context.stepIndex += 1;
+    emitStep(socket, context.stepIndex);
+
+    if (context.paused) {
+        return;
+    }
 
     context.timer = setTimeout(() => scheduleNextStep(socket), context.speed);
 };
@@ -149,6 +167,7 @@ const handleRunRequest = async (socket, payload) => {
 
         context.steps = result.steps;
         context.stepIndex = 0;
+        context.currentIndex = -1;
         context.speed = speed;
         context.paused = false;
         context.lastRequest = {
@@ -185,6 +204,7 @@ const handleReset = async (socket) => {
         const result = await runAlgorithmVisualization(context.lastRequest);
         context.steps = result.steps ?? [];
         context.stepIndex = 0;
+        context.currentIndex = -1;
         context.paused = true;
         if (context.timer) {
             clearTimeout(context.timer);
@@ -199,12 +219,8 @@ const handleReset = async (socket) => {
         });
 
         if (context.steps.length > 0) {
-            sendFrame(socket, {
-                type: 'step',
-                index: 0,
-                totalSteps: context.steps.length,
-                step: context.steps[0],
-            });
+            emitStep(socket, 0);
+            sendFrame(socket, { type: 'paused' });
         }
     } catch (error) {
         sendFrame(socket, {
@@ -244,6 +260,30 @@ const handleMessage = (socket, message) => {
         case 'reset':
             handleReset(socket);
             break;
+        case 'step': {
+            if (context.steps.length === 0) return;
+            context.paused = true;
+            if (context.timer) {
+                clearTimeout(context.timer);
+                context.timer = null;
+            }
+
+            const currentIndex = typeof context.currentIndex === 'number' ? context.currentIndex : -1;
+            const direction = typeof message.direction === 'string' ? message.direction.toLowerCase() : null;
+            let targetIndex = currentIndex;
+
+            if (typeof message.index === 'number' && Number.isFinite(message.index)) {
+                targetIndex = Math.round(message.index);
+            } else if (direction === 'forward') {
+                targetIndex = currentIndex + 1;
+            } else if (direction === 'back') {
+                targetIndex = currentIndex - 1;
+            }
+
+            emitStep(socket, targetIndex);
+            sendFrame(socket, { type: 'paused' });
+            break;
+        }
         case 'speed':
             context.speed = clamp(Number(message.speed) || context.speed, 120, 2000);
             if (!context.paused && context.timer) {
@@ -267,6 +307,7 @@ const initializeConnection = (socket) => {
         timer: null,
         speed: 400,
         lastRequest: null,
+        currentIndex: -1,
     };
 
     contexts.set(socket, state);
