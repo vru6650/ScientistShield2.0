@@ -6,16 +6,16 @@ import hljs from 'highlight.js/lib/common';
 import { codeVisualizerCatalog } from '../data/codeVisualizerData';
 
 const pointerMeta = {
-    left: { label: 'L', color: 'bg-sky-500 text-white' },
-    right: { label: 'R', color: 'bg-purple-500 text-white' },
-    mid: { label: 'M', color: 'bg-emerald-500 text-slate-900' },
-    target: { label: 'T', color: 'bg-rose-500 text-white' },
+    left: { label: 'L', color: 'bg-sky-100 text-sky-600' },
+    right: { label: 'R', color: 'bg-violet-100 text-violet-600' },
+    mid: { label: 'M', color: 'bg-emerald-100 text-emerald-600' },
+    target: { label: 'T', color: 'bg-rose-100 text-rose-600' },
 };
 
 const pillAccents = {
-    queue: 'border-amber-500/50 bg-amber-500/10 text-amber-100',
-    visited: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100',
-    order: 'border-sky-500/40 bg-sky-500/10 text-sky-100',
+    queue: 'border-amber-200 bg-amber-50 text-amber-600',
+    visited: 'border-emerald-200 bg-emerald-50 text-emerald-600',
+    order: 'border-sky-200 bg-sky-50 text-sky-600',
 };
 
 const highlightCode = (code, highlight) => {
@@ -44,9 +44,9 @@ const MetricBadges = ({ metrics }) => {
                 <Badge
                     key={`${metric.label}-${metric.value}`}
                     color="gray"
-                    className="border border-slate-600/60 bg-slate-800/60 text-xs font-semibold uppercase tracking-wide"
+                    className="border border-slate-200 bg-white/80 text-xs font-semibold uppercase tracking-wide text-slate-600 shadow-sm"
                 >
-                    <span className="text-slate-300">{metric.label}:</span> <span className="ml-1 text-white">{metric.value}</span>
+                    <span className="text-slate-500">{metric.label}:</span> <span className="ml-1 text-slate-800">{metric.value}</span>
                 </Badge>
             ))}
         </div>
@@ -56,12 +56,12 @@ const MetricBadges = ({ metrics }) => {
 const Timeline = ({ events }) => {
     if (!events?.length) return null;
     return (
-        <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Timeline</p>
-            <ul className="mt-2 space-y-2 text-sm text-slate-200">
+        <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Timeline</p>
+            <ul className="mt-2 space-y-2 text-sm text-slate-700">
                 {events.map((event, index) => (
                     <li key={`${event.label}-${index}`} className="flex gap-3">
-                        <span className="font-mono text-xs text-slate-500">{event.label}</span>
+                        <span className="font-mono text-xs text-slate-400">{event.label}</span>
                         <span className="flex-1 leading-relaxed">{event.description}</span>
                     </li>
                 ))}
@@ -73,7 +73,7 @@ const Timeline = ({ events }) => {
 const ConsolePanel = ({ lines }) => {
     if (!lines?.length) return null;
     return (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 font-mono text-sm text-emerald-200 shadow-inner shadow-emerald-500/10">
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 font-mono text-sm text-emerald-600 shadow-inner shadow-emerald-100/60">
             {lines.map((line, index) => (
                 <div key={`${line}-${index}`}>{line}</div>
             ))}
@@ -83,10 +83,10 @@ const ConsolePanel = ({ lines }) => {
 
 const PillCollection = ({ title, values, type }) => {
     if (!values?.length) return null;
-    const accent = pillAccents[type] ?? 'border-slate-600/60 bg-slate-800/60 text-slate-100';
+    const accent = pillAccents[type] ?? 'border-slate-200 bg-slate-100 text-slate-600';
     return (
-        <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{title}</p>
+        <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{title}</p>
             <div className="mt-3 flex flex-wrap gap-2">
                 {values.map((value, index) => (
                     <span key={`${title}-${value}-${index}`} className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${accent}`}>
@@ -132,7 +132,7 @@ const ArrayState = ({ array, focus = {} }) => {
                                         {markers.map((meta, markerIndex) => (
                                             <span
                                                 key={`${meta.label}-${markerIndex}`}
-                                                className={`rounded-full border border-white/20 px-2 py-1 text-[10px] font-semibold ${meta.color}`}
+                                                className={`rounded-full border border-white/60 px-2 py-1 text-[10px] font-semibold shadow-sm ${meta.color}`}
                                             >
                                                 {meta.label}
                                             </span>
@@ -141,8 +141,8 @@ const ArrayState = ({ array, focus = {} }) => {
                                 ) : null}
                             </AnimatePresence>
                             <div
-                                className={`flex h-24 w-16 items-end justify-center rounded-xl border-2 px-2 pb-3 font-mono text-lg font-semibold shadow-lg shadow-black/20 transition
-                                    ${inWindow ? 'border-sky-500/60 bg-sky-500/10 text-sky-100' : 'border-slate-600/60 bg-slate-800/60 text-slate-100'}`}
+                                className={`flex h-24 w-16 items-end justify-center rounded-xl border-2 px-2 pb-3 font-mono text-lg font-semibold shadow-lg shadow-slate-200/60 transition
+                                    ${inWindow ? 'border-sky-300 bg-sky-50 text-sky-700' : 'border-slate-200 bg-white text-slate-700'}`}
                             >
                                 {value}
                             </div>
@@ -160,7 +160,7 @@ const StepStatePanel = ({ state }) => {
     return (
         <div className="space-y-4">
             <MetricBadges metrics={state.metrics} />
-            {state.note ? <p className="text-sm leading-relaxed text-slate-200">{state.note}</p> : null}
+            {state.note ? <p className="text-sm leading-relaxed text-slate-600">{state.note}</p> : null}
             <ArrayState array={state.array} focus={state.focus} />
             <div className="grid gap-4 sm:grid-cols-2">
                 <PillCollection title="Queue" values={state.queue} type="queue" />
@@ -180,14 +180,14 @@ const StepStatePanel = ({ state }) => {
 const InsightCard = ({ insight }) => {
     const Icon = insight.icon ?? FaInfoCircle;
     return (
-        <Card className="border border-slate-700/50 bg-slate-900/70 text-slate-100 transition hover:border-slate-500/60 hover:bg-slate-900">
+        <Card className="border border-slate-200 bg-white/80 text-slate-700 shadow-md transition hover:shadow-lg">
             <div className="flex items-start gap-4">
-                <div className="rounded-full border border-slate-600/60 bg-slate-800/80 p-3 text-sky-300">
+                <div className="rounded-full border border-sky-100 bg-sky-50 p-3 text-sky-500">
                     <Icon />
                 </div>
                 <div>
-                    <h4 className="text-lg font-semibold">{insight.title}</h4>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-300">{insight.body}</p>
+                    <h4 className="text-lg font-semibold text-slate-900">{insight.title}</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600">{insight.body}</p>
                 </div>
             </div>
         </Card>
@@ -210,6 +210,8 @@ export default function CodeVisualizer() {
     const steps = language.steps ?? [];
     const [stepIndex, setStepIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [playbackSpeed, setPlaybackSpeed] = useState(2600);
+    const [codeZoom, setCodeZoom] = useState(100);
 
     useEffect(() => {
         setStepIndex(0);
@@ -217,18 +219,16 @@ export default function CodeVisualizer() {
     }, [scenarioId, languageKey]);
 
     useEffect(() => {
-        if (!isPlaying) return;
-        const timer = setInterval(() => {
-            setStepIndex((current) => {
-                if (current >= steps.length - 1) {
-                    clearInterval(timer);
-                    return current;
-                }
-                return current + 1;
-            });
-        }, 2600);
-        return () => clearInterval(timer);
-    }, [isPlaying, steps.length]);
+        if (!isPlaying || !steps.length) return;
+        if (stepIndex >= steps.length - 1) {
+            setIsPlaying(false);
+            return;
+        }
+        const timer = setTimeout(() => {
+            setStepIndex((current) => Math.min(current + 1, steps.length - 1));
+        }, playbackSpeed);
+        return () => clearTimeout(timer);
+    }, [isPlaying, stepIndex, steps.length, playbackSpeed]);
 
     useEffect(() => {
         if (stepIndex >= steps.length - 1) {
@@ -239,205 +239,322 @@ export default function CodeVisualizer() {
     const currentStep = steps[stepIndex] ?? null;
     const highlightedLines = useMemo(() => highlightCode(language.code, language.highlight), [language]);
     const progress = steps.length ? ((stepIndex + 1) / steps.length) * 100 : 0;
+    const stepSliderMax = Math.max(steps.length - 1, 0);
+    const playbackMultiplier = useMemo(() => (playbackSpeed ? (2600 / playbackSpeed).toFixed(1) : '1.0'), [playbackSpeed]);
+    const computedFontSize = useMemo(() => 0.9 * (codeZoom / 100), [codeZoom]);
 
     const goToStep = (index) => {
         setStepIndex(Math.max(0, Math.min(index, steps.length - 1)));
     };
 
+    const handleStepSliderChange = (value) => {
+        const numericValue = Number(value);
+        setIsPlaying(false);
+        goToStep(Number.isNaN(numericValue) ? 0 : numericValue);
+    };
+
     return (
-        <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.15),_transparent_55%)] from-slate-950 via-slate-950 to-slate-950 text-slate-100">
-            <div className="border-b border-slate-800/60 bg-slate-950/70 backdrop-blur">
-                <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-16 lg:flex-row lg:items-center">
-                    <div className="flex-1 space-y-4">
-                        <Badge color="info" className="w-fit uppercase tracking-wide">Inspired by interactive labs</Badge>
-                        <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl">
-                            Code Visualizer Studio
-                        </h1>
-                        <p className="max-w-2xl text-lg leading-relaxed text-slate-300">
-                            Step through algorithms and interaction patterns with a presentation style reminiscent of staying.fun. Each scenario combines highlighted code with live state snapshots so you can see how the logic evolves in real time.
-                        </p>
-                    </div>
-                    <div className="flex flex-col gap-2 rounded-2xl border border-slate-800/60 bg-slate-900/60 p-6 text-sm text-slate-300">
-                        <span className="text-xs uppercase tracking-wider text-slate-400">What is this?</span>
-                        <p>
-                            A guided viewer for popular code flows. Choose an example, pick a language, and scrub through each stage with animated highlights and state panels.
-                        </p>
-                    </div>
-                </div>
+        <div className="relative min-h-screen overflow-hidden bg-[#f4f7ff] text-slate-700">
+            <div className="pointer-events-none absolute inset-0 -z-10">
+                <div className="absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-sky-200/40 blur-3xl" />
+                <div className="absolute bottom-[-20%] right-[-10%] h-[28rem] w-[28rem] rounded-full bg-purple-200/40 blur-3xl" />
             </div>
-
-            <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 lg:grid-cols-[280px_1fr]">
-                <aside className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Scenarios</h2>
-                        <Badge color="warning" className="bg-amber-500/10 text-xs font-semibold uppercase tracking-wider text-amber-300">
-                            {codeVisualizerCatalog.length} flows
-                        </Badge>
+            <div className="mx-auto max-w-6xl px-6 pb-20 pt-16">
+                <header className="mb-12 overflow-hidden rounded-3xl bg-white/70 px-8 py-12 shadow-2xl shadow-sky-100/60 backdrop-blur">
+                    <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                        <div className="max-w-3xl space-y-4">
+                            <Badge color="info" className="w-fit bg-sky-100 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
+                                Interactive learning lab
+                            </Badge>
+                            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl">Code Visualizer Studio</h1>
+                            <p className="text-lg leading-relaxed text-slate-600">
+                                Step through algorithms with a calm, presentation-ready canvas inspired by staying.fun. Compare languages, monitor state, and control pacing to make complex flows feel approachable.
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 text-sm text-slate-600 shadow-md">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">At a glance</p>
+                            <ul className="mt-3 space-y-2">
+                                <li className="flex items-center justify-between gap-6">
+                                    <span>Interactive flows</span>
+                                    <span className="font-semibold text-slate-900">{codeVisualizerCatalog.length}</span>
+                                </li>
+                                <li className="flex items-center justify-between gap-6">
+                                    <span>Languages available</span>
+                                    <span className="font-semibold text-slate-900">{languageKeys.length}</span>
+                                </li>
+                                <li className="flex items-center justify-between gap-6">
+                                    <span>Current focus</span>
+                                    <span className="font-semibold text-slate-900">{scenario.title}</span>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                    <div className="space-y-3">
-                        {codeVisualizerCatalog.map((entry) => {
-                            const active = entry.id === scenario.id;
-                            return (
-                                <button
-                                    key={entry.id}
-                                    onClick={() => setScenarioId(entry.id)}
-                                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                                        active
-                                            ? 'border-sky-500/60 bg-sky-500/10 text-sky-100 shadow-lg shadow-sky-900/30'
-                                            : 'border-slate-800/60 bg-slate-900/40 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
-                                    }`}
-                                >
-                                    <span className="text-sm font-semibold uppercase tracking-wide">{entry.title}</span>
-                                    <p className="mt-2 text-xs leading-relaxed opacity-80">{entry.summary}</p>
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        <Badge color={active ? 'info' : 'gray'} className="text-[10px] uppercase tracking-wider">
-                                            {entry.difficulty}
-                                        </Badge>
-                                        {entry.tags.slice(0, 2).map((tag) => (
-                                            <Badge key={`${entry.id}-${tag}`} color="gray" className="text-[10px] uppercase tracking-wider">
-                                                {tag}
-                                            </Badge>
-                                        ))}
+                </header>
+                <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div className="space-y-8">
+                        <div className="rounded-3xl bg-white/90 p-6 shadow-2xl shadow-slate-200/70">
+                            <div className="flex flex-col gap-6">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                        <h2 className="text-2xl font-semibold text-slate-900">{scenario.title}</h2>
+                                        <p className="mt-1 text-sm text-slate-600">{scenario.summary}</p>
                                     </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </aside>
-
-                <section className="space-y-8">
-                    <div className="space-y-4 rounded-3xl border border-slate-800/60 bg-slate-900/70 p-6 shadow-2xl shadow-black/20">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div>
-                                <h2 className="text-2xl font-bold text-white">{scenario.title}</h2>
-                                <p className="mt-1 text-sm text-slate-300">{scenario.summary}</p>
-                            </div>
-                            <MetricBadges metrics={scenario.metrics} />
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3">
-                            {languageKeys.map((key) => {
-                                const active = key === languageKey;
-                                return (
-                                    <Button
-                                        key={key}
-                                        size="xs"
-                                        color="gray"
-                                        onClick={() => setLanguageKey(key)}
-                                        className={`${
-                                            active
-                                                ? 'bg-sky-500 text-white hover:bg-sky-400 focus:ring-sky-300'
-                                                : 'bg-slate-800 text-slate-200 hover:bg-slate-700 focus:ring-slate-600'
-                                        } border border-slate-700/60 font-semibold uppercase tracking-wide`}
-                                    >
-                                        {scenario.languages[key].label}
-                                    </Button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3 pt-2">
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    pill
-                                    color="gray"
-                                    size="xs"
-                                    onClick={() => goToStep(stepIndex - 1)}
-                                    disabled={stepIndex === 0}
-                                >
-                                    <FaStepBackward />
-                                </Button>
-                                <Button
-                                    pill
-                                    color={isPlaying ? 'failure' : 'success'}
-                                    size="xs"
-                                    onClick={() => setIsPlaying((prev) => !prev)}
-                                    disabled={!steps.length}
-                                >
-                                    {isPlaying ? <FaPause /> : <FaPlay />}
-                                </Button>
-                                <Button
-                                    pill
-                                    color="gray"
-                                    size="xs"
-                                    onClick={() => goToStep(stepIndex + 1)}
-                                    disabled={stepIndex >= steps.length - 1}
-                                >
-                                    <FaStepForward />
-                                </Button>
-                                <Button pill color="gray" size="xs" onClick={() => goToStep(0)} disabled={!stepIndex}>
-                                    <FaRedoAlt />
-                                </Button>
-                            </div>
-                            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                                Step {steps.length ? stepIndex + 1 : 0} of {steps.length}
-                            </span>
-                        </div>
-
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80">
-                            <div
-                                className="h-full rounded-full bg-gradient-to-r from-sky-400 via-emerald-400 to-cyan-400 transition-all duration-500"
-                                style={{ width: `${progress}%` }}
-                            />
-                        </div>
-
-                        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)]">
-                            <div className="overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-950/80 shadow-inner shadow-black/40">
-                                <header className="flex items-center justify-between border-b border-slate-800/60 bg-slate-900/70 px-4 py-3">
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Highlighted Code</span>
-                                    {currentStep?.title ? (
-                                        <Tooltip content={currentStep.description} style="dark">
-                                            <span className="flex items-center gap-2 text-xs text-sky-300">
-                                                <FaInfoCircle />
-                                                {currentStep.title}
-                                            </span>
-                                        </Tooltip>
-                                    ) : null}
-                                </header>
-                                <div className="max-h-[480px] overflow-auto">
-                                    <pre className="m-0 bg-transparent p-4 text-sm leading-relaxed">
-                                        {highlightedLines.map((line) => {
-                                            const active = currentStep?.lines?.includes(line.lineNumber);
-                                            return (
-                                                <div
-                                                    key={line.lineNumber}
-                                                    className={`flex items-start gap-4 rounded-lg px-3 py-1 transition ${
-                                                        active ? 'bg-sky-500/15 ring-1 ring-sky-500/40' : 'hover:bg-slate-800/40'
-                                                    }`}
-                                                >
-                                                    <span className="w-10 select-none text-right font-mono text-xs text-slate-500">{line.lineNumber}</span>
-                                                    <code
-                                                        className={`flex-1 font-mono text-xs md:text-sm ${active ? 'text-white' : 'text-slate-200'}`}
-                                                        dangerouslySetInnerHTML={{ __html: line.html }}
-                                                    />
+                                    <MetricBadges metrics={scenario.metrics} />
+                                </div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    {languageKeys.map((key) => {
+                                        const active = key === languageKey;
+                                        return (
+                                            <Button
+                                                key={key}
+                                                size="xs"
+                                                color="light"
+                                                onClick={() => setLanguageKey(key)}
+                                                className={`${
+                                                    active
+                                                        ? 'bg-sky-500 text-white hover:bg-sky-400 focus:ring-sky-200'
+                                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 focus:ring-slate-200'
+                                                } border border-transparent px-4 py-2 font-semibold uppercase tracking-wide`}
+                                            >
+                                                {scenario.languages[key].label}
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                                <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-inner shadow-slate-100">
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                pill
+                                                color="light"
+                                                size="xs"
+                                                onClick={() => goToStep(stepIndex - 1)}
+                                                disabled={stepIndex === 0}
+                                                className="bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                                            >
+                                                <FaStepBackward />
+                                            </Button>
+                                            <Button
+                                                pill
+                                                color="light"
+                                                size="xs"
+                                                onClick={() => setIsPlaying((prev) => !prev)}
+                                                disabled={!steps.length}
+                                                className={`${
+                                                    isPlaying
+                                                        ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
+                                                        : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                                                } font-semibold`}
+                                            >
+                                                {isPlaying ? <FaPause /> : <FaPlay />}
+                                            </Button>
+                                            <Button
+                                                pill
+                                                color="light"
+                                                size="xs"
+                                                onClick={() => goToStep(stepIndex + 1)}
+                                                disabled={stepIndex >= steps.length - 1}
+                                                className="bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                                            >
+                                                <FaStepForward />
+                                            </Button>
+                                            <Button
+                                                pill
+                                                color="light"
+                                                size="xs"
+                                                onClick={() => goToStep(0)}
+                                                disabled={!stepIndex}
+                                                className="bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                                            >
+                                                <FaRedoAlt />
+                                            </Button>
+                                        </div>
+                                        <span className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                                            Step {steps.length ? stepIndex + 1 : 0} of {steps.length}
+                                        </span>
+                                    </div>
+                                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                                        <div
+                                            className="h-full rounded-full bg-gradient-to-r from-sky-400 via-emerald-400 to-cyan-400 transition-all duration-500"
+                                            style={{ width: `${progress}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-inner shadow-slate-100">
+                                        <header className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+                                            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Highlighted Code</span>
+                                            {currentStep?.title ? (
+                                                <Tooltip content={currentStep.description} style="light">
+                                                    <span className="flex items-center gap-2 text-xs text-sky-500">
+                                                        <FaInfoCircle />
+                                                        {currentStep.title}
+                                                    </span>
+                                                </Tooltip>
+                                            ) : null}
+                                        </header>
+                                        <div className="max-h-[480px] overflow-auto">
+                                            <pre className="m-0 bg-transparent p-4" style={{ fontSize: `${computedFontSize}rem` }}>
+                                                {highlightedLines.map((line) => {
+                                                    const active = currentStep?.lines?.includes(line.lineNumber);
+                                                    return (
+                                                        <div
+                                                            key={line.lineNumber}
+                                                            className={`flex items-start gap-4 rounded-xl px-3 py-1 transition ${
+                                                                active ? 'bg-sky-100 ring-1 ring-sky-200' : 'hover:bg-slate-100'
+                                                            }`}
+                                                        >
+                                                            <span className="w-10 select-none text-right font-mono text-xs text-slate-300">{line.lineNumber}</span>
+                                                            <code
+                                                                className={`flex-1 font-mono ${active ? 'text-slate-900' : 'text-slate-600'}`}
+                                                                dangerouslySetInnerHTML={{ __html: line.html }}
+                                                            />
+                                                        </div>
+                                                    );
+                                                })}
+                                            </pre>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-inner shadow-slate-100">
+                                        {currentStep ? (
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-slate-900">{currentStep.title}</h3>
+                                                    <p className="text-sm leading-relaxed text-slate-600">{currentStep.description}</p>
                                                 </div>
-                                            );
-                                        })}
-                                    </pre>
+                                                <StepStatePanel state={currentStep.state} />
+                                            </div>
+                                        ) : (
+                                            <div className="py-12 text-center text-slate-400">Select a scenario to begin exploring.</div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-4 rounded-2xl border border-slate-800/60 bg-slate-950/80 p-6 shadow-inner shadow-black/40">
-                                {currentStep ? (
-                                    <div className="space-y-3">
-                                        <h3 className="text-lg font-semibold text-white">{currentStep.title}</h3>
-                                        <p className="text-sm leading-relaxed text-slate-300">{currentStep.description}</p>
-                                        <StepStatePanel state={currentStep.state} />
+                        </div>
+                        {scenario.insights?.length ? (
+                            <div className="grid gap-4 md:grid-cols-2">
+                                {scenario.insights.map((insight) => (
+                                    <InsightCard key={insight.title} insight={insight} />
+                                ))}
+                            </div>
+                        ) : null}
+                    </div>
+                    <div className="space-y-6">
+                        <div className="rounded-3xl bg-white/90 p-6 shadow-2xl shadow-slate-200/70">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Example flows</h3>
+                                <Badge color="warning" className="bg-amber-100 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                    {codeVisualizerCatalog.length} total
+                                </Badge>
+                            </div>
+                            <div className="mt-4 space-y-3">
+                                {codeVisualizerCatalog.map((entry) => {
+                                    const active = entry.id === scenario.id;
+                                    return (
+                                        <button
+                                            key={entry.id}
+                                            onClick={() => setScenarioId(entry.id)}
+                                            className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
+                                                active
+                                                    ? 'border-sky-300 bg-sky-50 shadow-lg shadow-sky-100'
+                                                    : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                                            }`}
+                                        >
+                                            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{entry.title}</span>
+                                            <p className="mt-2 text-sm leading-relaxed text-slate-600">{entry.summary}</p>
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                <Badge
+                                                    color={active ? 'info' : 'gray'}
+                                                    className={`${active ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-600'} text-[10px] uppercase tracking-[0.3em]`}
+                                                >
+                                                    {entry.difficulty}
+                                                </Badge>
+                                                {entry.tags.slice(0, 2).map((tag) => (
+                                                    <Badge key={`${entry.id}-${tag}`} color="gray" className="bg-slate-100 text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                                        {tag}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="rounded-3xl bg-white/90 p-6 shadow-2xl shadow-slate-200/70">
+                            <div className="flex flex-col gap-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Playback controls</h3>
+                                    <span className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Step {steps.length ? stepIndex + 1 : 0}</span>
+                                </div>
+                                <div className="space-y-5">
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.25em] text-slate-400">
+                                            <span>Speed</span>
+                                            <span className="text-slate-600">{playbackMultiplier}x</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="800"
+                                            max="3200"
+                                            step="200"
+                                            value={playbackSpeed}
+                                            onChange={(event) => setPlaybackSpeed(Number(event.target.value))}
+                                            className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-100 accent-sky-500"
+                                        />
                                     </div>
-                                ) : (
-                                    <div className="py-12 text-center text-slate-400">Select a scenario to begin exploring.</div>
-                                )}
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.25em] text-slate-400">
+                                            <span>Zoom</span>
+                                            <span className="text-slate-600">{codeZoom}%</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="80"
+                                            max="130"
+                                            step="5"
+                                            value={codeZoom}
+                                            onChange={(event) => setCodeZoom(Number(event.target.value))}
+                                            className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-100 accent-sky-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.25em] text-slate-400">
+                                            <span>Scrub steps</span>
+                                            <span className="text-slate-600">{steps.length ? `${stepIndex + 1}/${steps.length}` : '—'}</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max={stepSliderMax}
+                                            step="1"
+                                            value={stepIndex}
+                                            onChange={(event) => handleStepSliderChange(event.target.value)}
+                                            disabled={!steps.length}
+                                            className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-100 accent-sky-500 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Button
+                                        color="light"
+                                        className="bg-slate-100 px-4 py-2 text-sm font-semibold uppercase tracking-[0.25em] text-slate-600 hover:bg-slate-200"
+                                        onClick={() => setIsPlaying(true)}
+                                        disabled={!steps.length}
+                                    >
+                                        Start auto-play
+                                    </Button>
+                                    <Button
+                                        color="light"
+                                        className="bg-white px-4 py-2 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500 shadow-inner hover:bg-slate-50"
+                                        onClick={() => setIsPlaying(false)}
+                                    >
+                                        Pause
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    {scenario.insights?.length ? (
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {scenario.insights.map((insight) => (
-                                <InsightCard key={insight.title} insight={insight} />
-                            ))}
-                        </div>
-                    ) : null}
-                </section>
+                </div>
             </div>
         </div>
     );
