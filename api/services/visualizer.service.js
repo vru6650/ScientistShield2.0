@@ -88,11 +88,38 @@ const createTreeConfig = (size) => {
     };
 };
 
+const createSearchConfig = (size) => {
+    const length = clamp(size ?? 10, 5, 28);
+    const array = Array.from({ length }, () => randomInt(4, 96)).sort((a, b) => a - b);
+    const targetIndex = randomInt(0, length - 1);
+    const target = array[targetIndex];
+
+    return {
+        type: 'search',
+        array,
+        size: length,
+        target,
+        targetIndex,
+    };
+};
+
+const createRecursionConfig = (size) => {
+    const value = clamp(size ?? 5, 2, 9);
+    return {
+        type: 'recursion',
+        value,
+    };
+};
+
 const buildConfig = (algorithmId, params = {}) => {
     const { arraySize } = params;
 
     if (['bubble-sort', 'merge-sort', 'quick-sort'].includes(algorithmId)) {
         return createSortingConfig(arraySize);
+    }
+
+    if (['linear-search', 'binary-search'].includes(algorithmId)) {
+        return createSearchConfig(arraySize);
     }
 
     if (['bfs', 'dfs'].includes(algorithmId)) {
@@ -103,12 +130,22 @@ const buildConfig = (algorithmId, params = {}) => {
         return createTreeConfig(arraySize);
     }
 
+    if (algorithmId === 'factorial-recursion') {
+        return createRecursionConfig(arraySize);
+    }
+
     return { type: 'generic' };
 };
 
 const cloneArray = (array) => array.map((value) => value);
 
 const createArrayStep = (array, extra = {}) => ({
+    mode: 'sorting',
+    array: cloneArray(array),
+    ...extra,
+});
+
+const createSearchStep = (array, extra = {}) => ({
     mode: 'sorting',
     array: cloneArray(array),
     ...extra,
@@ -429,6 +466,340 @@ const generateQuickSortSteps = (config) => {
     return steps;
 };
 
+const generateLinearSearchSteps = (config) => {
+    const arr = cloneArray(config.array);
+    const steps = [];
+    const { target } = config;
+    let foundIndex = -1;
+
+    steps.push(
+        createSearchStep(arr, {
+            stage: 'start',
+            message: `Locate ${target} using linear search`,
+            highlights: {
+                window: [0, arr.length - 1],
+            },
+            debug: {
+                stack: [`linearSearch(array, target=${target})`],
+                variables: { target, length: arr.length },
+            },
+        }),
+    );
+
+    for (let index = 0; index < arr.length; index += 1) {
+        steps.push(
+            createSearchStep(arr, {
+                stage: 'scan',
+                message: `Inspect index ${index}`,
+                highlights: {
+                    keyIndex: index,
+                    window: [0, index],
+                },
+                debug: {
+                    stack: [`linearSearch(array, target=${target})`],
+                    variables: { target, index, value: arr[index] },
+                },
+            }),
+        );
+
+        if (arr[index] === target) {
+            foundIndex = index;
+            steps.push(
+                createSearchStep(arr, {
+                    stage: 'found',
+                    message: `Found ${target} at index ${index}`,
+                    highlights: {
+                        targetIndex: index,
+                        keyIndex: index,
+                    },
+                    debug: {
+                        stack: [`linearSearch(array, target=${target})`],
+                        variables: { target, index, value: arr[index] },
+                    },
+                }),
+            );
+            break;
+        }
+    }
+
+    if (foundIndex === -1) {
+        steps.push(
+            createSearchStep(arr, {
+                stage: 'complete',
+                message: `${target} was not located in the array`,
+                highlights: {},
+                debug: {
+                    stack: [`linearSearch(array, target=${target})`],
+                    variables: { target, index: -1 },
+                },
+            }),
+        );
+    } else {
+        steps.push(
+            createSearchStep(arr, {
+                stage: 'complete',
+                message: 'Linear search complete',
+                highlights: { targetIndex: foundIndex },
+                debug: {
+                    stack: [`linearSearch(array, target=${target})`],
+                    variables: { target, index: foundIndex },
+                },
+            }),
+        );
+    }
+
+    return { steps, summary: { index: foundIndex } };
+};
+
+const generateBinarySearchSteps = (config) => {
+    const arr = cloneArray(config.array);
+    const steps = [];
+    const { target } = config;
+    let low = 0;
+    let high = arr.length - 1;
+    let foundIndex = -1;
+
+    steps.push(
+        createSearchStep(arr, {
+            stage: 'start',
+            message: `Locate ${target} using binary search`,
+            highlights: {
+                window: [low, high],
+            },
+            debug: {
+                stack: [`binarySearch(array, target=${target})`],
+                variables: { target, low, high },
+            },
+        }),
+    );
+
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const value = arr[mid];
+
+        steps.push(
+            createSearchStep(arr, {
+                stage: 'compare',
+                message: `Compare middle index ${mid}`,
+                highlights: {
+                    window: [low, high],
+                    pivot: mid,
+                },
+                debug: {
+                    stack: [`binarySearch(array, target=${target})`],
+                    variables: { target, low, high, mid, value },
+                },
+            }),
+        );
+
+        if (value === target) {
+            foundIndex = mid;
+            steps.push(
+                createSearchStep(arr, {
+                    stage: 'found',
+                    message: `Target ${target} located at index ${mid}`,
+                    highlights: {
+                        targetIndex: mid,
+                        pivot: mid,
+                        window: [mid, mid],
+                    },
+                    debug: {
+                        stack: [`binarySearch(array, target=${target})`],
+                        variables: { target, index: mid, value },
+                    },
+                }),
+            );
+            break;
+        }
+
+        if (value < target) {
+            steps.push(
+                createSearchStep(arr, {
+                    stage: 'narrow',
+                    message: `Discard left half up to index ${mid}`,
+                    highlights: {
+                        window: [mid + 1, high],
+                    },
+                    debug: {
+                        stack: [`binarySearch(array, target=${target})`],
+                        variables: { target, low: mid + 1, high, mid, value },
+                    },
+                }),
+            );
+            low = mid + 1;
+        } else {
+            steps.push(
+                createSearchStep(arr, {
+                    stage: 'narrow',
+                    message: `Discard right half from index ${mid}`,
+                    highlights: {
+                        window: [low, mid - 1],
+                    },
+                    debug: {
+                        stack: [`binarySearch(array, target=${target})`],
+                        variables: { target, low, high: mid - 1, mid, value },
+                    },
+                }),
+            );
+            high = mid - 1;
+        }
+    }
+
+    if (foundIndex === -1) {
+        steps.push(
+            createSearchStep(arr, {
+                stage: 'complete',
+                message: `${target} was not located in the array`,
+                highlights: {},
+                debug: {
+                    stack: [`binarySearch(array, target=${target})`],
+                    variables: { target, index: -1 },
+                },
+            }),
+        );
+    } else {
+        steps.push(
+            createSearchStep(arr, {
+                stage: 'complete',
+                message: 'Binary search complete',
+                highlights: { targetIndex: foundIndex },
+                debug: {
+                    stack: [`binarySearch(array, target=${target})`],
+                    variables: { target, index: foundIndex },
+                },
+            }),
+        );
+    }
+
+    return { steps, summary: { index: foundIndex } };
+};
+
+const generateFactorialSteps = (config) => {
+    const value = clamp(config.value ?? 5, 2, 9);
+    const frames = [];
+    const steps = [];
+    let frameCounter = 0;
+
+    const snapshotStack = (stage, message, highlightId = null, options = {}) => {
+        const stackSnapshot = frames.map((frame, index) => ({
+            id: frame.id,
+            label: frame.label,
+            value: frame.value,
+            status: frame.status,
+            result: frame.result ?? null,
+            depth: index + 1,
+        }));
+
+        const debugStack = stackSnapshot
+            .slice()
+            .reverse()
+            .map((frame) => frame.label);
+
+        const highlights = { ...(options.highlights || {}) };
+        if (highlightId) {
+            highlights.currentFrame = highlightId;
+        }
+
+        return {
+            mode: 'stack',
+            stage,
+            message,
+            stack: stackSnapshot,
+            highlights,
+            debug: {
+                stack: debugStack,
+                variables: options.variables ?? undefined,
+            },
+        };
+    };
+
+    const pushFrame = (n) => {
+        const frame = {
+            id: `frame-${frameCounter += 1}`,
+            label: `factorial(${n})`,
+            value: n,
+            status: 'active',
+            result: null,
+        };
+        frames.push(frame);
+        return frame;
+    };
+
+    const factorial = (n) => {
+        const frame = pushFrame(n);
+        steps.push(
+            snapshotStack('call', `Call factorial(${n})`, frame.id, {
+                variables: { n },
+            }),
+        );
+
+        if (n <= 1) {
+            frame.status = 'base';
+            frame.result = 1;
+            steps.push(
+                snapshotStack('base', `Base case reached for n = ${n}`, frame.id, {
+                    highlights: { returnValue: 1 },
+                    variables: { n, result: 1 },
+                }),
+            );
+
+            frame.status = 'returning';
+            steps.push(
+                snapshotStack('return', `Return 1 from factorial(${n})`, frame.id, {
+                    highlights: { returnValue: 1 },
+                    variables: { n, result: 1 },
+                }),
+            );
+
+            frames.pop();
+            return 1;
+        }
+
+        frame.status = 'suspended';
+        steps.push(
+            snapshotStack('recurse', `Recurse with factorial(${n - 1})`, frame.id, {
+                variables: { n, next: n - 1 },
+            }),
+        );
+
+        const subResult = factorial(n - 1);
+
+        frame.status = 'returning';
+        frame.result = n * subResult;
+        steps.push(
+            snapshotStack('combine', `Combine ${n} × ${subResult}`, frame.id, {
+                highlights: { returnValue: frame.result },
+                variables: { n, subResult, result: frame.result },
+            }),
+        );
+
+        steps.push(
+            snapshotStack('return', `Return ${frame.result} from factorial(${n})`, frame.id, {
+                highlights: { returnValue: frame.result },
+                variables: { n, result: frame.result },
+            }),
+        );
+
+        frames.pop();
+        if (frames.length > 0) {
+            frames[frames.length - 1].status = 'active';
+        }
+
+        return frame.result;
+    };
+
+    const result = factorial(value);
+
+    steps.push(
+        snapshotStack('complete', `Factorial(${value}) = ${result}`, null, {
+            highlights: { returnValue: result },
+            variables: { n: value, result },
+        }),
+    );
+
+    return { steps, summary: { result } };
+};
+
 const buildAdjacency = (graph) => {
     const adjacency = new Map();
     graph.nodes.forEach((node) => adjacency.set(node.id, new Set()));
@@ -714,20 +1085,28 @@ const builtinGenerators = {
     'bubble-sort': generateBubbleSortSteps,
     'merge-sort': generateMergeSortSteps,
     'quick-sort': generateQuickSortSteps,
+    'linear-search': generateLinearSearchSteps,
+    'binary-search': generateBinarySearchSteps,
     bfs: generateBfsSteps,
     dfs: generateDfsSteps,
     'bst-insert': generateBstSteps,
+    'factorial-recursion': generateFactorialSteps,
 };
 
 const runBuiltIn = (algorithmId, config) => {
     const generator = builtinGenerators[algorithmId];
     if (!generator) return { steps: [], summary: {} };
-    const steps = generator(config);
+    const output = generator(config);
+    const steps = Array.isArray(output) ? output : output?.steps ?? [];
+    const extraSummary = Array.isArray(output) ? {} : output?.summary ?? {};
     return {
         steps,
         summary: {
             mode: config.type,
             algorithmId,
+            ...extraSummary,
+            ...(config.type === 'search' ? { target: config.target } : {}),
+            ...(config.type === 'recursion' ? { input: config.value } : {}),
         },
     };
 };

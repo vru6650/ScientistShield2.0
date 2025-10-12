@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FaFastBackward, FaFastForward, FaPause, FaPlay, FaStepBackward, FaStepForward } from 'react-icons/fa';
 import SortingCanvas from '../components/visualizer/SortingCanvas';
 import StructureCanvas from '../components/visualizer/StructureCanvas';
+import StackCanvas from '../components/visualizer/StackCanvas';
 import { algorithmGroups, findAlgorithmById } from '../data/visualizerCatalog';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -178,6 +179,17 @@ const AlgorithmVisualizer = () => {
         return { nodes: count, height: depth };
     }, [currentStep]);
 
+    const stackStats = useMemo(() => {
+        if (currentStep?.mode !== 'stack' || !Array.isArray(currentStep.stack)) return null;
+        const depth = currentStep.stack.length;
+        const top = depth > 0 ? currentStep.stack[depth - 1] : null;
+        return {
+            depth,
+            top: top?.label ?? null,
+            status: top?.status ?? null,
+        };
+    }, [currentStep]);
+
     const debugStack = Array.isArray(currentStep?.debug?.stack) ? currentStep.debug.stack : [];
     const debugVariables = currentStep?.debug?.variables ?? null;
     const formattedVariables = useMemo(() => {
@@ -191,8 +203,10 @@ const AlgorithmVisualizer = () => {
 
     const sizeRange = useMemo(() => {
         if (group?.id === 'sorting') return { min: 4, max: 24, label: 'Array size', step: 1 };
+        if (group?.id === 'searching') return { min: 6, max: 28, label: 'Array size', step: 1 };
         if (group?.id === 'graph') return { min: 4, max: 14, label: 'Node count', step: 1 };
         if (group?.id === 'trees') return { min: 3, max: 16, label: 'Insertion count', step: 1 };
+        if (group?.id === 'recursion') return { min: 2, max: 9, label: 'Input value', step: 1 };
         return { min: 4, max: 20, label: 'Input size', step: 1 };
     }, [group?.id]);
 
@@ -466,6 +480,21 @@ const AlgorithmVisualizer = () => {
                 </div>
             );
         }
+        if (config.type === 'search') {
+            return (
+                <div className="text-sm text-slate-300">
+                    <span className="font-semibold text-slate-200">Array:</span> {config.array?.join(', ')} ·{' '}
+                    <span className="font-semibold text-slate-200">Target:</span> {config.target}
+                </div>
+            );
+        }
+        if (config.type === 'recursion') {
+            return (
+                <div className="text-sm text-slate-300">
+                    <span className="font-semibold text-slate-200">Input:</span> {config.value}
+                </div>
+            );
+        }
         return null;
     };
 
@@ -506,6 +535,26 @@ const AlgorithmVisualizer = () => {
                         Runtime: {summary?.runtime ?? languageMeta.runtime}{' '}
                         {summary?.language ? `· ${summary.language}` : `· ${languageMeta.id}`}
                     </span>
+                    {summary?.target !== undefined ? (
+                        <span className="uppercase tracking-widest text-slate-500">
+                            Target: {summary.target}
+                        </span>
+                    ) : null}
+                    {summary?.index !== undefined && summary.index !== null ? (
+                        <span className="uppercase tracking-widest text-slate-500">
+                            Index: {summary.index}
+                        </span>
+                    ) : null}
+                    {summary?.input !== undefined ? (
+                        <span className="uppercase tracking-widest text-slate-500">
+                            Input: {summary.input}
+                        </span>
+                    ) : null}
+                    {summary?.result !== undefined ? (
+                        <span className="uppercase tracking-widest text-slate-500">
+                            Result: {summary.result}
+                        </span>
+                    ) : null}
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800/60">
                     <div
@@ -723,6 +772,8 @@ const AlgorithmVisualizer = () => {
                                 <SortingCanvas step={currentStep} />
                             ) : currentStep?.mode === 'graph' || currentStep?.mode === 'tree' ? (
                                 <StructureCanvas step={currentStep} />
+                            ) : currentStep?.mode === 'stack' ? (
+                                <StackCanvas step={currentStep} />
                             ) : (
                                 <div className="flex h-full items-center justify-center text-sm text-slate-400">
                                     Select an algorithm and press start to begin the visualization.
@@ -809,6 +860,28 @@ const AlgorithmVisualizer = () => {
                                                 <p className="font-mono text-base text-slate-100">{treeStats.height}</p>
                                             </div>
                                         </div>
+                                    </div>
+                                ) : null}
+
+                                {stackStats ? (
+                                    <div className="rounded-xl border border-slate-800/60 bg-slate-900/70 p-3">
+                                        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                                            Recursion metrics
+                                        </p>
+                                        <dl className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-200">
+                                            <div>
+                                                <dt className="text-slate-500">Depth</dt>
+                                                <dd className="font-mono text-base text-slate-100">{stackStats.depth}</dd>
+                                            </div>
+                                            <div>
+                                                <dt className="text-slate-500">Active frame</dt>
+                                                <dd className="font-mono text-base text-slate-100">{stackStats.top ?? '—'}</dd>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <dt className="text-slate-500">State</dt>
+                                                <dd className="font-semibold text-sky-200">{stackStats.status ?? 'idle'}</dd>
+                                            </div>
+                                        </dl>
                                     </div>
                                 ) : null}
 
