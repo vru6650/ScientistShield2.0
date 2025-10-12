@@ -4,6 +4,7 @@ import { Badge, Card, Tooltip } from 'flowbite-react';
 import { FaPause, FaPlay, FaRedoAlt, FaStepBackward, FaStepForward, FaInfoCircle } from 'react-icons/fa';
 import hljs from 'highlight.js/lib/common';
 import { codeVisualizerCatalog } from '../data/codeVisualizerData';
+import CodeStudioScene from '../components/visualizer/CodeStudioScene';
 
 const pointerMeta = {
     left: { label: 'L', color: 'bg-sky-500/20 text-sky-200' },
@@ -352,6 +353,7 @@ export default function CodeVisualizer() {
             <FloatingBackdrop />
             <div className="mx-auto flex max-w-7xl flex-col gap-12 px-6 pb-24 pt-16">
                 <header className="relative overflow-hidden rounded-3xl border border-slate-800/60 bg-slate-900/60 px-8 py-12 shadow-[0_40px_120px_rgba(15,23,42,0.6)]">
+                    <CodeStudioScene className="absolute inset-0 hidden lg:block opacity-80 mix-blend-screen" />
                     <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-sky-500/20 via-transparent to-transparent" />
                     <div className="relative z-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_300px]">
                         <div className="space-y-8">
