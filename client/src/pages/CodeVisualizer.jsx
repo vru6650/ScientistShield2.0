@@ -18,6 +18,73 @@ const pillAccents = {
     order: 'border-sky-200 bg-sky-50 text-sky-600',
 };
 
+const floatingOrbs = [
+    {
+        size: '26rem',
+        position: { top: '-18%', left: '12%' },
+        colors: 'from-sky-300/50 via-transparent to-transparent',
+        animation: { x: [0, 24, -16, 0], y: [0, -14, 10, 0], rotate: [0, 8, -6, 0] },
+        duration: 24,
+    },
+    {
+        size: '30rem',
+        position: { top: '88%', left: '88%' },
+        colors: 'from-purple-400/40 via-transparent to-transparent',
+        animation: { x: [0, -30, 18, 0], y: [0, 18, -12, 0], rotate: [0, -10, 6, 0] },
+        duration: 28,
+    },
+    {
+        size: '18rem',
+        position: { top: '26%', left: '74%' },
+        colors: 'from-emerald-300/40 via-transparent to-transparent',
+        animation: { x: [0, 12, -12, 0], y: [0, -10, 14, 0], rotate: [0, 12, -8, 0] },
+        duration: 18,
+    },
+];
+
+const FloatingBackdrop = () => (
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.08),transparent_55%),radial-gradient(circle_at_80%_10%,rgba(124,58,237,0.08),transparent_50%),radial-gradient(circle_at_50%_80%,rgba(14,165,233,0.05),transparent_60%)]" />
+        {floatingOrbs.map((orb, index) => (
+            <motion.span
+                key={index}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br ${orb.colors} blur-3xl`}
+                style={{
+                    width: orb.size,
+                    height: orb.size,
+                    ...orb.position,
+                }}
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1.8, delay: index * 0.25, ease: 'easeOut' }}
+            >
+                <motion.span
+                    className="absolute inset-0 block"
+                    animate={orb.animation}
+                    transition={{ duration: orb.duration, repeat: Infinity, ease: 'easeInOut' }}
+                />
+            </motion.span>
+        ))}
+        <motion.div
+            className="absolute left-1/2 top-[35%] h-24 w-[120%] -translate-x-1/2 rounded-full bg-gradient-to-r from-sky-200/30 via-white/0 to-purple-200/30 blur-2xl"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+        />
+    </div>
+);
+
+const FlowProgress = ({ progress }) => (
+    <div className="relative h-2 overflow-hidden rounded-full bg-slate-200/60">
+        <motion.div
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-sky-400 via-indigo-400 to-violet-500 shadow-[0_0_18px_rgba(56,189,248,0.45)]"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ type: 'spring', stiffness: 140, damping: 24 }}
+        />
+    </div>
+);
+
 const highlightCode = (code, highlight) => {
     if (!code) return [];
     const normalized = code.replace(/\r\n?/g, '\n');
@@ -80,6 +147,32 @@ const ConsolePanel = ({ lines }) => {
         </div>
     );
 };
+
+const CodeLine = ({ line, active }) => (
+    <motion.div
+        layout="position"
+        key={line.lineNumber}
+        className="flex items-start gap-4 rounded-xl px-3 py-1"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{
+            opacity: 1,
+            y: 0,
+            backgroundColor: active ? 'rgba(224,242,254,0.95)' : 'rgba(255,255,255,0)',
+            scale: active ? 1.01 : 1,
+        }}
+        transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+        whileHover={{ backgroundColor: 'rgba(226,232,240,0.45)' }}
+    >
+        <span className="w-10 select-none text-right font-mono text-xs text-slate-300">{line.lineNumber}</span>
+        <motion.code
+            className={`flex-1 font-mono ${active ? 'text-slate-900' : 'text-slate-600'}`}
+            dangerouslySetInnerHTML={{ __html: line.html }}
+            initial={false}
+            animate={{ color: active ? '#0f172a' : '#475569' }}
+            transition={{ duration: 0.3 }}
+        />
+    </motion.div>
+);
 
 const PillCollection = ({ title, values, type }) => {
     if (!values?.length) return null;
@@ -255,10 +348,7 @@ export default function CodeVisualizer() {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-[#f4f7ff] text-slate-700">
-            <div className="pointer-events-none absolute inset-0 -z-10">
-                <div className="absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-sky-200/40 blur-3xl" />
-                <div className="absolute bottom-[-20%] right-[-10%] h-[28rem] w-[28rem] rounded-full bg-purple-200/40 blur-3xl" />
-            </div>
+            <FloatingBackdrop />
             <div className="mx-auto max-w-6xl px-6 pb-20 pt-16">
                 <header className="mb-12 overflow-hidden rounded-3xl bg-white/70 px-8 py-12 shadow-2xl shadow-sky-100/60 backdrop-blur">
                     <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -294,6 +384,22 @@ export default function CodeVisualizer() {
                     <div className="space-y-8">
                         <div className="rounded-3xl bg-white/90 p-6 shadow-2xl shadow-slate-200/70">
                             <div className="flex flex-col gap-6">
+                                <motion.div
+                                        className="relative"
+                                        initial={{ opacity: 0, y: 18 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                                    >
+                                        <FlowProgress progress={progress} />
+                                        <motion.span
+                                            className="absolute -top-3 right-0 rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400 shadow"
+                                            initial={{ opacity: 0, y: -4 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.2, duration: 0.4 }}
+                                        >
+                                            {steps.length ? `Progress ${(progress || 0).toFixed(0)}%` : 'Select a scenario'}
+                                        </motion.span>
+                                    </motion.div>
                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                     <div>
                                         <h2 className="text-2xl font-semibold text-slate-900">{scenario.title}</h2>
@@ -373,12 +479,7 @@ export default function CodeVisualizer() {
                                             Step {steps.length ? stepIndex + 1 : 0} of {steps.length}
                                         </span>
                                     </div>
-                                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                                        <div
-                                            className="h-full rounded-full bg-gradient-to-r from-sky-400 via-emerald-400 to-cyan-400 transition-all duration-500"
-                                            style={{ width: `${progress}%` }}
-                                        />
-                                    </div>
+                                    <FlowProgress progress={progress} />
                                 </div>
                                 <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-inner shadow-slate-100">
@@ -395,38 +496,61 @@ export default function CodeVisualizer() {
                                         </header>
                                         <div className="max-h-[480px] overflow-auto">
                                             <pre className="m-0 bg-transparent p-4" style={{ fontSize: `${computedFontSize}rem` }}>
-                                                {highlightedLines.map((line) => {
-                                                    const active = currentStep?.lines?.includes(line.lineNumber);
-                                                    return (
-                                                        <div
+                                                <AnimatePresence mode="sync">
+                                                    {highlightedLines.map((line) => (
+                                                        <CodeLine
                                                             key={line.lineNumber}
-                                                            className={`flex items-start gap-4 rounded-xl px-3 py-1 transition ${
-                                                                active ? 'bg-sky-100 ring-1 ring-sky-200' : 'hover:bg-slate-100'
-                                                            }`}
-                                                        >
-                                                            <span className="w-10 select-none text-right font-mono text-xs text-slate-300">{line.lineNumber}</span>
-                                                            <code
-                                                                className={`flex-1 font-mono ${active ? 'text-slate-900' : 'text-slate-600'}`}
-                                                                dangerouslySetInnerHTML={{ __html: line.html }}
-                                                            />
-                                                        </div>
-                                                    );
-                                                })}
+                                                            line={line}
+                                                            active={currentStep?.lines?.includes(line.lineNumber)}
+                                                        />
+                                                    ))}
+                                                </AnimatePresence>
                                             </pre>
                                         </div>
                                     </div>
                                     <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-inner shadow-slate-100">
-                                        {currentStep ? (
-                                            <div className="space-y-3">
-                                                <div>
-                                                    <h3 className="text-lg font-semibold text-slate-900">{currentStep.title}</h3>
-                                                    <p className="text-sm leading-relaxed text-slate-600">{currentStep.description}</p>
-                                                </div>
-                                                <StepStatePanel state={currentStep.state} />
-                                            </div>
-                                        ) : (
-                                            <div className="py-12 text-center text-slate-400">Select a scenario to begin exploring.</div>
-                                        )}
+                                        <AnimatePresence mode="wait">
+                                            {currentStep ? (
+                                                <motion.div
+                                                    key={currentStep.title}
+                                                    className="space-y-3"
+                                                    initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: -12, scale: 0.98 }}
+                                                    transition={{ duration: 0.45, ease: 'easeOut' }}
+                                                >
+                                                    <div>
+                                                        <motion.h3
+                                                            className="text-lg font-semibold text-slate-900"
+                                                            initial={{ opacity: 0, y: 8 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: 0.1, duration: 0.4 }}
+                                                        >
+                                                            {currentStep.title}
+                                                        </motion.h3>
+                                                        <motion.p
+                                                            className="text-sm leading-relaxed text-slate-600"
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: 0.18, duration: 0.4 }}
+                                                        >
+                                                            {currentStep.description}
+                                                        </motion.p>
+                                                    </div>
+                                                    <StepStatePanel state={currentStep.state} />
+                                                </motion.div>
+                                            ) : (
+                                                <motion.div
+                                                    key="empty-state"
+                                                    className="py-12 text-center text-slate-400"
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                >
+                                                    Select a scenario to begin exploring.
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 </div>
                             </div>
