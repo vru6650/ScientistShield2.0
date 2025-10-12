@@ -6,10 +6,27 @@ import { algorithmGroups, findAlgorithmById } from '../data/visualizerCatalog';
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const getSocketUrl = () => {
-    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : null;
-    const resolvedBase = baseUrl ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-    const protocol = resolvedBase.startsWith('https') ? 'wss' : 'ws';
-    return `${resolvedBase.replace(/^https?/, protocol)}/ws/visualizer`;
+    const normalizeBase = (value) => (value ? value.replace(/\/$/, '') : null);
+    const envBase = normalizeBase(import.meta.env.VITE_API_URL);
+
+    const fallbackBase = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const base = envBase || fallbackBase;
+
+    try {
+        const url = new URL('/ws/visualizer', base);
+
+        if (!envBase && typeof window !== 'undefined') {
+            const currentPort = window.location.port;
+            if (import.meta.env.DEV && (!currentPort || currentPort === '5173')) {
+                url.port = '3000';
+            }
+        }
+
+        url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+        return url.toString();
+    } catch (error) {
+        return 'ws://localhost:3000/ws/visualizer';
+    }
 };
 
 const AlgorithmVisualizer = () => {
