@@ -2,6 +2,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import http from 'http';
 import userRoutes from './routes/user.route.js';
 import authRoutes from './routes/auth.route.js';
 import postRoutes from './routes/post.route.js';
@@ -21,6 +22,7 @@ import searchRoutes from './routes/search.route.js';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import cors from 'cors';
+import { setupVisualizerSocket } from './services/visualizerSocket.js';
 
 dotenv.config();
 
@@ -59,6 +61,8 @@ const __dirname = path.resolve();
 
 const app = express();
 
+const server = http.createServer(app);
+
 app.use(cors({
     origin: CORS_ORIGIN,
     credentials: true,
@@ -67,7 +71,9 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-app.listen(PORT, () => {
+setupVisualizerSocket(server);
+
+server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}!`);
 });
 
