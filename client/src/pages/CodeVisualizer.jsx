@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge, Card, Tooltip } from 'flowbite-react';
 import { FaPause, FaPlay, FaRedoAlt, FaStepBackward, FaStepForward, FaInfoCircle } from 'react-icons/fa';
@@ -289,6 +289,70 @@ const InsightCard = ({ insight }) => {
     );
 };
 
+const ScenarioTagList = ({ tags }) => {
+    if (!tags?.length) return null;
+    return (
+        <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+                <span
+                    key={tag}
+                    className="rounded-full border border-slate-800/70 bg-slate-950/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400"
+                >
+                    {tag}
+                </span>
+            ))}
+        </div>
+    );
+};
+
+const StepTimeline = ({ steps, activeIndex, onSelect }) => {
+    if (!steps?.length) return null;
+
+    return (
+        <div className="rounded-3xl border border-slate-800/60 bg-slate-900/60 p-5 shadow-[0_30px_80px_rgba(15,23,42,0.45)]">
+            <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-400">
+                <span>Journey Map</span>
+                <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-[10px] tracking-[0.3em] text-sky-200">
+                    {activeIndex + 1} / {steps.length}
+                </span>
+            </div>
+            <div className="mt-4 flex items-stretch gap-3 overflow-x-auto pb-2">
+                {steps.map((step, index) => {
+                    const active = index === activeIndex;
+                    return (
+                        <button
+                            key={`${step.title ?? 'step'}-${index}`}
+                            type="button"
+                            onClick={() => onSelect(index)}
+                            className={`group flex min-w-[180px] flex-1 flex-col rounded-2xl border px-4 py-3 text-left transition focus:outline-none ${
+                                active
+                                    ? 'border-sky-500/60 bg-sky-500/15 text-sky-100 shadow-[0_0_32px_rgba(56,189,248,0.35)]'
+                                    : 'border-slate-800/60 bg-slate-950/40 text-slate-300 hover:border-slate-700/60 hover:bg-slate-900/60 hover:text-slate-100'
+                            }`}
+                        >
+                            <span
+                                className={`inline-flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold uppercase tracking-[0.3em] ${
+                                    active
+                                        ? 'border-sky-400/70 bg-sky-500/20 text-sky-100'
+                                        : 'border-slate-700/70 bg-slate-900/70 text-slate-400'
+                                }`}
+                            >
+                                {index + 1}
+                            </span>
+                            <span className="mt-3 line-clamp-2 text-sm font-semibold text-inherit">{step.title ?? `Step ${index + 1}`}</span>
+                            {step.description ? (
+                                <span className="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-400 group-hover:text-slate-300">
+                                    {step.description}
+                                </span>
+                            ) : null}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 export default function CodeVisualizer() {
     const [scenarioId, setScenarioId] = useState(codeVisualizerCatalog[0]?.id ?? '');
     const scenario = useMemo(
@@ -338,15 +402,46 @@ export default function CodeVisualizer() {
     const playbackMultiplier = useMemo(() => (playbackSpeed ? (2600 / playbackSpeed).toFixed(1) : '1.0'), [playbackSpeed]);
     const computedFontSize = useMemo(() => 0.9 * (codeZoom / 100), [codeZoom]);
 
-    const goToStep = (index) => {
-        setStepIndex(Math.max(0, Math.min(index, steps.length - 1)));
-    };
+    const goToStep = useCallback(
+        (index) => {
+            setStepIndex(Math.max(0, Math.min(index, steps.length - 1)));
+        },
+        [steps.length],
+    );
 
     const handleStepSliderChange = (value) => {
         const numericValue = Number(value);
         setIsPlaying(false);
         goToStep(Number.isNaN(numericValue) ? 0 : numericValue);
     };
+
+    useEffect(() => {
+        const handleKeydown = (event) => {
+            const tagName = event.target?.tagName ?? '';
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tagName)) return;
+            if (!steps.length) return;
+
+            if (event.code === 'Space') {
+                event.preventDefault();
+                setIsPlaying((current) => !current);
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                goToStep(stepIndex + 1);
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                goToStep(stepIndex - 1);
+            } else if (event.key === 'Home') {
+                event.preventDefault();
+                goToStep(0);
+            } else if (event.key === 'End') {
+                event.preventDefault();
+                goToStep(steps.length - 1);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeydown);
+        return () => window.removeEventListener('keydown', handleKeydown);
+    }, [goToStep, stepIndex, steps.length]);
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
@@ -366,6 +461,7 @@ export default function CodeVisualizer() {
                                     Step through complex routines with a cinematic workspace inspired by staying.fun. Explore languages, watch state evolve, and orchestrate playback to fit your learning rhythm.
                                 </p>
                             </div>
+                            <ScenarioTagList tags={scenario.tags} />
                             <div className="grid gap-4 sm:grid-cols-3">
                                 <div className="rounded-2xl border border-slate-800/60 bg-slate-950/40 p-4 shadow-[0_0_32px_rgba(15,23,42,0.45)]">
                                     <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">Scenarios</p>
@@ -518,6 +614,9 @@ export default function CodeVisualizer() {
                                     Pause
                                 </button>
                             </div>
+                            <div className="mt-6">
+                                <StepTimeline steps={steps} activeIndex={stepIndex} onSelect={goToStep} />
+                            </div>
                         </div>
                     </section>
                     <section className="order-1 space-y-6 xl:order-2">
@@ -527,6 +626,7 @@ export default function CodeVisualizer() {
                                     <div className="space-y-2">
                                         <h2 className="text-2xl font-semibold text-white">{scenario.title}</h2>
                                         <p className="text-sm text-slate-300">{scenario.summary}</p>
+                                        <ScenarioTagList tags={scenario.tags} />
                                     </div>
                                     <MetricBadges metrics={scenario.metrics} />
                                 </div>
