@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g" x1="20" y1="8" x2="108" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1D77C3" />
+      <stop offset="1" stop-color="#174878" />
+    </linearGradient>
+    <linearGradient id="shine" x1="32" y1="20" x2="96" y2="88" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.85" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.15" />
+    </linearGradient>
+  </defs>
+  <!-- Shield base -->
+  <path d="M64 8C64 8 32 18 20 22C20 92 64 120 64 120C64 120 108 92 108 22C96 18 64 8 64 8Z" fill="url(#g)"/>
+  <path d="M64 12C64 12 36 21 26 24C26 86 64 110 64 110C64 110 102 86 102 24C92 21 64 12 64 12Z" fill="url(#shine)"/>
+  <!-- Stylized S -->
+  <path d="M78 44C78 36.8203 72.1797 31 65 31H57C49.8203 31 44 36.8203 44 44C44 51.1797 49.8203 57 57 57H63C70.1797 57 76 62.8203 76 70C76 77.1797 70.1797 83 63 83H55" fill="none" stroke="#F8FAFC" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+</svg>

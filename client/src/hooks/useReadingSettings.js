@@ -1,0 +1,152 @@
+// client/src/hooks/useReadingSettings.js
+import { useEffect, useMemo, useState } from 'react';
+
+const STORAGE_KEY = 'reading-preferences';
+
+export const marginStyleMap = {
+    narrow: '0.75rem',
+    medium: '1.5rem',
+    wide: '2.25rem',
+};
+
+const defaultSettings = {
+    fontSize: 18,
+    fontFamily: 'serif',
+    fontWeight: 400,
+    lineHeight: 1.8,
+    letterSpacing: 0,
+    wordSpacing: 0, // New setting
+    paragraphSpacing: 1.25, // New setting
+    pageWidth: 'comfortable',
+    pageMargin: 'medium',
+    theme: 'auto',
+    textAlign: 'left',
+    brightness: 1,
+    focusMode: false,
+    readingGuide: false,
+    highContrast: false,
+    // NEW: Advanced controls
+    ttsVoiceURI: '',
+    ttsRate: 1,
+    ttsPitch: 1,
+    autoScroll: false,
+    autoScrollSpeed: 40, // px/sec
+    hideImages: false,
+};
+
+const fontFamilyMap = {
+    serif: `'Merriweather', 'Georgia', 'Cambria', "Times New Roman", Times, serif`,
+    sans: `'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif`,
+    mono: `'Fira Code', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace`,
+};
+
+const widthStyleMap = {
+    cozy: '640px',
+    comfortable: '720px',
+    spacious: '860px',
+};
+
+const themeClassMap = {
+    day: 'reading-theme-day',
+    sepia: 'reading-theme-sepia',
+    mint: 'reading-theme-mint', // New theme class
+    dusk: 'reading-theme-dusk', // New theme class
+    night: 'reading-theme-night',
+};
+
+const getStoredSettings = () => {
+    if (typeof window === 'undefined') {
+        return defaultSettings;
+    }
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) {
+            return defaultSettings;
+        }
+        const parsed = JSON.parse(stored);
+        return {
+            ...defaultSettings,
+            ...parsed,
+        };
+    } catch (error) {
+        console.error('Failed to parse reading preferences:', error);
+        return defaultSettings;
+    }
+};
+
+export default function useReadingSettings() {
+    const [settings, setSettings] = useState(getStoredSettings);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        } catch (error) {
+            console.error('Failed to persist reading preferences:', error);
+        }
+    }, [settings]);
+
+    const updateSetting = (key, value) => {
+        setSettings(prev => ({
+            ...prev,
+            [key]: value,
+        }));
+    };
+
+    const resetSettings = () => setSettings(defaultSettings);
+
+    const contentPadding = useMemo(
+        () => marginStyleMap[settings.pageMargin] || marginStyleMap.medium,
+        [settings.pageMargin]
+    );
+
+    const contentStyles = useMemo(() => {
+        const filterParts = [`brightness(${settings.brightness})`];
+        if (settings.highContrast) {
+            filterParts.push('contrast(1.15)');
+        }
+
+        return {
+            fontSize: `${settings.fontSize}px`,
+            lineHeight: settings.lineHeight,
+            letterSpacing: `${settings.letterSpacing}em`,
+            wordSpacing: `${settings.wordSpacing}em`, // New style
+            fontWeight: settings.fontWeight,
+            textAlign: settings.textAlign,
+            '--paragraph-spacing': `${settings.paragraphSpacing}em`, // New CSS variable for paragraph spacing
+            fontFamily: fontFamilyMap[settings.fontFamily] || fontFamilyMap.serif,
+            filter: filterParts.join(' '),
+            paddingInline: contentPadding,
+        };
+    }, [
+        settings.fontSize,
+        settings.lineHeight,
+        settings.letterSpacing,
+        settings.wordSpacing,
+        settings.fontWeight,
+        settings.fontFamily,
+        settings.textAlign,
+        settings.paragraphSpacing,
+        settings.brightness,
+        settings.highContrast,
+        contentPadding
+    ]);
+
+    const contentMaxWidth = useMemo(() => widthStyleMap[settings.pageWidth] || widthStyleMap.comfortable, [settings.pageWidth]);
+
+    const surfaceClass = useMemo(() => {
+        if (settings.theme === 'auto') {
+            return '';
+        }
+        return themeClassMap[settings.theme] || '';
+    }, [settings.theme]);
+
+    return {
+        settings,
+        updateSetting,
+        resetSettings,
+        contentStyles,
+        contentMaxWidth,
+        surfaceClass,
+        contentPadding,
+    };
+}

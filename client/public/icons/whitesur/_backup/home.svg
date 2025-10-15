@@ -1,0 +1,17 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="macos-gradient" x1="20" y1="12" x2="60" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A8C0FF" />
+      <stop offset="1" stop-color="#4F6E9C" />
+    </linearGradient>
+    <linearGradient id="macos-roof" x1="40" y1="22" x2="40" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.1" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="68" height="68" rx="22" fill="url(#macos-gradient)" />
+  <rect x="6" y="6" width="68" height="68" rx="22" stroke="white" stroke-opacity="0.15" stroke-width="1.5" />
+  <path d="M40 22L20 38.5L24.6 44H27V58H36.5V45.5C36.5 44.1193 37.6193 43 39 43H41C42.3807 43 43.5 44.1193 43.5 45.5V58H53V44H55.4L60 38.5L40 22Z" fill="url(#macos-roof)" />
+  <path d="M40 24.6L23.2 38.6L26 42H30V56H35.5V45.5C35.5 43.2909 37.2909 41.5 39.5 41.5H40.5C42.7091 41.5 44.5 43.2909 44.5 45.5V56H50V42H54L56.8 38.6L40 24.6Z" fill="#0F172A" fill-opacity="0.12" />
+  <path d="M40 20L18 38.4L22.6 44L40 29L57.4 44L62 38.4L40 20Z" fill="#FFFFFF" fill-opacity="0.16" />
+</svg>
