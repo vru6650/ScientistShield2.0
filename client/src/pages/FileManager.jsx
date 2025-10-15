@@ -19,6 +19,10 @@ import {
     HiOutlineArrowPath,
     HiOutlineEye,
     HiOutlineEllipsisHorizontal,
+    HiOutlineSquares2X2,
+    HiOutlinePhoto,
+    HiOutlinePlayCircle,
+    HiOutlineClock,
 } from 'react-icons/hi2';
 import {
     createFolder,
@@ -180,6 +184,101 @@ const buildFinderIconSrc = (key, fallback) => {
     return fallback;
 };
 
+const FINDER_QUICK_FILTERS = [
+    {
+        value: 'all',
+        label: 'All',
+        description: 'Everything in view',
+        icon: HiOutlineSquares2X2,
+    },
+    {
+        value: 'folders',
+        label: 'Folders',
+        description: 'Only folders',
+        icon: HiOutlineFolder,
+    },
+    {
+        value: 'images',
+        label: 'Images',
+        description: 'Photos & graphics',
+        icon: HiOutlinePhoto,
+    },
+    {
+        value: 'documents',
+        label: 'Documents',
+        description: 'Docs & PDFs',
+        icon: HiOutlineDocumentText,
+    },
+    {
+        value: 'media',
+        label: 'Media',
+        description: 'Video & audio',
+        icon: HiOutlinePlayCircle,
+    },
+    {
+        value: 'recent',
+        label: 'Recents',
+        description: 'Updated last 7 days',
+        icon: HiOutlineClock,
+    },
+];
+
+const RECENT_THRESHOLD_MS = 1000 * 60 * 60 * 24 * 7;
+
+const getItemExtension = (item) => {
+    if (!item) return '';
+    if (item.extension) return item.extension.toLowerCase();
+    const segments = (item.name || '').split('.');
+    if (segments.length <= 1) return '';
+    return segments.pop().toLowerCase();
+};
+
+const matchesFilterCategory = (item, category) => {
+    if (!item || category === 'all') return true;
+
+    if (category === 'folders') {
+        return item.type === 'folder';
+    }
+
+    if (category === 'recent') {
+        if (!item.updatedAt) return false;
+        const updatedAt = new Date(item.updatedAt).getTime();
+        if (Number.isNaN(updatedAt)) return false;
+        return Date.now() - updatedAt <= RECENT_THRESHOLD_MS;
+    }
+
+    if (item.type !== 'file') return false;
+
+    const extension = getItemExtension(item);
+    const mime = item.mimeType || '';
+
+    if (category === 'images') {
+        return FILE_EXTENSION_GROUPS.image.has(extension) || mime.startsWith('image/');
+    }
+
+    if (category === 'documents') {
+        return (
+            FILE_EXTENSION_GROUPS.document.has(extension) ||
+            MIME_ICON_OVERRIDES.get(mime) === 'pdf' ||
+            MIME_ICON_OVERRIDES.get(mime) === 'word' ||
+            MIME_ICON_OVERRIDES.get(mime) === 'excel' ||
+            MIME_ICON_OVERRIDES.get(mime) === 'powerpoint' ||
+            MIME_ICON_OVERRIDES.get(mime) === 'text'
+        );
+    }
+
+    if (category === 'media') {
+        return (
+            FILE_EXTENSION_GROUPS.video.has(extension) ||
+            FILE_EXTENSION_GROUPS.audio.has(extension) ||
+            mime.startsWith('video/') ||
+            mime.startsWith('audio/')
+        );
+    }
+
+    return true;
+};
+
 export default function FileManager() {
     const queryClient = useQueryClient();
     const [currentFolder, setCurrentFolder] = useState(null);
@@ -189,6 +288,7 @@ export default function FileManager() {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOption, setSortOption] = useState('name-asc');
     const [quickLookItem, setQuickLookItem] = useState(null);
+    const [filterCategory, setFilterCategory] = useState('all');
 
     const { data: directoryData, isFetching: isDirectoryLoading } = useQuery({
         queryKey: ['file-directory', currentFolder],
@@ -237,10 +337,13 @@ export default function FileManager() {
     const breadcrumbs = useMemo(() => directoryData?.breadcrumbs ?? [{ id: null, name: 'All Files' }], [directoryData]);
 
     const filteredItems = useMemo(() => {
-        if (!searchTerm) return items;
-        const lowered = searchTerm.toLowerCase();
-        return items.filter((item) => item.name.toLowerCase().includes(lowered));
-    }, [items, searchTerm]);
+        const lowered = searchTerm.trim().toLowerCase();
+        return items.filter((item) => {
+            const matchesSearch = !lowered || item.name.toLowerCase().includes(lowered);
+            const matchesFilter = matchesFilterCategory(item, filterCategory);
+            return matchesSearch && matchesFilter;
+        });
+    }, [items, searchTerm, filterCategory]);
 
     const sortedItems = useMemo(() => {
         const clone = [...filteredItems];
@@ -261,6 +364,14 @@ export default function FileManager() {
         () => sortedItems.find((item) => item.id === selectedItemId) ?? items.find((item) => item.id === selectedItemId) ?? null,
         [sortedItems, items, selectedItemId]
     );
+
+    useEffect(() => {
+        setSelectedItemId((prev) => {
+            if (!prev) return prev;
+            const exists = sortedItems.some((item) => item.id === prev);
+            return exists ? prev : null;
+        });
+    }, [sortedItems]);
 
     useEffect(() => {
         if (selectedItem && selectedItem.parentId && selectedItem.parentId.toString() !== (currentFolder ?? '').toString()) {
@@ -384,6 +495,7 @@ export default function FileManager() {
     const originalItemsCount = items.length;
     const filteredCount = sortedItems.length;
     const aggregateSize = sortedItems.reduce((acc, item) => acc + (item.size || 0), 0);
+    const activeFilter = FINDER_QUICK_FILTERS.find((option) => option.value === filterCategory) ?? FINDER_QUICK_FILTERS[0];
 
     return (
         <section className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 lg:px-0">
@@ -405,6 +517,8 @@ export default function FileManager() {
                         onQuickLook={() => openQuickLook(selectedItem)}
                         onRefresh={handleRefresh}
                         hasSelection={Boolean(selectedItem)}
+                        filterCategory={filterCategory}
+                        onFilterChange={setFilterCategory}
                     />
                 </div>
             </header>
@@ -432,6 +546,9 @@ export default function FileManager() {
                         onMove={requestMove}
                         activeFolderId={currentFolder}
                         onQuickLook={openQuickLook}
+                        filterCategory={filterCategory}
+                        filterLabel={activeFilter?.label}
+                        filterDescription={activeFilter?.description}
                     />
                     <FinderPreviewPane item={selectedItem} onRename={requestRename} onDelete={requestDelete} onQuickLook={openQuickLook} />
                 </div>
@@ -440,6 +557,8 @@ export default function FileManager() {
                     visibleItems={filteredCount}
                     totalSize={aggregateSize}
                     selection={selectedItem}
+                    filterLabel={activeFilter?.label}
+                    searchTerm={searchTerm.trim()}
                 />
                 <QuickLookModal item={quickLookItem} onClose={closeQuickLook} />
             </DndProvider>
@@ -463,9 +582,12 @@ function FinderToolbar({
     onQuickLook,
     onRefresh,
     hasSelection,
+    filterCategory,
+    onFilterChange,
 }) {
     const fileInputRef = useRef(null);
     const activeBreadcrumb = breadcrumbs[breadcrumbs.length - 1] ?? { name: 'All Files' };
+    const quickFilters = FINDER_QUICK_FILTERS;
 
     const handleUploadClick = () => fileInputRef.current?.click();
     const handleFileChange = (event) => {
@@ -514,6 +636,37 @@ function FinderToolbar({
                         Quick Look
                     </button>
                 </div>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+                {quickFilters.map((filter) => {
+                    const Icon = filter.icon;
+                    const isActive = filterCategory === filter.value;
+                    return (
+                        <button
+                            key={filter.value}
+                            type="button"
+                            onClick={() => onFilterChange(filter.value)}
+                            className={`flex min-w-[10rem] items-center gap-3 rounded-2xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 ${
+                                isActive
+                                    ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-inner shadow-white/80'
+                                    : 'border-transparent bg-white/60 text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-700'
+                            }`}
+                            aria-pressed={isActive}
+                        >
+                            <span
+                                className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg ${
+                                    isActive ? 'border-sky-200 bg-white text-sky-600' : 'border-slate-200 bg-slate-50 text-slate-500'
+                                }`}
+                            >
+                                <Icon />
+                            </span>
+                            <span className="flex flex-1 flex-col leading-tight">
+                                <span className="text-sm font-semibold">{filter.label}</span>
+                                <span className="text-[0.7rem] text-slate-400">{filter.description}</span>
+                            </span>
+                        </button>
+                    );
+                })}
             </div>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <nav className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm shadow-white/70">
@@ -647,6 +800,8 @@ FinderToolbar.propTypes = {
     onQuickLook: PropTypes.func.isRequired,
     onRefresh: PropTypes.func.isRequired,
     hasSelection: PropTypes.bool.isRequired,
+    filterCategory: PropTypes.string.isRequired,
+    onFilterChange: PropTypes.func.isRequired,
 };
 
 function FinderSidebar({ tree, activeId, expandedFolders, onToggle, onNavigate, onMove }) {
@@ -793,6 +948,9 @@ function FinderContentArea({
     onMove,
     activeFolderId,
     onQuickLook,
+    filterCategory,
+    filterLabel,
+    filterDescription,
 }) {
     const [{ isOver: isRootOver, canDrop: canDropRoot }, drop] = useDrop({
         accept: DND_TYPE,
@@ -819,9 +977,18 @@ function FinderContentArea({
                 isRootOver && canDropRoot ? 'ring-2 ring-sky-300' : ''
             }`}
         >
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-slate-500">Contents</p>
-                <div className="flex items-center gap-3 text-xs text-slate-400">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                    {filterCategory !== 'all' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-medium text-slate-500">
+                            {filterLabel}
+                            <span className="text-[0.65rem] uppercase tracking-[0.18em] text-slate-400">Filter</span>
+                        </span>
+                    ) : null}
+                    {filterCategory !== 'all' && filterDescription ? (
+                        <span className="hidden text-[0.7rem] text-slate-400 sm:inline">{filterDescription}</span>
+                    ) : null}
                     {isLoading ? <span className="text-slate-400">Refreshing…</span> : null}
                     <button
                         type="button"
@@ -879,12 +1046,17 @@ FinderContentArea.propTypes = {
     onMove: PropTypes.func.isRequired,
     activeFolderId: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
     onQuickLook: PropTypes.func.isRequired,
+    filterCategory: PropTypes.string.isRequired,
+    filterLabel: PropTypes.string,
+    filterDescription: PropTypes.string,
 };
 
 FinderContentArea.defaultProps = {
     selectedItemId: null,
     selectedItem: null,
     activeFolderId: null,
+    filterLabel: 'All',
+    filterDescription: '',
 };
 
 function FinderItemsView({ items, viewMode, selectedItemId, onSelect, onOpen, onRename, onDelete, onMove, onQuickLook }) {
@@ -1402,19 +1574,30 @@ const formatSize = (size) => {
     return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 };
 
-function FinderStatusBar({ totalItems, visibleItems, totalSize, selection }) {
+function FinderStatusBar({ totalItems, visibleItems, totalSize, selection, filterLabel, searchTerm }) {
     const info = selection
         ? `${selection.name} · ${selection.type === 'file' ? formatSize(selection.size) : 'Folder'}`
         : `${visibleItems} item${visibleItems === 1 ? '' : 's'} shown${visibleItems !== totalItems ? ` · ${totalItems} total` : ''}`;
     const sizeInfo = selection ? new Date(selection.updatedAt).toLocaleString() : `Combined size ${formatSize(totalSize)}`;
+    const isFiltering = !selection && (Boolean(searchTerm) || (filterLabel && filterLabel !== 'All'));
 
     return (
-        <footer className="mt-4 flex items-center justify-between rounded-[24px] border border-slate-200/70 bg-white/85 px-6 py-3 text-xs text-slate-500 shadow-sm shadow-slate-200/70 backdrop-blur">
-            <div className="flex items-center gap-2">
+        <footer className="mt-4 flex flex-col gap-2 rounded-[24px] border border-slate-200/70 bg-white/85 px-6 py-3 text-xs text-slate-500 shadow-sm shadow-slate-200/70 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
                 <HiOutlineEllipsisHorizontal className="text-lg text-slate-400" />
                 <span className="font-medium text-slate-600">{info}</span>
+                {filterLabel && filterLabel !== 'All' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        {filterLabel}
+                    </span>
+                ) : null}
+                {searchTerm ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Search "{searchTerm}"
+                    </span>
+                ) : null}
             </div>
-            <span className="text-slate-400">{sizeInfo}</span>
+            <span className={`text-slate-400 ${isFiltering ? 'font-medium text-slate-500' : ''}`}>{sizeInfo}</span>
         </footer>
     );
 }
@@ -1429,10 +1612,14 @@ FinderStatusBar.propTypes = {
         size: PropTypes.number,
         updatedAt: PropTypes.string,
     }),
+    filterLabel: PropTypes.string,
+    searchTerm: PropTypes.string,
 };
 
 FinderStatusBar.defaultProps = {
     selection: null,
+    filterLabel: 'All',
+    searchTerm: '',
 };
 
 function QuickLookModal({ item, onClose }) {
