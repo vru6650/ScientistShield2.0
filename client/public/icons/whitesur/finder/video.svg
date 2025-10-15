@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ws_video_bg" x1="24" y1="18" x2="104" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8E8CF9" />
+      <stop offset="1" stop-color="#C4A6FF" />
+    </linearGradient>
+    <linearGradient id="ws_video_play" x1="56" y1="52" x2="96" y2="92" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#F2EBFF" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="80" height="80" rx="20" fill="url(#ws_video_bg)" />
+  <rect x="36" y="40" width="56" height="48" rx="12" fill="#FFFFFF" fill-opacity=".12" stroke="#FDFBFF" stroke-opacity=".45" stroke-width="2" />
+  <path d="M58 54c0-3.098 3.385-4.898 5.978-3.274l18.088 11.01c2.071 1.26 2.071 4.278 0 5.538L63.978 78.282C61.385 79.906 58 78.106 58 75.008V54z" fill="url(#ws_video_play)" />
+</svg>

@@ -1,0 +1,14 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="audio_bg" x1="20" y1="18" x2="108" y2="114" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8FD3F4" />
+      <stop offset="1" stop-color="#84FAB0" />
+    </linearGradient>
+    <linearGradient id="audio_note" x1="64" y1="36" x2="96" y2="92" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".98" />
+      <stop offset="1" stop-color="#E7FFF4" />
+    </linearGradient>
+  </defs>
+  <rect x="20" y="24" width="88" height="80" rx="18" fill="url(#audio_bg)" />
+  <path d="M76 40v32.117c0 5.02-4.06 9.09-9.074 9.048a9.012 9.012 0 0 1-8.926-9.048c0-5.008 4.066-9.074 9.074-9.074 1.428 0 2.784.336 3.98.93V48l16-4v23.957c0 5.02-4.06 9.09-9.074 9.048a9.012 9.012 0 0 1-8.926-9.048" fill="url(#audio_note)" />
+</svg>

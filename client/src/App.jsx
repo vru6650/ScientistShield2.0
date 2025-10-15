@@ -46,6 +46,7 @@ const CreateProblem = lazy(() => import('./pages/CreateProblem'));
 const UpdateProblem = lazy(() => import('./pages/UpdateProblem'));
 const AlgorithmVisualizer = lazy(() => import('./pages/AlgorithmVisualizer'));
 const CodeVisualizer = lazy(() => import('./pages/CodeVisualizer'));
+const FileManager = lazy(() => import('./pages/FileManager'));
 
 // A fallback component to show while pages are loading
 const LoadingFallback = () => (
@@ -84,6 +85,7 @@ export default function App() {
                         <Route path="tryit" element={<TryItPage />} />
                         <Route path="algorithm-visualizer" element={<AlgorithmVisualizer />} />
                         <Route path="code-visualizer" element={<CodeVisualizer />} />
+                        <Route path="file-manager" element={<FileManager />} />
                         <Route path="content/:slug" element={<ContentPage />} />
 
                         {/* Private Routes also use the main layout */}

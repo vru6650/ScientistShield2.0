@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ws_default_bg" x1="28" y1="16" x2="108" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6CE2FF" />
+      <stop offset="1" stop-color="#007CFF" />
+    </linearGradient>
+    <radialGradient id="ws_default_panel" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(64 64) rotate(90) scale(56)">
+      <stop stop-color="#FFFFFF" stop-opacity=".96" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".12" />
+    </radialGradient>
+  </defs>
+  <rect x="24" y="24" width="80" height="80" rx="20" fill="url(#ws_default_bg)" />
+  <rect x="32" y="32" width="64" height="64" rx="16" fill="url(#ws_default_panel)" />
+  <path d="M48 54h32M48 64h32M48 74h32" stroke="#0050B8" stroke-opacity=".28" stroke-width="6" stroke-linecap="round" />
+</svg>

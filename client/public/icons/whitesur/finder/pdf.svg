@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ws_pdf_bg" x1="40" y1="12" x2="108" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF6F61" />
+      <stop offset="1" stop-color="#E53935" />
+    </linearGradient>
+    <linearGradient id="ws_pdf_corner" x1="84" y1="12" x2="116" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB5B0" />
+      <stop offset="1" stop-color="#FF6D6D" />
+    </linearGradient>
+  </defs>
+  <path d="M48 16h34l24 24v60a20 20 0 0 1-20 20H48a20 20 0 0 1-20-20V36a20 20 0 0 1 20-20z" fill="url(#ws_pdf_bg)"/>
+  <path d="M82 16v18a10 10 0 0 0 10 10h18L82 16z" fill="url(#ws_pdf_corner)"/>
+  <path d="M50 92V50h20c7.732 0 14 6.268 14 14s-6.268 14-14 14h-8v14H50zm20-22c3.314 0 6-2.686 6-6s-2.686-6-6-6h-8v12h8zm32-20h-14v12h8v8h-8v22h-12V50h26v12z" fill="#FFF5F5"/>
+</svg>

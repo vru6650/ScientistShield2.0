@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ppt_bg" x1="36" y1="12" x2="104" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB26B" />
+      <stop offset="1" stop-color="#FF7043" />
+    </linearGradient>
+    <linearGradient id="ppt_corner" x1="80" y1="12" x2="112" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD6B5" />
+      <stop offset="1" stop-color="#FF915E" />
+    </linearGradient>
+  </defs>
+  <path d="M44 16h34l24 24v60a18 18 0 0 1-18 18H44a18 18 0 0 1-18-18V34a18 18 0 0 1 18-18z" fill="url(#ppt_bg)"/>
+  <path d="M78 16v18a8 8 0 0 0 8 8h18L78 16z" fill="url(#ppt_corner)"/>
+  <path d="M48 92V52h20c8.284 0 15 6.716 15 15s-6.716 15-15 15h-8v10H48zm20-18c3.866 0 7-3.134 7-7s-3.134-7-7-7h-8v14h8z" fill="#FFF4EB"/>
+</svg>

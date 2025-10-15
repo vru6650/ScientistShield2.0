@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ws_image_bg" x1="28" y1="18" x2="108" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7EB3" />
+      <stop offset="1" stop-color="#FFB199" />
+    </linearGradient>
+    <linearGradient id="ws_image_mountain" x1="44" y1="68" x2="100" y2="114" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".95" />
+      <stop offset="1" stop-color="#FFE5F2" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="80" height="80" rx="20" fill="url(#ws_image_bg)" />
+  <circle cx="48" cy="48" r="11" fill="#FFE9F4" />
+  <path d="M44 100h52c4.418 0 7.004-4.984 4.598-8.602l-17.2-25.36a5 5 0 0 0-7.968-.53l-7.771 8.443a5 5 0 0 1-7.48.09l-6.378-6.086a5 5 0 0 0-7.183.142l-17.796 18.78C22.625 90.54 24.969 100 32.576 100H44z" fill="url(#ws_image_mountain)" />
+</svg>

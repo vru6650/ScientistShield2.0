@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="video_bg" x1="20" y1="24" x2="108" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A18CD1" />
+      <stop offset="1" stop-color="#FBC2EB" />
+    </linearGradient>
+    <linearGradient id="video_play" x1="52" y1="48" x2="92" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".95" />
+      <stop offset="1" stop-color="#F8E7FF" />
+    </linearGradient>
+  </defs>
+  <rect x="20" y="24" width="88" height="80" rx="18" fill="url(#video_bg)" />
+  <rect x="32" y="36" width="64" height="56" rx="12" fill="#FFFFFF" fill-opacity=".14" stroke="#FFFFFF" stroke-opacity=".3" stroke-width="2" />
+  <path d="M58 52.5c0-2.667 2.888-4.267 5.2-2.867l18.667 11.467c2 1.228 2 4.106 0 5.334L63.2 77.9c-2.312 1.4-5.2-.2-5.2-2.867V52.5z" fill="url(#video_play)" />
+</svg>

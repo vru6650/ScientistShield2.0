@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ws_excel_bg" x1="40" y1="12" x2="108" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4ADB92" />
+      <stop offset="1" stop-color="#14894C" />
+    </linearGradient>
+    <linearGradient id="ws_excel_corner" x1="84" y1="12" x2="116" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8EF0BE" />
+      <stop offset="1" stop-color="#2FC47A" />
+    </linearGradient>
+  </defs>
+  <path d="M48 16h34l24 24v60a20 20 0 0 1-20 20H48a20 20 0 0 1-20-20V36a20 20 0 0 1 20-20z" fill="url(#ws_excel_bg)"/>
+  <path d="M82 16v18a10 10 0 0 0 10 10h18L82 16z" fill="url(#ws_excel_corner)"/>
+  <path d="M46 92l17-22-16-22h12l9 12 9-12h12l-16 22 17 22H76l-10-13-10 13H46z" fill="#ECFFF4"/>
+</svg>

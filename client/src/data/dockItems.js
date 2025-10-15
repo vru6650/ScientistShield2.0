@@ -6,6 +6,7 @@ import problemsIcon from '../assets/dock/problems.svg';
 import dashboardIcon from '../assets/dock/dashboard.svg';
 import quickAddIcon from '../assets/dock/quick-add.svg';
 import themeIcon from '../assets/dock/theme.svg';
+import fileManagerIcon from '../assets/dock/file-manager.svg';
 
 // Optional WhiteSur icon pack support
 // If localStorage.iconPack === 'whitesur', we prefer icons from
@@ -61,6 +62,15 @@ export const baseDockItems = [
         fallbackIconSrc: toolsIcon,
         iconAlt: 'Tools dock icon',
         match: (path) => path.startsWith('/tools'),
+    },
+    {
+        key: 'file-manager',
+        to: '/file-manager',
+        label: 'Files',
+        iconSrc: buildIconSrc('file-manager', fileManagerIcon),
+        fallbackIconSrc: fileManagerIcon,
+        iconAlt: 'File Manager dock icon',
+        match: (path) => path.startsWith('/file-manager'),
     },
     {
         key: 'problems',

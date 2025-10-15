@@ -1,0 +1,16 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ws_archive_bg" x1="28" y1="20" x2="108" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFBC8A" />
+      <stop offset="1" stop-color="#FF5F6D" />
+    </linearGradient>
+    <linearGradient id="ws_archive_lid" x1="36" y1="26" x2="100" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE1CF" />
+      <stop offset="1" stop-color="#FF8F73" />
+    </linearGradient>
+  </defs>
+  <path d="M36 42H100a14 14 0 0 1 14 14v42a18 18 0 0 1-18 18H40a18 18 0 0 1-18-18V56a14 14 0 0 1 14-14z" fill="url(#ws_archive_bg)" />
+  <rect x="32" y="28" width="72" height="22" rx="9" fill="url(#ws_archive_lid)" />
+  <rect x="58" y="62" width="16" height="22" rx="6" fill="#FFF0E7" />
+  <path d="M66 84v12" stroke="#FFF0E7" stroke-width="6" stroke-linecap="round" />
+</svg>

@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ws_audio_bg" x1="24" y1="18" x2="108" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#63E7BB" />
+      <stop offset="1" stop-color="#21A7FF" />
+    </linearGradient>
+    <linearGradient id="ws_audio_note" x1="70" y1="40" x2="102" y2="96" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#E9FFF8" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="80" height="80" rx="20" fill="url(#ws_audio_bg)" />
+  <path d="M80 42v28.55c0 5.221-4.263 9.49-9.484 9.45a9.41 9.41 0 0 1-9.266-9.45c0-5.197 4.274-9.47 9.484-9.47 1.308 0 2.614.27 3.814.79V52l16-4v22.55c0 5.22-4.263 9.49-9.484 9.45a9.41 9.41 0 0 1-9.266-9.45" fill="url(#ws_audio_note)" />
+  <circle cx="57" cy="84" r="9" fill="#F1FFFA" />
+</svg>
