@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useQueries } from '@tanstack/react-query';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import {
@@ -19,6 +19,11 @@ import {
     HiOutlineArrowPath,
     HiOutlineEye,
     HiOutlineEllipsisHorizontal,
+    HiOutlineSquares2X2,
+    HiOutlineViewColumns,
+    HiOutlinePhoto,
+    HiOutlinePlayCircle,
+    HiOutlineClock,
 } from 'react-icons/hi2';
 import {
     createFolder,
@@ -180,15 +185,128 @@ const buildFinderIconSrc = (key, fallback) => {
     return fallback;
 };
 
+const FINDER_QUICK_FILTERS = [
+    {
+        value: 'all',
+        label: 'All',
+        description: 'Everything in view',
+        icon: HiOutlineSquares2X2,
+    },
+    {
+        value: 'folders',
+        label: 'Folders',
+        description: 'Only folders',
+        icon: HiOutlineFolder,
+    },
+    {
+        value: 'images',
+        label: 'Images',
+        description: 'Photos & graphics',
+        icon: HiOutlinePhoto,
+    },
+    {
+        value: 'documents',
+        label: 'Documents',
+        description: 'Docs & PDFs',
+        icon: HiOutlineDocumentText,
+    },
+    {
+        value: 'media',
+        label: 'Media',
+        description: 'Video & audio',
+        icon: HiOutlinePlayCircle,
+    },
+    {
+        value: 'recent',
+        label: 'Recents',
+        description: 'Updated last 7 days',
+        icon: HiOutlineClock,
+    },
+];
+
+const RECENT_THRESHOLD_MS = 1000 * 60 * 60 * 24 * 7;
+
+const getItemExtension = (item) => {
+    if (!item) return '';
+    if (item.extension) return item.extension.toLowerCase();
+    const segments = (item.name || '').split('.');
+    if (segments.length <= 1) return '';
+    return segments.pop().toLowerCase();
+};
+
+const matchesFilterCategory = (item, category) => {
+    if (!item || category === 'all') return true;
+
+    if (category === 'folders') {
+        return item.type === 'folder';
+    }
+
+    if (category === 'recent') {
+        if (!item.updatedAt) return false;
+        const updatedAt = new Date(item.updatedAt).getTime();
+        if (Number.isNaN(updatedAt)) return false;
+        return Date.now() - updatedAt <= RECENT_THRESHOLD_MS;
+    }
+
+    if (item.type !== 'file') return false;
+
+    const extension = getItemExtension(item);
+    const mime = item.mimeType || '';
+
+    if (category === 'images') {
+        return FILE_EXTENSION_GROUPS.image.has(extension) || mime.startsWith('image/');
+    }
+
+    if (category === 'documents') {
+        return (
+            FILE_EXTENSION_GROUPS.document.has(extension) ||
+            MIME_ICON_OVERRIDES.get(mime) === 'pdf' ||
+            MIME_ICON_OVERRIDES.get(mime) === 'word' ||
+            MIME_ICON_OVERRIDES.get(mime) === 'excel' ||
+            MIME_ICON_OVERRIDES.get(mime) === 'powerpoint' ||
+            MIME_ICON_OVERRIDES.get(mime) === 'text'
+        );
+    }
+
+    if (category === 'media') {
+        return (
+            FILE_EXTENSION_GROUPS.video.has(extension) ||
+            FILE_EXTENSION_GROUPS.audio.has(extension) ||
+            mime.startsWith('video/') ||
+            mime.startsWith('audio/')
+        );
+    }
+
+    return true;
+};
+
+const sortItemsByOption = (items, option) => {
+    const clone = [...items];
+    const parseDate = (value) => new Date(value || Date.now()).getTime();
+    const comparators = {
+        'name-asc': (a, b) => a.name.localeCompare(b.name),
+        'name-desc': (a, b) => b.name.localeCompare(a.name),
+        'date-desc': (a, b) => parseDate(b.updatedAt) - parseDate(a.updatedAt),
+        'date-asc': (a, b) => parseDate(a.updatedAt) - parseDate(b.updatedAt),
+        'size-desc': (a, b) => (b.size || 0) - (a.size || 0),
+        'size-asc': (a, b) => (a.size || 0) - (b.size || 0),
+    };
+    const compare = comparators[option] ?? comparators['name-asc'];
+    clone.sort(compare);
+    return clone;
+};
+
 export default function FileManager() {
     const queryClient = useQueryClient();
     const [currentFolder, setCurrentFolder] = useState(null);
+    const [breadcrumbTrail, setBreadcrumbTrail] = useState([{ id: null, name: 'All Files' }]);
     const [expandedFolders, setExpandedFolders] = useState(() => new Set([null]));
     const [selectedItemId, setSelectedItemId] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOption, setSortOption] = useState('name-asc');
     const [quickLookItem, setQuickLookItem] = useState(null);
+    const [filterCategory, setFilterCategory] = useState('all');
 
     const { data: directoryData, isFetching: isDirectoryLoading } = useQuery({
         queryKey: ['file-directory', currentFolder],
@@ -234,28 +352,52 @@ export default function FileManager() {
     });
 
     const items = useMemo(() => directoryData?.items ?? [], [directoryData]);
-    const breadcrumbs = useMemo(() => directoryData?.breadcrumbs ?? [{ id: null, name: 'All Files' }], [directoryData]);
+    const breadcrumbs = breadcrumbTrail;
 
     const filteredItems = useMemo(() => {
-        if (!searchTerm) return items;
-        const lowered = searchTerm.toLowerCase();
-        return items.filter((item) => item.name.toLowerCase().includes(lowered));
-    }, [items, searchTerm]);
+        const lowered = searchTerm.trim().toLowerCase();
+        return items.filter((item) => {
+            const matchesSearch = !lowered || item.name.toLowerCase().includes(lowered);
+            const matchesFilter = matchesFilterCategory(item, filterCategory);
+            return matchesSearch && matchesFilter;
+        });
+    }, [items, searchTerm, filterCategory]);
 
-    const sortedItems = useMemo(() => {
-        const clone = [...filteredItems];
-        const parseDate = (value) => new Date(value || Date.now()).getTime();
-        const compare = {
-            'name-asc': (a, b) => a.name.localeCompare(b.name),
-            'name-desc': (a, b) => b.name.localeCompare(a.name),
-            'date-desc': (a, b) => parseDate(b.updatedAt) - parseDate(a.updatedAt),
-            'date-asc': (a, b) => parseDate(a.updatedAt) - parseDate(b.updatedAt),
-            'size-desc': (a, b) => (b.size || 0) - (a.size || 0),
-            'size-asc': (a, b) => (a.size || 0) - (b.size || 0),
-        }[sortOption];
-        clone.sort(compare);
-        return clone;
-    }, [filteredItems, sortOption]);
+    const sortedItems = useMemo(() => sortItemsByOption(filteredItems, sortOption), [filteredItems, sortOption]);
+
+    const columnQueries = useQueries({
+        queries: breadcrumbs.map((crumb, index) => ({
+            queryKey: ['file-directory', crumb.id ?? null],
+            queryFn: () => getDirectory(crumb.id ?? null),
+            enabled: viewMode === 'column' && index !== breadcrumbs.length - 1,
+        })),
+    });
+
+    const columnData = useMemo(() => {
+        if (viewMode !== 'column') return [];
+        return breadcrumbs.map((crumb, index) => {
+            if (index === breadcrumbs.length - 1) {
+                return {
+                    breadcrumb: crumb,
+                    items: sortedItems,
+                    isLoading: isDirectoryLoading,
+                };
+            }
+            const query = columnQueries[index];
+            const queryItems = query?.data?.items ?? [];
+            return {
+                breadcrumb: crumb,
+                items: sortItemsByOption(queryItems, sortOption),
+                isLoading: query?.isFetching ?? query?.isLoading ?? false,
+            };
+        });
+    }, [viewMode, breadcrumbs, columnQueries, sortedItems, isDirectoryLoading, sortOption]);
+
+    useEffect(() => {
+        if (directoryData?.breadcrumbs) {
+            setBreadcrumbTrail(directoryData.breadcrumbs);
+        }
+    }, [directoryData]);
 
     const selectedItem = useMemo(
         () => sortedItems.find((item) => item.id === selectedItemId) ?? items.find((item) => item.id === selectedItemId) ?? null,
@@ -263,15 +405,29 @@ export default function FileManager() {
     );
 
     useEffect(() => {
+        setSelectedItemId((prev) => {
+            if (!prev) return prev;
+            const exists = sortedItems.some((item) => item.id === prev);
+            return exists ? prev : null;
+        });
+    }, [sortedItems]);
+
+    useEffect(() => {
         if (selectedItem && selectedItem.parentId && selectedItem.parentId.toString() !== (currentFolder ?? '').toString()) {
             setSelectedItemId(null);
         }
     }, [selectedItem, currentFolder]);
 
-    const handleNavigate = useCallback((folderId) => {
-        setCurrentFolder(folderId);
-        setSelectedItemId(null);
-    }, []);
+    const handleNavigate = useCallback(
+        (folderId, nextBreadcrumbs = null) => {
+            setCurrentFolder(folderId);
+            setSelectedItemId(null);
+            if (nextBreadcrumbs) {
+                setBreadcrumbTrail(nextBreadcrumbs);
+            }
+        },
+        [setBreadcrumbTrail]
+    );
 
     const handleFolderToggle = useCallback((folderId) => {
         setExpandedFolders((prev) => {
@@ -327,15 +483,22 @@ export default function FileManager() {
     );
 
     const handleItemOpen = useCallback(
-        (item) => {
+        (item, options = {}) => {
             if (item.type === 'folder') {
-                handleNavigate(item.id);
+                const { depth } = options;
+                if (typeof depth === 'number') {
+                    const nextTrail = breadcrumbs.slice(0, depth + 1).concat({ id: item.id, name: item.name });
+                    handleNavigate(item.id, nextTrail);
+                } else {
+                    const nextTrail = breadcrumbs.concat({ id: item.id, name: item.name });
+                    handleNavigate(item.id, nextTrail);
+                }
                 setExpandedFolders((prev) => new Set(prev).add(item.id));
             } else if (item.previewUrl) {
                 window.open(item.previewUrl, '_blank', 'noopener,noreferrer');
             }
         },
-        [handleNavigate]
+        [breadcrumbs, handleNavigate]
     );
 
     const openQuickLook = useCallback(
@@ -384,11 +547,12 @@ export default function FileManager() {
     const originalItemsCount = items.length;
     const filteredCount = sortedItems.length;
     const aggregateSize = sortedItems.reduce((acc, item) => acc + (item.size || 0), 0);
+    const activeFilter = FINDER_QUICK_FILTERS.find((option) => option.value === filterCategory) ?? FINDER_QUICK_FILTERS[0];
 
     return (
-        <section className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 lg:px-0">
-            <header className="flex flex-col gap-4 rounded-[28px] border border-slate-200/70 bg-slate-50/80 p-0.5 shadow-[0_30px_90px_-50px_rgba(15,23,42,0.7)] backdrop-blur">
-                <div className="rounded-[26px] bg-gradient-to-b from-white/95 via-white/90 to-slate-100/80 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+        <section className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-10 lg:px-4">
+            <header className="flex flex-col gap-4 rounded-[28px] border border-white/40 bg-white/60 p-0.5 shadow-[0_30px_90px_-50px_rgba(15,23,42,0.7)] backdrop-blur-xl">
+                <div className="rounded-[26px] bg-gradient-to-br from-white/95 via-white/85 to-slate-50/80 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]">
                     <FinderToolbar
                         breadcrumbs={breadcrumbs}
                         onNavigate={handleNavigate}
@@ -405,6 +569,8 @@ export default function FileManager() {
                         onQuickLook={() => openQuickLook(selectedItem)}
                         onRefresh={handleRefresh}
                         hasSelection={Boolean(selectedItem)}
+                        filterCategory={filterCategory}
+                        onFilterChange={setFilterCategory}
                     />
                 </div>
             </header>
@@ -432,14 +598,27 @@ export default function FileManager() {
                         onMove={requestMove}
                         activeFolderId={currentFolder}
                         onQuickLook={openQuickLook}
+                        columnData={columnData}
+                        filterCategory={filterCategory}
+                        filterLabel={activeFilter?.label}
+                        filterDescription={activeFilter?.description}
                     />
-                    <FinderPreviewPane item={selectedItem} onRename={requestRename} onDelete={requestDelete} onQuickLook={openQuickLook} />
+                    {viewMode !== 'column' ? (
+                        <FinderPreviewPane
+                            item={selectedItem}
+                            onRename={requestRename}
+                            onDelete={requestDelete}
+                            onQuickLook={openQuickLook}
+                        />
+                    ) : null}
                 </div>
                 <FinderStatusBar
                     totalItems={originalItemsCount}
                     visibleItems={filteredCount}
                     totalSize={aggregateSize}
                     selection={selectedItem}
+                    filterLabel={activeFilter?.label}
+                    searchTerm={searchTerm.trim()}
                 />
                 <QuickLookModal item={quickLookItem} onClose={closeQuickLook} />
             </DndProvider>
@@ -448,24 +627,27 @@ export default function FileManager() {
 }
 
 function FinderToolbar({
-    breadcrumbs,
-    onNavigate,
-    onCreateFolder,
-    onUpload,
-    viewMode,
-    onViewModeChange,
-    searchTerm,
-    onSearchChange,
-    sortOption,
-    onSortChange,
-    isCreating,
-    isUploading,
-    onQuickLook,
-    onRefresh,
-    hasSelection,
-}) {
+                           breadcrumbs,
+                           onNavigate,
+                           onCreateFolder,
+                           onUpload,
+                           viewMode,
+                           onViewModeChange,
+                           searchTerm,
+                           onSearchChange,
+                           sortOption,
+                           onSortChange,
+                           isCreating,
+                           isUploading,
+                           onQuickLook,
+                           onRefresh,
+                           hasSelection,
+                           filterCategory,
+                           onFilterChange,
+                       }) {
     const fileInputRef = useRef(null);
     const activeBreadcrumb = breadcrumbs[breadcrumbs.length - 1] ?? { name: 'All Files' };
+    const quickFilters = FINDER_QUICK_FILTERS;
 
     const handleUploadClick = () => fileInputRef.current?.click();
     const handleFileChange = (event) => {
@@ -515,6 +697,37 @@ function FinderToolbar({
                     </button>
                 </div>
             </div>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+                {quickFilters.map((filter) => {
+                    const Icon = filter.icon;
+                    const isActive = filterCategory === filter.value;
+                    return (
+                        <button
+                            key={filter.value}
+                            type="button"
+                            onClick={() => onFilterChange(filter.value)}
+                            className={`flex min-w-[10rem] items-center gap-3 rounded-2xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 ${
+                                isActive
+                                    ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-inner shadow-white/80'
+                                    : 'border-transparent bg-white/60 text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-700'
+                            }`}
+                            aria-pressed={isActive}
+                        >
+                            <span
+                                className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg ${
+                                    isActive ? 'border-sky-200 bg-white text-sky-600' : 'border-slate-200 bg-slate-50 text-slate-500'
+                                }`}
+                            >
+                                <Icon />
+                            </span>
+                            <span className="flex flex-1 flex-col leading-tight">
+                                <span className="text-sm font-semibold">{filter.label}</span>
+                                <span className="text-[0.7rem] text-slate-400">{filter.description}</span>
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <nav className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm shadow-white/70">
                     {breadcrumbs.map((crumb, index) => {
@@ -523,7 +736,7 @@ function FinderToolbar({
                             <span key={`${crumb.id ?? 'root'}-${index}`} className="flex items-center gap-1">
                                 <button
                                     type="button"
-                                    onClick={() => onNavigate(crumb.id ?? null)}
+                                    onClick={() => onNavigate(crumb.id ?? null, breadcrumbs.slice(0, index + 1))}
                                     className={`rounded-xl border px-3 py-1 transition ${
                                         isLast
                                             ? 'cursor-default border-sky-200 bg-sky-50 text-sky-700 shadow-inner shadow-white/80'
@@ -539,13 +752,13 @@ function FinderToolbar({
                     })}
                 </nav>
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-inner shadow-white/70">
+                    <div className="flex items-center overflow-hidden rounded-full border border-slate-200 bg-white/90 shadow-inner shadow-white/80">
                         <button
                             type="button"
                             className={`flex items-center gap-1 px-3 py-1.5 text-sm transition ${
                                 viewMode === 'grid'
-                                    ? 'bg-sky-500/10 text-sky-700 shadow-inner shadow-white/80'
-                                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                                    ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
+                                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
                             }`}
                             onClick={() => onViewModeChange('grid')}
                         >
@@ -556,13 +769,25 @@ function FinderToolbar({
                             type="button"
                             className={`flex items-center gap-1 px-3 py-1.5 text-sm transition ${
                                 viewMode === 'list'
-                                    ? 'bg-sky-500/10 text-sky-700 shadow-inner shadow-white/80'
-                                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                                    ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
+                                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
                             }`}
                             onClick={() => onViewModeChange('list')}
                         >
                             <HiOutlineListBullet />
                             List
+                        </button>
+                        <button
+                            type="button"
+                            className={`flex items-center gap-1 px-3 py-1.5 text-sm transition ${
+                                viewMode === 'column'
+                                    ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
+                                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
+                            }`}
+                            onClick={() => onViewModeChange('column')}
+                        >
+                            <HiOutlineViewColumns />
+                            Column
                         </button>
                     </div>
                     <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm shadow-white/70">
@@ -636,7 +861,7 @@ FinderToolbar.propTypes = {
     onNavigate: PropTypes.func.isRequired,
     onCreateFolder: PropTypes.func.isRequired,
     onUpload: PropTypes.func.isRequired,
-    viewMode: PropTypes.oneOf(['grid', 'list']).isRequired,
+    viewMode: PropTypes.oneOf(['grid', 'list', 'column']).isRequired,
     onViewModeChange: PropTypes.func.isRequired,
     searchTerm: PropTypes.string.isRequired,
     onSearchChange: PropTypes.func.isRequired,
@@ -647,6 +872,8 @@ FinderToolbar.propTypes = {
     onQuickLook: PropTypes.func.isRequired,
     onRefresh: PropTypes.func.isRequired,
     hasSelection: PropTypes.bool.isRequired,
+    filterCategory: PropTypes.string.isRequired,
+    onFilterChange: PropTypes.func.isRequired,
 };
 
 function FinderSidebar({ tree, activeId, expandedFolders, onToggle, onNavigate, onMove }) {
@@ -662,7 +889,7 @@ function FinderSidebar({ tree, activeId, expandedFolders, onToggle, onNavigate, 
     return (
         <aside
             ref={drop}
-            className="h-[32rem] w-full rounded-[26px] border border-slate-200/70 bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur lg:h-[36rem] lg:w-64"
+            className="h-[32rem] w-full rounded-[26px] border border-slate-200/70 bg-gradient-to-br from-white/90 via-white/80 to-slate-50/75 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.6)] backdrop-blur-xl lg:h-[36rem] lg:w-64"
         >
             <h2 className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Locations</h2>
             <div className="space-y-1">
@@ -674,6 +901,7 @@ function FinderSidebar({ tree, activeId, expandedFolders, onToggle, onNavigate, 
                     onToggle={onToggle}
                     onNavigate={onNavigate}
                     onMove={onMove}
+                    path={[{ id: null, name: 'All Files' }]}
                 />
             </div>
         </aside>
@@ -696,7 +924,7 @@ FinderSidebar.defaultProps = {
     activeId: null,
 };
 
-function SidebarNode({ node, depth, activeId, expandedFolders, onToggle, onNavigate, onMove }) {
+function SidebarNode({ node, depth, activeId, expandedFolders, onToggle, onNavigate, onMove, path }) {
     const isActive = (activeId ?? null)?.toString() === (node.id ?? null)?.toString();
     const isExpanded = expandedFolders.has(node.id ?? null);
 
@@ -710,8 +938,10 @@ function SidebarNode({ node, depth, activeId, expandedFolders, onToggle, onNavig
         }),
     });
 
+    const nodePath = path ?? [];
+
     const handleClick = () => {
-        onNavigate(node.id ?? null);
+        onNavigate(node.id ?? null, nodePath);
         onToggle(node.id ?? null);
     };
 
@@ -755,6 +985,7 @@ function SidebarNode({ node, depth, activeId, expandedFolders, onToggle, onNavig
                         onToggle={onToggle}
                         onNavigate={onNavigate}
                         onMove={onMove}
+                        path={nodePath.concat({ id: child.id, name: child.name })}
                     />
                 ))}
         </div>
@@ -773,6 +1004,12 @@ SidebarNode.propTypes = {
     onToggle: PropTypes.func.isRequired,
     onNavigate: PropTypes.func.isRequired,
     onMove: PropTypes.func.isRequired,
+    path: PropTypes.arrayOf(
+        PropTypes.shape({
+            id: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
+            name: PropTypes.string,
+        })
+    ).isRequired,
 };
 
 SidebarNode.defaultProps = {
@@ -780,20 +1017,24 @@ SidebarNode.defaultProps = {
 };
 
 function FinderContentArea({
-    items,
-    originalItems,
-    isLoading,
-    viewMode,
-    selectedItemId,
-    selectedItem,
-    onSelect,
-    onOpen,
-    onRename,
-    onDelete,
-    onMove,
-    activeFolderId,
-    onQuickLook,
-}) {
+                               items,
+                               originalItems,
+                               isLoading,
+                               viewMode,
+                               selectedItemId,
+                               selectedItem,
+                               onSelect,
+                               onOpen,
+                               onRename,
+                               onDelete,
+                               onMove,
+                               activeFolderId,
+                               onQuickLook,
+                               columnData,
+                               filterCategory,
+                               filterLabel,
+                               filterDescription,
+                           }) {
     const [{ isOver: isRootOver, canDrop: canDropRoot }, drop] = useDrop({
         accept: DND_TYPE,
         drop: (item) => {
@@ -805,23 +1046,33 @@ function FinderContentArea({
         }),
     });
 
+    const isColumnView = viewMode === 'column';
     const emptyState =
-        !isLoading && originalItems.length === 0
+        !isColumnView && !isLoading && originalItems.length === 0
             ? 'This folder is empty.'
-            : !isLoading && items.length === 0
-            ? 'No items match your search.'
-            : null;
+            : !isColumnView && !isLoading && items.length === 0
+                ? 'No items match your search.'
+                : null;
 
     return (
         <div
             ref={drop}
-            className={`relative flex h-[32rem] flex-1 flex-col gap-4 rounded-[26px] border border-slate-200/70 bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur transition lg:h-[36rem] ${
+            className={`relative flex h-[32rem] flex-1 flex-col gap-4 rounded-[26px] border border-slate-200/70 bg-gradient-to-br from-white/85 via-white/75 to-slate-50/70 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.6)] backdrop-blur-xl transition lg:h-[36rem] ${
                 isRootOver && canDropRoot ? 'ring-2 ring-sky-300' : ''
             }`}
         >
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-slate-500">Contents</p>
-                <div className="flex items-center gap-3 text-xs text-slate-400">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                    {filterCategory !== 'all' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-medium text-slate-500">
+                            {filterLabel}
+                            <span className="text-[0.65rem] uppercase tracking-[0.18em] text-slate-400">Filter</span>
+                        </span>
+                    ) : null}
+                    {filterCategory !== 'all' && filterDescription ? (
+                        <span className="hidden text-[0.7rem] text-slate-400 sm:inline">{filterDescription}</span>
+                    ) : null}
                     {isLoading ? <span className="text-slate-400">Refreshing…</span> : null}
                     <button
                         type="button"
@@ -853,6 +1104,7 @@ function FinderContentArea({
                     onDelete={onDelete}
                     onMove={onMove}
                     onQuickLook={onQuickLook}
+                    columnData={columnData}
                 />
             )}
             {isRootOver && canDropRoot && (
@@ -866,7 +1118,7 @@ FinderContentArea.propTypes = {
     items: PropTypes.arrayOf(PropTypes.object).isRequired,
     originalItems: PropTypes.arrayOf(PropTypes.object).isRequired,
     isLoading: PropTypes.bool.isRequired,
-    viewMode: PropTypes.oneOf(['grid', 'list']).isRequired,
+    viewMode: PropTypes.oneOf(['grid', 'list', 'column']).isRequired,
     selectedItemId: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
     selectedItem: PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
@@ -879,42 +1131,362 @@ FinderContentArea.propTypes = {
     onMove: PropTypes.func.isRequired,
     activeFolderId: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
     onQuickLook: PropTypes.func.isRequired,
+    columnData: PropTypes.arrayOf(
+        PropTypes.shape({
+            breadcrumb: PropTypes.shape({
+                id: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
+                name: PropTypes.string,
+            }),
+            items: PropTypes.arrayOf(PropTypes.object),
+            isLoading: PropTypes.bool,
+        })
+    ),
+    filterCategory: PropTypes.string.isRequired,
+    filterLabel: PropTypes.string,
+    filterDescription: PropTypes.string,
 };
 
 FinderContentArea.defaultProps = {
     selectedItemId: null,
     selectedItem: null,
     activeFolderId: null,
+    columnData: [],
+    filterLabel: 'All',
+    filterDescription: '',
 };
 
-function FinderItemsView({ items, viewMode, selectedItemId, onSelect, onOpen, onRename, onDelete, onMove, onQuickLook }) {
+function FinderColumnView({ columns, selectedItemId, onSelect, onOpen, onRename, onDelete, onMove, onQuickLook }) {
+    if (!columns?.length) {
+        return (
+            <div className="flex flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-br from-white/90 via-white/80 to-slate-50/70 text-sm text-slate-500 shadow-inner shadow-white/70">
+                Loading column view…
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white/92 via-white/82 to-slate-50/75 shadow-inner shadow-white/70">
+            <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto p-2">
+                {columns.map((column, index) => (
+                    <FinderColumn
+                        key={`${column.breadcrumb?.id ?? 'root'}-${index}`}
+                        breadcrumb={column.breadcrumb}
+                        items={column.items}
+                        isLast={index === columns.length - 1}
+                        highlightId={index < columns.length - 1 ? columns[index + 1]?.breadcrumb?.id ?? null : selectedItemId}
+                        selectedItemId={selectedItemId}
+                        isLoading={column.isLoading}
+                        columnIndex={index}
+                        onSelect={onSelect}
+                        onOpen={onOpen}
+                        onRename={onRename}
+                        onDelete={onDelete}
+                        onMove={onMove}
+                        onQuickLook={onQuickLook}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+FinderColumnView.propTypes = {
+    columns: PropTypes.arrayOf(
+        PropTypes.shape({
+            breadcrumb: PropTypes.shape({
+                id: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
+                name: PropTypes.string,
+            }),
+            items: PropTypes.arrayOf(PropTypes.object).isRequired,
+            isLoading: PropTypes.bool,
+        })
+    ).isRequired,
+    selectedItemId: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
+    onSelect: PropTypes.func.isRequired,
+    onOpen: PropTypes.func.isRequired,
+    onRename: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    onMove: PropTypes.func.isRequired,
+    onQuickLook: PropTypes.func.isRequired,
+};
+
+FinderColumnView.defaultProps = {
+    selectedItemId: null,
+};
+
+function FinderColumn({
+                          breadcrumb,
+                          items,
+                          isLast,
+                          highlightId,
+                          isLoading,
+                          onSelect,
+                          onOpen,
+                          onRename,
+                          onDelete,
+                          onMove,
+                          onQuickLook,
+                          selectedItemId,
+                          columnIndex,
+                      }) {
+    const [{ isOver, canDrop }, drop] = useDrop({
+        accept: DND_TYPE,
+        canDrop: (dragged) => (breadcrumb?.id ?? null) !== dragged.id,
+        drop: (dragged) => onMove(dragged.id, breadcrumb?.id ?? null),
+        collect: (monitor) => ({
+            isOver: monitor.isOver({ shallow: true }),
+            canDrop: monitor.canDrop(),
+        }),
+    });
+
+    const highlightTarget = isLast ? selectedItemId : highlightId;
+    const resolvedName = breadcrumb?.name ?? 'Items';
+
+    return (
+        <div
+            ref={drop}
+            className={`flex min-w-[16rem] max-w-[22rem] flex-1 flex-col rounded-[1.5rem] border border-white/40 bg-white/45 px-3 py-3 backdrop-blur-lg shadow-[0_18px_44px_-28px_rgba(15,23,42,0.35)] transition ${
+                isOver && canDrop ? 'ring-2 ring-sky-300' : ''
+            }`}
+        >
+            <div className="px-2 pb-3">
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">{resolvedName}</p>
+            </div>
+            <div className="flex-1 space-y-1 overflow-auto pr-1">
+                {isLoading ? (
+                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200/80 bg-white/50 text-xs text-slate-400">
+                        Loading…
+                    </div>
+                ) : items.length === 0 ? (
+                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200/70 bg-slate-50/60 text-xs text-slate-400">
+                        {isLast ? 'This folder is empty.' : 'Select a folder to continue'}
+                    </div>
+                ) : (
+                    items.map((item) => (
+                        <FinderColumnRow
+                            key={item.id}
+                            item={item}
+                            isHighlighted={(highlightTarget ?? null)?.toString() === (item.id ?? '').toString()}
+                            isLastColumn={isLast}
+                            columnIndex={columnIndex}
+                            onSelect={onSelect}
+                            onOpen={onOpen}
+                            onRename={onRename}
+                            onDelete={onDelete}
+                            onMove={onMove}
+                            onQuickLook={onQuickLook}
+                        />
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}
+
+FinderColumn.propTypes = {
+    breadcrumb: PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
+        name: PropTypes.string,
+    }),
+    items: PropTypes.arrayOf(PropTypes.object).isRequired,
+    isLast: PropTypes.bool.isRequired,
+    highlightId: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
+    isLoading: PropTypes.bool,
+    onSelect: PropTypes.func.isRequired,
+    onOpen: PropTypes.func.isRequired,
+    onRename: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    onMove: PropTypes.func.isRequired,
+    onQuickLook: PropTypes.func.isRequired,
+    selectedItemId: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
+    columnIndex: PropTypes.number.isRequired,
+};
+
+FinderColumn.defaultProps = {
+    breadcrumb: null,
+    highlightId: null,
+    isLoading: false,
+    selectedItemId: null,
+};
+
+function FinderColumnRow({ item, isHighlighted, isLastColumn, columnIndex, onSelect, onOpen, onRename, onDelete, onMove, onQuickLook }) {
+    const [{ isDragging }, drag] = useDrag({
+        type: DND_TYPE,
+        item: { id: item.id, type: item.type },
+        collect: (monitor) => ({
+            isDragging: monitor.isDragging(),
+        }),
+    });
+
+    const [{ isOver, canDrop }, drop] = useDrop({
+        accept: DND_TYPE,
+        canDrop: (dragged) => item.type === 'folder' && dragged.id !== item.id,
+        drop: (dragged) => onMove(dragged.id, item.id),
+        collect: (monitor) => ({
+            isOver: monitor.isOver({ shallow: true }),
+            canDrop: monitor.canDrop(),
+        }),
+    });
+
+    const ref = useRef(null);
+    drag(drop(ref));
+
+    const handleSelect = useCallback(() => {
+        onSelect((prev) => {
+            if (prev === item.id && item.type !== 'folder') {
+                return null;
+            }
+            return item.id;
+        });
+        if (item.type === 'folder') {
+            onOpen(item, { depth: columnIndex });
+        }
+    }, [item, onSelect, onOpen, columnIndex]);
+
+    const handleKeyDown = useCallback(
+        (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handleSelect();
+            }
+        },
+        [handleSelect]
+    );
+
+    const actionBase = isHighlighted
+        ? 'rounded-lg bg-white/10 px-2 py-1 text-[0.7rem] font-semibold text-white transition hover:bg-white/20'
+        : 'rounded-lg bg-white px-2 py-1 text-[0.7rem] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700';
+
+    return (
+        <div
+            ref={ref}
+            role="button"
+            tabIndex={0}
+            onClick={handleSelect}
+            onDoubleClick={() => onOpen(item, { depth: columnIndex })}
+            onKeyDown={handleKeyDown}
+            className={`group relative flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-2 text-sm transition ${
+                isHighlighted
+                    ? 'bg-sky-500 text-white shadow-[0_18px_36px_-18px_rgba(56,189,248,0.55)]'
+                    : 'text-slate-600 hover:bg-white/80 hover:shadow-[0_18px_36px_-24px_rgba(15,23,42,0.35)]'
+            } ${isDragging ? 'opacity-70' : ''} ${isOver && canDrop ? 'ring-2 ring-sky-300' : ''}`}
+        >
+            <FinderItemIcon item={item} size="sm" />
+            <div className="min-w-0 flex-1">
+                <p className={`truncate text-sm font-medium ${isHighlighted ? 'text-white' : 'text-slate-600'}`}>{item.name}</p>
+                <p className={`truncate text-[0.7rem] ${isHighlighted ? 'text-white/70' : 'text-slate-400'}`}>
+                    {item.type === 'file' ? formatSize(item.size) : 'Folder'}
+                </p>
+            </div>
+            {isLastColumn ? (
+                <div
+                    className={`ml-auto flex items-center gap-1 text-xs transition ${
+                        isHighlighted ? 'text-white' : 'text-slate-400 opacity-0 group-hover:opacity-100'
+                    }`}
+                >
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onRename(item);
+                        }}
+                        className={actionBase}
+                    >
+                        Rename
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onDelete(item);
+                        }}
+                        className={`${actionBase} ${isHighlighted ? 'text-white' : 'text-rose-500 hover:text-rose-600'}`}
+                    >
+                        Delete
+                    </button>
+                    {item.type === 'file' ? (
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onQuickLook(item);
+                            }}
+                            className={`${actionBase} ${isHighlighted ? 'text-white' : 'text-sky-600 hover:text-sky-700'}`}
+                        >
+                            View
+                        </button>
+                    ) : null}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+FinderColumnRow.propTypes = {
+    item: PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
+        name: PropTypes.string,
+        type: PropTypes.string,
+        size: PropTypes.number,
+    }).isRequired,
+    isHighlighted: PropTypes.bool,
+    isLastColumn: PropTypes.bool.isRequired,
+    columnIndex: PropTypes.number.isRequired,
+    onSelect: PropTypes.func.isRequired,
+    onOpen: PropTypes.func.isRequired,
+    onRename: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    onMove: PropTypes.func.isRequired,
+    onQuickLook: PropTypes.func.isRequired,
+};
+
+FinderColumnRow.defaultProps = {
+    isHighlighted: false,
+};
+
+function FinderItemsView({ items, viewMode, selectedItemId, onSelect, onOpen, onRename, onDelete, onMove, onQuickLook, columnData }) {
+    if (viewMode === 'column') {
+        return (
+            <FinderColumnView
+                columns={columnData}
+                selectedItemId={selectedItemId}
+                onSelect={onSelect}
+                onOpen={onOpen}
+                onRename={onRename}
+                onDelete={onDelete}
+                onMove={onMove}
+                onQuickLook={onQuickLook}
+            />
+        );
+    }
+
     if (viewMode === 'list') {
         return (
             <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-inner shadow-white/70">
                 <table className="min-w-full text-sm text-slate-600">
                     <thead className="sticky top-0 bg-slate-100/90 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <tr>
-                            <th className="px-4 py-3">Name</th>
-                            <th className="px-4 py-3">Type</th>
-                            <th className="px-4 py-3">Size</th>
-                            <th className="px-4 py-3">Updated</th>
-                            <th className="px-4 py-3 text-right">Actions</th>
-                        </tr>
+                    <tr>
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Type</th>
+                        <th className="px-4 py-3">Size</th>
+                        <th className="px-4 py-3">Updated</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        {items.map((item) => (
-                            <FinderListRow
-                                key={item.id}
-                                item={item}
-                                isSelected={selectedItemId === item.id}
-                                onSelect={onSelect}
-                                onOpen={onOpen}
-                                onRename={onRename}
-                                onDelete={onDelete}
-                                onMove={onMove}
-                                onQuickLook={onQuickLook}
-                            />
-                        ))}
+                    {items.map((item) => (
+                        <FinderListRow
+                            key={item.id}
+                            item={item}
+                            isSelected={selectedItemId === item.id}
+                            onSelect={onSelect}
+                            onOpen={onOpen}
+                            onRename={onRename}
+                            onDelete={onDelete}
+                            onMove={onMove}
+                            onQuickLook={onQuickLook}
+                        />
+                    ))}
                     </tbody>
                 </table>
             </div>
@@ -942,7 +1514,7 @@ function FinderItemsView({ items, viewMode, selectedItemId, onSelect, onOpen, on
 
 FinderItemsView.propTypes = {
     items: PropTypes.arrayOf(PropTypes.object).isRequired,
-    viewMode: PropTypes.oneOf(['grid', 'list']).isRequired,
+    viewMode: PropTypes.oneOf(['grid', 'list', 'column']).isRequired,
     selectedItemId: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
     onSelect: PropTypes.func.isRequired,
     onOpen: PropTypes.func.isRequired,
@@ -950,10 +1522,21 @@ FinderItemsView.propTypes = {
     onDelete: PropTypes.func.isRequired,
     onMove: PropTypes.func.isRequired,
     onQuickLook: PropTypes.func.isRequired,
+    columnData: PropTypes.arrayOf(
+        PropTypes.shape({
+            breadcrumb: PropTypes.shape({
+                id: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]),
+                name: PropTypes.string,
+            }),
+            items: PropTypes.arrayOf(PropTypes.object),
+            isLoading: PropTypes.bool,
+        })
+    ),
 };
 
 FinderItemsView.defaultProps = {
     selectedItemId: null,
+    columnData: [],
 };
 
 const resolveFinderIconKey = (item) => {
@@ -1402,19 +1985,30 @@ const formatSize = (size) => {
     return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 };
 
-function FinderStatusBar({ totalItems, visibleItems, totalSize, selection }) {
+function FinderStatusBar({ totalItems, visibleItems, totalSize, selection, filterLabel, searchTerm }) {
     const info = selection
         ? `${selection.name} · ${selection.type === 'file' ? formatSize(selection.size) : 'Folder'}`
         : `${visibleItems} item${visibleItems === 1 ? '' : 's'} shown${visibleItems !== totalItems ? ` · ${totalItems} total` : ''}`;
     const sizeInfo = selection ? new Date(selection.updatedAt).toLocaleString() : `Combined size ${formatSize(totalSize)}`;
+    const isFiltering = !selection && (Boolean(searchTerm) || (filterLabel && filterLabel !== 'All'));
 
     return (
-        <footer className="mt-4 flex items-center justify-between rounded-[24px] border border-slate-200/70 bg-white/85 px-6 py-3 text-xs text-slate-500 shadow-sm shadow-slate-200/70 backdrop-blur">
-            <div className="flex items-center gap-2">
+        <footer className="mt-4 flex flex-col gap-2 rounded-[24px] border border-slate-200/70 bg-white/85 px-6 py-3 text-xs text-slate-500 shadow-sm shadow-slate-200/70 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
                 <HiOutlineEllipsisHorizontal className="text-lg text-slate-400" />
                 <span className="font-medium text-slate-600">{info}</span>
+                {filterLabel && filterLabel !== 'All' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        {filterLabel}
+                    </span>
+                ) : null}
+                {searchTerm ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Search "{searchTerm}"
+                    </span>
+                ) : null}
             </div>
-            <span className="text-slate-400">{sizeInfo}</span>
+            <span className={`text-slate-400 ${isFiltering ? 'font-medium text-slate-500' : ''}`}>{sizeInfo}</span>
         </footer>
     );
 }
@@ -1429,10 +2023,14 @@ FinderStatusBar.propTypes = {
         size: PropTypes.number,
         updatedAt: PropTypes.string,
     }),
+    filterLabel: PropTypes.string,
+    searchTerm: PropTypes.string,
 };
 
 FinderStatusBar.defaultProps = {
     selection: null,
+    filterLabel: 'All',
+    searchTerm: '',
 };
 
 function QuickLookModal({ item, onClose }) {
