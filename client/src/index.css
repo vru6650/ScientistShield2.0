@@ -95,12 +95,12 @@ button:focus-visible {
  * This makes theming changes easy and centralized.
  */
 :root {
-  /* Light theme aligned with WhiteSur/macOS */
+  /* Light theme aligned with macOS Sonoma */
   --color-bg-primary: #ffffff;
   --color-bg-secondary: #f7f9fb;
   --color-text-primary: #0f172a; /* slate-900 */
   --color-text-secondary: #475569; /* slate-600 */
-  --color-accent: #0A84FF; /* macOS Big Sur blue */
+  --color-accent: #0A84FF; /* macOS accent blue */
   --color-border: #e5e7eb;
 
   /* Glass/vibrancy controls (overridable via Control Center) */
@@ -111,6 +111,42 @@ button:focus-visible {
   /* Sidebar variables for light mode */
   --color-sidebar-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(241, 245, 249, 0.55) 100%);
   --color-sidebar-border: rgba(226, 232, 240, 0.6);
+
+  /* macOS wallpaper + surface system */
+  --macos-wallpaper-light: radial-gradient(1200px 720px at 12% -15%, rgba(255, 255, 255, 0.85), transparent 58%), radial-gradient(900px 540px at 88% -5%, rgba(10, 132, 255, 0.32), transparent 65%), radial-gradient(900px 520px at 18% 110%, rgba(255, 105, 180, 0.25), transparent 70%), linear-gradient(180deg, rgba(248, 250, 255, 0.95), rgba(231, 236, 247, 0.84));
+  --macos-wallpaper-dark: radial-gradient(1200px 720px at 12% -15%, rgba(56, 189, 248, 0.18), transparent 55%), radial-gradient(980px 560px at 85% -5%, rgba(10, 132, 255, 0.28), transparent 70%), radial-gradient(940px 560px at 22% 110%, rgba(129, 140, 248, 0.28), transparent 72%), linear-gradient(180deg, rgba(5, 11, 24, 0.96), rgba(9, 16, 32, 0.95));
+  --macos-aurora-primary-light: radial-gradient(680px 460px at 10% 0%, rgba(56, 189, 248, 0.18), transparent 65%);
+  --macos-aurora-secondary-light: radial-gradient(720px 460px at 90% 20%, rgba(53, 184, 168, 0.16), transparent 70%);
+  --macos-aurora-primary-dark: radial-gradient(640px 440px at 10% -5%, rgba(56, 189, 248, 0.18), transparent 70%);
+  --macos-aurora-secondary-dark: radial-gradient(720px 480px at 85% 15%, rgba(129, 140, 248, 0.22), transparent 70%);
+  --macos-waves-light: radial-gradient(700px 500px at 50% 110%, rgba(58, 138, 223, 0.14), transparent 70%);
+  --macos-waves-dark: radial-gradient(700px 500px at 45% 110%, rgba(37, 99, 235, 0.2), transparent 72%);
+  --macos-grid-color-light: rgba(148, 163, 184, 0.08);
+  --macos-grid-color-dark: rgba(148, 163, 184, 0.16);
+  --macos-noise-opacity-light: 0.08;
+  --macos-noise-opacity-dark: 0.16;
+  --macos-orb-top-light: rgba(255, 255, 255, 0.6);
+  --macos-orb-bottom-light: rgba(10, 132, 255, 0.45);
+  --macos-orb-top-dark: rgba(148, 163, 184, 0.38);
+  --macos-orb-bottom-dark: rgba(59, 130, 246, 0.35);
+  --macos-wallpaper: var(--macos-wallpaper-light);
+  --macos-aurora-primary: var(--macos-aurora-primary-light);
+  --macos-aurora-secondary: var(--macos-aurora-secondary-light);
+  --macos-waves: var(--macos-waves-light);
+  --macos-grid-color: var(--macos-grid-color-light);
+  --macos-noise-opacity: var(--macos-noise-opacity-light);
+  --macos-orb-top: var(--macos-orb-top-light);
+  --macos-orb-bottom: var(--macos-orb-bottom-light);
+
+  /* macOS chrome */
+  --macos-window-radius: 28px;
+  --macos-window-bg: rgba(255, 255, 255, 0.78);
+  --macos-window-border: rgba(255, 255, 255, 0.55);
+  --macos-window-shadow: 0 55px 120px -55px rgba(15, 23, 42, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --macos-window-shadow-focused: 0 48px 120px -58px rgba(56, 189, 248, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  --macos-titlebar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(236, 244, 255, 0.72));
+  --macos-titlebar-border: rgba(255, 255, 255, 0.45);
+  --macos-resizer-hover: rgba(148, 163, 184, 0.18);
 
   /* System accent for form controls */
   accent-color: var(--color-accent);
@@ -161,6 +197,146 @@ button:focus-visible {
 .dark .card-surface {
   background: rgba(15, 23, 42, calc(var(--glass-bg-alpha) + 0.0));
   border-color: rgba(148, 163, 184, calc(var(--glass-border-alpha) + 0.0));
+}
+
+/*
+ * --- macOS Wallpaper System ---
+ * Layered gradients + soft noise for Sonoma-like ambiance.
+ */
+.macos-theme .macos-desktop {
+  background: var(--macos-wallpaper);
+  color: var(--color-text-primary);
+}
+
+.macos-theme.dark .macos-desktop,
+.dark .macos-desktop {
+  color: var(--color-text-primary);
+}
+
+.macos-wallpaper {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.macos-wallpaper__gradient {
+  position: absolute;
+  inset: -15%;
+  transform: scale(1.05);
+  filter: saturate(120%);
+  animation: macos-wallpaper-pan 24s ease-in-out infinite alternate;
+}
+
+.macos-wallpaper__gradient--light {
+  background: var(--macos-wallpaper-light);
+}
+
+.macos-wallpaper__gradient--dark {
+  background: var(--macos-wallpaper-dark);
+}
+
+.macos-wallpaper__aurora {
+  position: absolute;
+  filter: saturate(140%) blur(42px);
+  transform: translateZ(0);
+  opacity: 0.85;
+  animation: macos-wallpaper-sway 32s ease-in-out infinite;
+}
+
+.macos-wallpaper__aurora--primary {
+  inset: -20% 45% 30% -15%;
+  background: var(--macos-aurora-primary);
+}
+
+.macos-wallpaper__aurora--secondary {
+  inset: 25% -20% -25% 45%;
+  background: var(--macos-aurora-secondary);
+  animation-delay: 4s;
+}
+
+.macos-wallpaper__orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(42px);
+  transform: translateZ(0);
+  opacity: 0.7;
+  animation: macos-wallpaper-float 18s ease-in-out infinite;
+}
+
+.macos-wallpaper__orb--top {
+  top: -12%;
+  left: 55%;
+  width: clamp(320px, 28vw, 520px);
+  height: clamp(240px, 22vw, 420px);
+  background: var(--macos-orb-top);
+}
+
+.macos-wallpaper__orb--bottom {
+  bottom: -18%;
+  right: 15%;
+  width: clamp(360px, 32vw, 560px);
+  height: clamp(280px, 26vw, 460px);
+  background: var(--macos-orb-bottom);
+  animation-delay: 6s;
+}
+
+.macos-wallpaper__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(0deg, transparent calc(100% - 1px), var(--macos-grid-color) calc(100% - 1px)),
+    linear-gradient(90deg, transparent calc(100% - 1px), var(--macos-grid-color) calc(100% - 1px));
+  background-size: clamp(110px, 14vw, 160px) clamp(110px, 14vw, 160px);
+  opacity: 0.15;
+  mix-blend-mode: soft-light;
+}
+
+.macos-wallpaper__grid--light {
+  opacity: 0.12;
+}
+
+.macos-wallpaper__grid--dark {
+  opacity: 0.18;
+}
+
+.macos-wallpaper__noise {
+  position: absolute;
+  inset: 0;
+  opacity: var(--macos-noise-opacity);
+  mix-blend-mode: overlay;
+  background-size: 140px 140px;
+  background-repeat: repeat;
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'>\
+  <filter id='noise'>\
+    <feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/>\
+  </filter>\
+  <rect width='140' height='140' filter='url(%23noise)' opacity='0.9'/>\
+</svg>");
+  animation: macos-wallpaper-noise 180s steps(120) infinite;
+}
+
+@keyframes macos-wallpaper-pan {
+  0% { transform: scale(1.05) translate3d(0, 0, 0); }
+  50% { transform: scale(1.08) translate3d(1.5%, -1.5%, 0); }
+  100% { transform: scale(1.05) translate3d(-1.5%, 1.5%, 0); }
+}
+
+@keyframes macos-wallpaper-sway {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.8; }
+  50% { transform: translate3d(1.5%, -1.5%, 0) scale(1.05); opacity: 0.95; }
+}
+
+@keyframes macos-wallpaper-float {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-2%, 2%, 0) scale(1.08); }
+}
+
+@keyframes macos-wallpaper-noise {
+  0% { background-position: 0 0; }
+  100% { background-position: 140px 140px; }
 }
 
 .toolbar-translucent {
@@ -270,6 +446,21 @@ button:focus-visible {
   /* Sidebar variables for dark mode */
   --color-sidebar-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(2, 6, 23, 0.75) 100%);
   --color-sidebar-border: rgba(51, 65, 85, 0.65);
+  --macos-wallpaper: var(--macos-wallpaper-dark);
+  --macos-aurora-primary: var(--macos-aurora-primary-dark);
+  --macos-aurora-secondary: var(--macos-aurora-secondary-dark);
+  --macos-waves: var(--macos-waves-dark);
+  --macos-grid-color: var(--macos-grid-color-dark);
+  --macos-noise-opacity: var(--macos-noise-opacity-dark);
+  --macos-orb-top: var(--macos-orb-top-dark);
+  --macos-orb-bottom: var(--macos-orb-bottom-dark);
+  --macos-window-bg: rgba(12, 18, 32, 0.78);
+  --macos-window-border: rgba(71, 85, 105, 0.45);
+  --macos-window-shadow: 0 55px 120px -60px rgba(3, 7, 18, 0.82), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --macos-window-shadow-focused: 0 55px 120px -60px rgba(37, 99, 235, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --macos-titlebar-bg: linear-gradient(180deg, rgba(12, 18, 32, 0.96), rgba(4, 9, 22, 0.88));
+  --macos-titlebar-border: rgba(71, 85, 105, 0.5);
+  --macos-resizer-hover: rgba(71, 85, 105, 0.32);
 
   color-scheme: dark;
   accent-color: var(--color-accent);
@@ -388,11 +579,6 @@ button:focus-visible {
 .macos-desktop {
   position: relative;
   min-height: 100vh;
-  background:
-    radial-gradient(1200px 700px at 10% -10%, rgba(255, 255, 255, 0.82), transparent 55%),
-    radial-gradient(900px 540px at 85% 0%, rgba(10, 132, 255, 0.28), transparent 65%),
-    radial-gradient(900px 540px at 15% 100%, rgba(255, 105, 180, 0.18), transparent 65%),
-    linear-gradient(180deg, rgba(245, 246, 252, 0.92) 0%, rgba(226, 232, 240, 0.82) 55%, rgba(226, 232, 240, 0.92) 100%);
   color: var(--color-text-primary);
 }
 
@@ -402,57 +588,133 @@ button:focus-visible {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.35;
-  background: radial-gradient(600px 320px at 50% 15%, rgba(255, 255, 255, 0.7), transparent 65%);
+  transition: opacity 0.6s ease;
+}
+
+.macos-desktop::before {
+  background: var(--macos-waves);
+  opacity: 0.55;
   mix-blend-mode: screen;
+  filter: saturate(110%);
 }
 
 .macos-desktop::after {
-  opacity: 0.18;
-  background: radial-gradient(1000px 540px at 50% 105%, rgba(10, 132, 255, 0.35), transparent 70%);
-}
-
-.dark .macos-desktop {
-  background:
-    radial-gradient(1200px 700px at 10% -10%, rgba(30, 64, 175, 0.22), transparent 55%),
-    radial-gradient(900px 540px at 85% 0%, rgba(10, 132, 255, 0.25), transparent 65%),
-    radial-gradient(900px 540px at 20% 100%, rgba(76, 29, 149, 0.25), transparent 70%),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.96) 0%, rgba(15, 23, 42, 0.92) 45%, rgba(2, 6, 23, 0.98) 100%);
-  color: var(--color-text-primary);
+  background: radial-gradient(520px 320px at 50% 0%, rgba(255, 255, 255, 0.45), transparent 65%);
+  opacity: 0.35;
+  mix-blend-mode: screen;
 }
 
 .dark .macos-desktop::before {
-  opacity: 0.18;
-  background: radial-gradient(600px 320px at 50% 15%, rgba(148, 163, 184, 0.4), transparent 70%);
+  opacity: 0.45;
 }
 
 .dark .macos-desktop::after {
-  opacity: 0.18;
-  background: radial-gradient(900px 540px at 50% 105%, rgba(10, 132, 255, 0.28), transparent 70%);
+  opacity: 0.28;
+  background: radial-gradient(520px 320px at 50% 0%, rgba(148, 163, 184, 0.25), transparent 70%);
 }
 
 .macos-window {
   position: relative;
   margin: clamp(1.25rem, 4vw, 2.75rem) auto;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  box-shadow:
-    0 55px 120px -55px rgba(15, 23, 42, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border-radius: var(--macos-window-radius);
+  background: var(--macos-window-bg);
+  border: 1px solid var(--macos-window-border);
+  box-shadow: var(--macos-window-shadow);
   backdrop-filter: saturate(180%) blur(26px);
   -webkit-backdrop-filter: saturate(180%) blur(26px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
 }
 
-.dark .macos-window {
-  background: rgba(2, 6, 23, 0.78);
-  border-color: rgba(148, 163, 184, 0.25);
-  box-shadow:
-    0 55px 120px -55px rgba(15, 23, 42, 0.7),
-    inset 0 1px 0 rgba(148, 163, 184, 0.12);
+.macos-window--focused {
+  box-shadow: var(--macos-window-shadow-focused);
+  transform: translate3d(0, -2px, 0);
+}
+
+.macos-window__resize {
+  position: absolute;
+  z-index: 5;
+  pointer-events: auto;
+  touch-action: none;
+  border-radius: 12px;
+  background: transparent;
+  transition: background-color 0.14s ease;
+}
+
+.macos-window__resize:hover {
+  background: var(--macos-resizer-hover);
+}
+
+.dark .macos-window__resize:hover {
+  background: var(--macos-resizer-hover);
+}
+
+.macos-window__resize--n,
+.macos-window__resize--s {
+  left: 16px;
+  right: 16px;
+  height: 10px;
+}
+
+.macos-window__resize--n {
+  top: -6px;
+  cursor: ns-resize;
+}
+
+.macos-window__resize--s {
+  bottom: -6px;
+  cursor: ns-resize;
+}
+
+.macos-window__resize--e,
+.macos-window__resize--w {
+  top: 18px;
+  bottom: 18px;
+  width: 10px;
+}
+
+.macos-window__resize--e {
+  right: -6px;
+  cursor: ew-resize;
+}
+
+.macos-window__resize--w {
+  left: -6px;
+  cursor: ew-resize;
+}
+
+.macos-window__resize--ne,
+.macos-window__resize--nw,
+.macos-window__resize--se,
+.macos-window__resize--sw {
+  width: 16px;
+  height: 16px;
+}
+
+.macos-window__resize--ne {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.macos-window__resize--nw {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.macos-window__resize--se {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+.macos-window__resize--sw {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
 }
 
 .macos-window__titlebar {
@@ -462,8 +724,10 @@ button:focus-visible {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.9rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(240, 244, 249, 0.82));
+  border-bottom: 1px solid var(--macos-titlebar-border);
+  background: var(--macos-titlebar-bg);
+  backdrop-filter: saturate(160%) blur(calc(var(--glass-blur) * 0.75));
+  -webkit-backdrop-filter: saturate(160%) blur(calc(var(--glass-blur) * 0.75));
 }
 
 .macos-window__titlebar::after {
@@ -473,11 +737,6 @@ button:focus-visible {
   pointer-events: none;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
   opacity: 0.65;
-}
-
-.dark .macos-window__titlebar {
-  border-bottom-color: rgba(148, 163, 184, 0.22);
-  background: linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.82));
 }
 
 .macos-window__title {
@@ -514,6 +773,10 @@ button:focus-visible {
     inset 0 1px 1px rgba(255, 255, 255, 0.65),
     inset 0 -1px 1px rgba(0, 0, 0, 0.18),
     0 0 0 0.45px rgba(0, 0, 0, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
 }
 
 .macos-traffic-light::before {
@@ -523,6 +786,73 @@ button:focus-visible {
   border-radius: inherit;
   background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.85), transparent 55%);
   opacity: 0.7;
+}
+
+.macos-traffic-light__glyph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.macos-traffic-lights:hover .macos-traffic-light__glyph,
+.macos-traffic-light:focus-visible .macos-traffic-light__glyph,
+.macos-traffic-light:active .macos-traffic-light__glyph {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.macos-traffic-light__glyph::before,
+.macos-traffic-light__glyph::after {
+  content: '';
+  position: absolute;
+  background: rgba(15, 23, 42, 0.72);
+  border-radius: 9999px;
+  transition: background-color 0.18s ease;
+}
+
+.dark .macos-traffic-light__glyph::before,
+.dark .macos-traffic-light__glyph::after {
+  background: rgba(226, 232, 240, 0.86);
+}
+
+.macos-traffic-light__glyph--close::before,
+.macos-traffic-light__glyph--close::after {
+  width: 8px;
+  height: 1.6px;
+  transform-origin: center;
+}
+
+.macos-traffic-light__glyph--close::before {
+  transform: rotate(45deg);
+}
+
+.macos-traffic-light__glyph--close::after {
+  transform: rotate(-45deg);
+}
+
+.macos-traffic-light__glyph--minimize::before {
+  width: 9px;
+  height: 1.6px;
+}
+
+.macos-traffic-light__glyph--minimize::after {
+  display: none;
+}
+
+.macos-traffic-light__glyph--zoom::before,
+.macos-traffic-light__glyph--zoom::after {
+  width: 1.6px;
+  height: 9px;
+}
+
+.macos-traffic-light__glyph--zoom::after {
+  transform: rotate(90deg);
 }
 
 .macos-traffic-light--close {

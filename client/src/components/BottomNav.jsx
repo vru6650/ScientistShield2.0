@@ -7,8 +7,14 @@ import {
     baseDockItems,
     dashboardDockItem,
     quickAddDockItem,
+    stageManagerDockItem,
     themeDockItem,
 } from '../data/dockItems';
+import {
+    STAGE_MANAGER_STATE_EVENT,
+    STAGE_MANAGER_STORAGE_KEY,
+    STAGE_MANAGER_TOGGLE_EVENT,
+} from '../constants/desktop';
 import { toggleTheme } from '../redux/theme/themeSlice';
 
 const ICON_CONTAINER_BASE =
@@ -58,6 +64,21 @@ const LS_KEYS = {
     order: 'dock.order.v1',
     hidden: 'dock.hidden.v1',
     recents: 'dock.recents.v1',
+};
+
+const readStageManagerEnabled = () => {
+    if (typeof window === 'undefined') return true;
+    try {
+        const raw = localStorage.getItem(STAGE_MANAGER_STORAGE_KEY);
+        if (!raw) return true;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && typeof parsed.enabled === 'boolean') {
+            return parsed.enabled;
+        }
+    } catch {
+        // ignore parse failures and fall back to enabled
+    }
+    return true;
 };
 
 const ADMIN_QUICK_ADD_OPTIONS = [
@@ -285,6 +306,32 @@ export default function BottomNav() {
         storage.set(LS_KEYS.order, nextOrder);
     }, []);
 
+    const [stageManagerEnabled, setStageManagerEnabled] = useState(() => readStageManagerEnabled());
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const applyFromStorage = () => {
+            setStageManagerEnabled(readStageManagerEnabled());
+        };
+        const handleStateEvent = (event) => {
+            if (event?.detail && typeof event.detail.enabled === 'boolean') {
+                setStageManagerEnabled(event.detail.enabled);
+            } else {
+                applyFromStorage();
+            }
+        };
+        const handleStorage = (event) => {
+            if (event.key && event.key !== STAGE_MANAGER_STORAGE_KEY) return;
+            applyFromStorage();
+        };
+        window.addEventListener(STAGE_MANAGER_STATE_EVENT, handleStateEvent);
+        window.addEventListener('storage', handleStorage);
+        return () => {
+            window.removeEventListener(STAGE_MANAGER_STATE_EVENT, handleStateEvent);
+            window.removeEventListener('storage', handleStorage);
+        };
+    }, []);
+
     // Build primary dock items, filter hidden, then apply custom order
     const basePlusAuth = useMemo(() => {
         const items = [...baseDockItems];
@@ -325,7 +372,7 @@ export default function BottomNav() {
         const virtual = [];
         if (settings.showRecents && recents.length) virtual.push({ key: 'recents', type: 'recents', label: 'Recents' });
         virtual.push({ key: 'separator', type: 'separator' });
-        return [...items, ...virtual, quickAddDockItem, themeDockItem];
+        return [...items, ...virtual, stageManagerDockItem, quickAddDockItem, themeDockItem];
     }, [orderedNavItems, recents, settings.showRecents]);
 
     const quickAddOptions = useMemo(() => {
@@ -493,6 +540,12 @@ export default function BottomNav() {
     };
 
     const handleThemeToggle = () => dispatch(toggleTheme());
+    const toggleStageManagerFromDock = useCallback(() => {
+        setStageManagerEnabled((prev) => !prev);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent(STAGE_MANAGER_TOGGLE_EVENT));
+        }
+    }, []);
 
     // Drag-to-reorder (for primary items only)
     const draggingKeyRef = useRef(null);
@@ -642,10 +695,15 @@ export default function BottomNav() {
                         );
                     }
                     const isTheme = item.type === 'theme';
+                    const isStageManager = item.type === 'stage-manager';
                     const isQuickAdd = item.type === 'quick-add';
                     const isRecents = item.type === 'recents';
-                    const isActive = !isTheme && !isQuickAdd && item.match ? item.match(location.pathname) : false;
-                    let { scale, lift, proximity, rotate } = getMetrics(index, isActive);
+                    const isActive =
+                        !isTheme && !isStageManager && !isQuickAdd && item.match
+                            ? item.match(location.pathname)
+                            : false;
+                    const stageManagerActive = isStageManager && stageManagerEnabled;
+                    let { scale, lift, proximity, rotate } = getMetrics(index, isActive || stageManagerActive);
 
                     if (focusedIndex === index) {
                         scale = Math.max(scale, 1.3);
@@ -654,7 +712,7 @@ export default function BottomNav() {
                     }
 
                     const showLabel = settings.showLabels || (
-                        isTheme
+                        (isTheme || isStageManager)
                             ? proximity > 0.6 || focusedIndex === index
                             : isQuickAdd
                                 ? isQuickAddOpen || proximity > 0.5 || focusedIndex === index
@@ -665,11 +723,15 @@ export default function BottomNav() {
 
                     const glowOpacity = Math.max(0, proximity - 0.25);
                     const baseRingOpacity = Math.max(0, proximity - 0.4);
-                    const ringOpacity = isTheme || isQuickAdd || isRecents ? Math.max(0.25, baseRingOpacity) : baseRingOpacity;
+                    const ringOpacity = (isTheme || isStageManager || isQuickAdd || isRecents)
+                        ? Math.max(0.25, baseRingOpacity)
+                        : baseRingOpacity;
 
                     const label = item.label;
                     const iconAlt = item.iconAlt ?? label;
-                    const isRunning = !isTheme && !isRecents && (isActive || recents.includes(item.key));
+                    const isRunning = isStageManager
+                        ? stageManagerEnabled
+                        : (!isTheme && !isRecents && (isActive || recents.includes(item.key)));
 
                     return (
                         <motion.li
@@ -772,6 +834,54 @@ export default function BottomNav() {
                                                     initial={false}
                                                     animate={{ rotate: theme === 'dark' ? 180 : 0 }}
                                                     transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+                                                    draggable={false}
+                                                />
+                                                {!isVertical && (
+                                                    <motion.img
+                                                        src={item.iconSrc}
+                                                        onError={(e) => {
+                                                            if (e.currentTarget.dataset.fallbackApplied) return;
+                                                            e.currentTarget.dataset.fallbackApplied = '1';
+                                                            if (item.fallbackIconSrc) e.currentTarget.src = item.fallbackIconSrc;
+                                                        }}
+                                                        alt=""
+                                                        aria-hidden
+                                                        className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                        style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
+                                                        initial={false}
+                                                        animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                        transition={{ duration: 0.15 }}
+                                                    />
+                                                )}
+                                            </div>
+                                        </button>
+                                    ) : isStageManager ? (
+                                        <button
+                                            type="button"
+                                            aria-label={label}
+                                            aria-pressed={stageManagerEnabled}
+                                            onClick={() => { triggerBounce(index); toggleStageManagerFromDock(); }}
+                                            onFocus={() => handleFocus(index)}
+                                            onBlur={handleBlur}
+                                            className="group relative flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent"
+                                            ref={(el) => { focusRefs.current[index] = el; }}
+                                        >
+                                            <div className={`${ICON_CONTAINER_BASE} ${stageManagerEnabled ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
+                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
+                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
+                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                                <motion.img
+                                                    src={item.iconSrc}
+                                                    onError={(e) => {
+                                                        if (e.currentTarget.dataset.fallbackApplied) return;
+                                                        e.currentTarget.dataset.fallbackApplied = '1';
+                                                        if (item.fallbackIconSrc) e.currentTarget.src = item.fallbackIconSrc;
+                                                    }}
+                                                    alt={iconAlt}
+                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                    initial={false}
+                                                    animate={{ scale: stageManagerEnabled ? 1.08 : 1 }}
+                                                    transition={{ duration: 0.2 }}
                                                     draggable={false}
                                                 />
                                                 {!isVertical && (

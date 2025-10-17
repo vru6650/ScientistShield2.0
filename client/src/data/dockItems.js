@@ -7,6 +7,7 @@ import dashboardIcon from '../assets/dock/dashboard.svg';
 import quickAddIcon from '../assets/dock/quick-add.svg';
 import themeIcon from '../assets/dock/theme.svg';
 import fileManagerIcon from '../assets/dock/file-manager.svg';
+import stageManagerIcon from '../assets/dock/stage-manager.svg';
 
 // Optional WhiteSur icon pack support
 // If localStorage.iconPack === 'whitesur', we prefer icons from
@@ -112,11 +113,21 @@ export const themeDockItem = {
     iconAlt: 'Toggle theme',
 };
 
-export const baseDockSequence = [...baseDockItems, quickAddDockItem, themeDockItem];
+export const stageManagerDockItem = {
+    key: 'stage-manager',
+    type: 'stage-manager',
+    label: 'Stage Manager',
+    iconSrc: buildIconSrc('stage-manager', stageManagerIcon),
+    fallbackIconSrc: stageManagerIcon,
+    iconAlt: 'Stage Manager controls',
+};
+
+export const baseDockSequence = [...baseDockItems, stageManagerDockItem, quickAddDockItem, themeDockItem];
 
 export const dockSequenceWithDashboard = [
     ...baseDockItems,
     dashboardDockItem,
+    stageManagerDockItem,
     quickAddDockItem,
     themeDockItem,
 ];

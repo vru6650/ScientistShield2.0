@@ -6,12 +6,16 @@ import {
     HiOutlineMusicalNote,
     HiOutlinePencilSquare,
     HiOutlinePlay,
+    HiOutlinePlus,
     HiOutlineShieldCheck,
     HiOutlineSparkles,
     HiOutlineListBullet,
     HiOutlineSquares2X2,
+    HiOutlineViewColumns,
+    HiOutlineXMark,
 } from 'react-icons/hi2';
 
+import { STAGE_MANAGER_STATE_EVENT, STAGE_MANAGER_STORAGE_KEY, STAGE_MANAGER_TOGGLE_EVENT } from '../../constants/desktop';
 import MacWindow from './MacWindow';
 
 const WINDOW_STORAGE_VERSION = 2;
@@ -28,6 +32,29 @@ const WINDOW_TYPES = {
     QUEUE: 'queue',
 };
 
+const STAGE_MANAGER_STORAGE_VERSION = 1;
+
+const DEFAULT_STAGE_GROUPS = [
+    {
+        id: 'stage-workspace',
+        label: 'Workspace',
+        windowTypes: [WINDOW_TYPES.MAIN, WINDOW_TYPES.STATUS],
+        locked: true,
+    },
+    {
+        id: 'stage-creator-kit',
+        label: 'Creator Kit',
+        windowTypes: [WINDOW_TYPES.MAIN, WINDOW_TYPES.SCRATCHPAD, WINDOW_TYPES.NOW_PLAYING],
+        locked: true,
+    },
+    {
+        id: 'stage-planning',
+        label: 'Planning Loop',
+        windowTypes: [WINDOW_TYPES.MAIN, WINDOW_TYPES.QUEUE],
+        locked: true,
+    },
+];
+
 const DEFAULT_TODOS = [
     { id: 'todo-1', label: 'Review latest tutorial drafts', done: false },
     { id: 'todo-2', label: 'Ship UI polish branch', done: true },
@@ -35,6 +62,35 @@ const DEFAULT_TODOS = [
 ];
 
 export default function MacWindowManager({ windowTitle, renderMainContent }) {
+    const stageManagerBootstrap = useMemo(() => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const parsed = JSON.parse(localStorage.getItem(STAGE_MANAGER_STORAGE_KEY) || 'null');
+            if (!parsed || typeof parsed !== 'object') return null;
+            if (parsed.version !== STAGE_MANAGER_STORAGE_VERSION) return null;
+            return parsed;
+        } catch {
+            return null;
+        }
+    }, []);
+
+    const initialStageGroups = useMemo(
+        () => sanitizeStageGroups(stageManagerBootstrap?.groups),
+        [stageManagerBootstrap]
+    );
+
+    const [stageGroups, setStageGroups] = useState(initialStageGroups);
+    const [stageManagerEnabled, setStageManagerEnabled] = useState(() =>
+        stageManagerBootstrap ? Boolean(stageManagerBootstrap.enabled) : true
+    );
+    const [activeStageGroupId, setActiveStageGroupId] = useState(() => {
+        const bootstrapId = stageManagerBootstrap?.activeGroupId;
+        if (bootstrapId && initialStageGroups.some((group) => group.id === bootstrapId)) {
+            return bootstrapId;
+        }
+        return initialStageGroups[0] ? initialStageGroups[0].id : null;
+    });
+
     const [windows, setWindows] = useState([]);
     const [closedTypes, setClosedTypes] = useState([]);
     const [scratchpadText, setScratchpadText] = useState(() => {
@@ -51,17 +107,41 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
     );
     const [missionControlOpen, setMissionControlOpen] = useState(false);
     const [focusMode, setFocusMode] = useState(false);
+    const [quickLookWindowId, setQuickLookWindowId] = useState(null);
+    const [snapPreview, setSnapPreview] = useState(null);
 
     const zRef = useRef(20);
     const dragRef = useRef(null);
+    const resizeRef = useRef(null);
     const windowsRef = useRef([]);
     const hydrationRef = useRef(false);
     const focusMemoryRef = useRef(null);
     const persistedClosedTypesRef = useRef(null);
+    const stageManagerMemoryRef = useRef(null);
+    const snapPreviewRef = useRef(null);
+    const dragPendingRef = useRef(null);
+    const dragFrameRef = useRef(null);
+    const resizePendingRef = useRef(null);
+    const resizeFrameRef = useRef(null);
 
     useEffect(() => {
         windowsRef.current = windows;
     }, [windows]);
+
+    useEffect(() => {
+        snapPreviewRef.current = snapPreview;
+    }, [snapPreview]);
+
+    useEffect(() => () => {
+        if (dragFrameRef.current) {
+            cancelAnimationFrame(dragFrameRef.current);
+            dragFrameRef.current = null;
+        }
+        if (resizeFrameRef.current) {
+            cancelAnimationFrame(resizeFrameRef.current);
+            resizeFrameRef.current = null;
+        }
+    }, []);
 
     const clampPosition = useCallback((x, y, width, height) => {
         if (typeof window === 'undefined') {
@@ -202,6 +282,57 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
     }, [windows, closedTypes, focusMode]);
 
     useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const payload = {
+            version: STAGE_MANAGER_STORAGE_VERSION,
+            enabled: stageManagerEnabled,
+            activeGroupId: activeStageGroupId,
+            groups: stageGroups.map(serializeStageGroup),
+        };
+        try {
+            localStorage.setItem(STAGE_MANAGER_STORAGE_KEY, JSON.stringify(payload));
+        } catch {
+            // ignore persistence errors
+        }
+    }, [stageManagerEnabled, activeStageGroupId, stageGroups]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        window.dispatchEvent(
+            new CustomEvent(STAGE_MANAGER_STATE_EVENT, {
+                detail: { enabled: stageManagerEnabled },
+            })
+        );
+        return undefined;
+    }, [stageManagerEnabled]);
+
+    useEffect(() => {
+        if (!stageManagerEnabled || !activeStageGroupId) return;
+        const group = stageGroups.find((item) => item.id === activeStageGroupId);
+        if (!group) return;
+        setWindows((wins) => {
+            const allowedTypes = new Set(group.windowTypes);
+            let changed = false;
+            const next = wins.map((win) => {
+                const shouldShow = win.isMain || allowedTypes.has(win.type);
+                if (win.minimized === !shouldShow) {
+                    return win;
+                }
+                changed = true;
+                return { ...win, minimized: !shouldShow };
+            });
+            return changed ? next : wins;
+        });
+    }, [windows, stageManagerEnabled, activeStageGroupId, stageGroups]);
+
+    useEffect(() => {
+        if (!quickLookWindowId) return;
+        if (!windows.some((win) => win.id === quickLookWindowId)) {
+            setQuickLookWindowId(null);
+        }
+    }, [windows, quickLookWindowId]);
+
+    useEffect(() => {
         const handleKeyDown = (event) => {
             const metaOrCtrl = event.metaKey || event.ctrlKey;
             if (metaOrCtrl && event.key === 'ArrowUp') {
@@ -212,13 +343,158 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                 event.preventDefault();
                 setMissionControlOpen(false);
             }
+            if (!metaOrCtrl && event.key === ' ' && !event.repeat) {
+                const target = event.target;
+                const tagName = target?.tagName;
+                const isEditable =
+                    (target?.isContentEditable ?? false) ||
+                    tagName === 'INPUT' ||
+                    tagName === 'TEXTAREA' ||
+                    tagName === 'SELECT';
+                if (isEditable) {
+                    return;
+                }
+                event.preventDefault();
+                setQuickLookWindowId((current) => {
+                    if (current) return null;
+                    const topWindow = windowsRef.current
+                        .filter((win) => !win.minimized)
+                        .reduce((top, win) => (!top || win.z > top.z ? win : top), null)
+                        || windowsRef.current.reduce(
+                            (top, win) => (!top || win.z > top.z ? win : top),
+                            null
+                        );
+                    return topWindow ? topWindow.id : current;
+                });
+            }
             if (event.key === 'Escape') {
                 setMissionControlOpen(false);
+                setQuickLookWindowId(null);
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
+
+    const commitDragMutation = useCallback(
+        (payload) => {
+            setWindows((wins) => {
+                let changed = false;
+                const next = wins.map((win) => {
+                    if (win.id !== payload.id) return win;
+                    const xChanged = win.x !== payload.x;
+                    const yChanged = win.y !== payload.y;
+                    const zoomChanged = win.isZoomed;
+                    if (!xChanged && !yChanged && !zoomChanged) {
+                        return win;
+                    }
+                    changed = true;
+                    return {
+                        ...win,
+                        x: payload.x,
+                        y: payload.y,
+                        isZoomed: false,
+                    };
+                });
+                return changed ? next : wins;
+            });
+            setSnapPreview((prev) =>
+                reconcileSnapPreview(prev, payload.snapCandidate ?? null, payload.id)
+            );
+        },
+        [setSnapPreview, setWindows]
+    );
+
+    const applyDragMutation = useCallback(() => {
+        dragFrameRef.current = null;
+        const payload = dragPendingRef.current;
+        if (!payload) return;
+        dragPendingRef.current = null;
+        commitDragMutation(payload);
+    }, [commitDragMutation]);
+
+    const queueDragMutation = useCallback(
+        (payload) => {
+            dragPendingRef.current = payload;
+            if (!dragFrameRef.current) {
+                dragFrameRef.current = requestAnimationFrame(applyDragMutation);
+            }
+        },
+        [applyDragMutation]
+    );
+
+    const flushDragMutation = useCallback(() => {
+        if (!dragPendingRef.current) return;
+        const payload = dragPendingRef.current;
+        dragPendingRef.current = null;
+        if (dragFrameRef.current) {
+            cancelAnimationFrame(dragFrameRef.current);
+            dragFrameRef.current = null;
+        }
+        commitDragMutation(payload);
+    }, [commitDragMutation]);
+
+    const commitResizeMutation = useCallback(
+        (payload) => {
+            setWindows((wins) => {
+                let changed = false;
+                const next = wins.map((win) => {
+                    if (win.id !== payload.id) return win;
+                    const { x, y, width, height } = payload.metrics;
+                    if (
+                        win.x === x &&
+                        win.y === y &&
+                        win.width === width &&
+                        win.height === height &&
+                        !win.isZoomed
+                    ) {
+                        return win;
+                    }
+                    changed = true;
+                    return {
+                        ...win,
+                        x,
+                        y,
+                        width,
+                        height,
+                        isZoomed: false,
+                        snapshot: null,
+                    };
+                });
+                return changed ? next : wins;
+            });
+        },
+        [setWindows]
+    );
+
+    const applyResizeMutation = useCallback(() => {
+        resizeFrameRef.current = null;
+        const payload = resizePendingRef.current;
+        if (!payload) return;
+        resizePendingRef.current = null;
+        commitResizeMutation(payload);
+    }, [commitResizeMutation]);
+
+    const queueResizeMutation = useCallback(
+        (payload) => {
+            resizePendingRef.current = payload;
+            if (!resizeFrameRef.current) {
+                resizeFrameRef.current = requestAnimationFrame(applyResizeMutation);
+            }
+        },
+        [applyResizeMutation]
+    );
+
+    const flushResizeMutation = useCallback(() => {
+        if (!resizePendingRef.current) return;
+        const payload = resizePendingRef.current;
+        resizePendingRef.current = null;
+        if (resizeFrameRef.current) {
+            cancelAnimationFrame(resizeFrameRef.current);
+            resizeFrameRef.current = null;
+        }
+        commitResizeMutation(payload);
+    }, [commitResizeMutation]);
 
     const bringToFront = useCallback((id) => {
         setWindows((prev) => {
@@ -250,6 +526,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                 offsetX,
                 offsetY,
             };
+            setSnapPreview(null);
 
             event.currentTarget.setPointerCapture(event.pointerId);
 
@@ -266,23 +543,49 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                     windowMeta.width,
                     windowMeta.height
                 );
-                setWindows((wins) =>
-                    wins.map((win) =>
-                        win.id === id
-                            ? {
-                                  ...win,
-                                  x: clampedX,
-                                  y: clampedY,
-                                  isZoomed: false,
-                              }
-                            : win
-                    )
-                );
+                let snapCandidate = null;
+                if (typeof window !== 'undefined') {
+                    snapCandidate = computeSnapCandidate({
+                        pointerX: moveEvent.clientX,
+                        pointerY: moveEvent.clientY,
+                        viewportWidth: window.innerWidth,
+                        viewportHeight: window.innerHeight,
+                        disable: moveEvent.altKey || moveEvent.metaKey,
+                    });
+                }
+                queueDragMutation({
+                    id,
+                    x: clampedX,
+                    y: clampedY,
+                    snapCandidate,
+                });
             };
 
             const stopDrag = () => {
                 if (!dragRef.current) return;
+                flushDragMutation();
                 const target = dragRef.current.target;
+                const activePreview = snapPreviewRef.current;
+                if (
+                    activePreview &&
+                    activePreview.id === id &&
+                    typeof window !== 'undefined'
+                ) {
+                    const { target: snapTarget } = activePreview;
+                    setWindows((wins) =>
+                        wins.map((win) =>
+                            win.id === id
+                                ? applySnapLayout(
+                                      win,
+                                      snapTarget,
+                                      window.innerWidth,
+                                      window.innerHeight
+                                  )
+                                : win
+                        )
+                    );
+                }
+                setSnapPreview((prev) => (prev && prev.id === id ? null : prev));
                 try {
                     target.releasePointerCapture(dragRef.current.pointerId);
                 } catch {
@@ -298,7 +601,87 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
             event.currentTarget.addEventListener('pointerup', stopDrag);
             event.currentTarget.addEventListener('pointercancel', stopDrag);
         },
-        [bringToFront, clampPosition]
+        [bringToFront, clampPosition, flushDragMutation, queueDragMutation]
+    );
+
+    const handleResizeStart = useCallback(
+        (event, id, edge) => {
+            if (typeof window === 'undefined') return;
+            event.preventDefault();
+            event.stopPropagation();
+
+            bringToFront(id);
+
+            const windowData = windowsRef.current.find((win) => win.id === id);
+            if (!windowData) return;
+
+            const pointerId = event.pointerId;
+            const target = event.currentTarget;
+
+            resizeRef.current = {
+                id,
+                edge,
+                pointerId,
+                target,
+                startX: event.clientX,
+                startY: event.clientY,
+                initial: {
+                    x: windowData.x,
+                    y: windowData.y,
+                    width: windowData.width,
+                    height: windowData.height,
+                },
+            };
+
+            if (typeof target.setPointerCapture === 'function') {
+                try {
+                    target.setPointerCapture(pointerId);
+                } catch {
+                    // ignore pointer capture issues
+                }
+            }
+
+            const handleMove = (moveEvent) => {
+                if (!resizeRef.current || resizeRef.current.id !== id) return;
+                const deltaX = moveEvent.clientX - resizeRef.current.startX;
+                const deltaY = moveEvent.clientY - resizeRef.current.startY;
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const next = resizeWindowByEdge(
+                    resizeRef.current.initial,
+                    resizeRef.current.edge,
+                    deltaX,
+                    deltaY,
+                    viewportWidth,
+                    viewportHeight
+                );
+                queueResizeMutation({
+                    id,
+                    metrics: next,
+                });
+            };
+
+            const stopResize = () => {
+                if (!resizeRef.current) return;
+                flushResizeMutation();
+                if (typeof target.releasePointerCapture === 'function') {
+                    try {
+                        target.releasePointerCapture(pointerId);
+                    } catch {
+                        // ignore release issues
+                    }
+                }
+                target.removeEventListener('pointermove', handleMove);
+                target.removeEventListener('pointerup', stopResize);
+                target.removeEventListener('pointercancel', stopResize);
+                resizeRef.current = null;
+            };
+
+            target.addEventListener('pointermove', handleMove);
+            target.addEventListener('pointerup', stopResize);
+            target.addEventListener('pointercancel', stopResize);
+        },
+        [bringToFront, flushResizeMutation, queueResizeMutation]
     );
 
     const handleFocus = useCallback(
@@ -515,6 +898,188 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
         setFocusMode((value) => !value);
     }, [focusMode]);
 
+    const activateStageGroup = useCallback(
+        (groupId, options = {}) => {
+            const group = stageGroups.find((item) => item.id === groupId);
+            if (!group) return;
+
+            const { force = false, skipFocus = false } = options;
+            setActiveStageGroupId(groupId);
+
+            const shouldApply = stageManagerEnabled || force;
+            if (!shouldApply) return;
+
+            const allowedTypes = new Set(group.windowTypes);
+            const missingTypes = group.windowTypes.filter(
+                (type) =>
+                    type !== WINDOW_TYPES.MAIN &&
+                    !windowsRef.current.some((win) => win.type === type)
+            );
+
+            setWindows((wins) => {
+                let changed = false;
+                const next = wins.map((win) => {
+                    const shouldShow = win.isMain || allowedTypes.has(win.type);
+                    if (win.minimized === !shouldShow) {
+                        return win;
+                    }
+                    changed = true;
+                    return { ...win, minimized: !shouldShow };
+                });
+                return changed ? next : wins;
+            });
+
+            if (missingTypes.length > 0) {
+                missingTypes.forEach((type) => {
+                    requestAnimationFrame(() => reopenWindow(type));
+                });
+            }
+
+            if (!skipFocus) {
+                const candidate =
+                    windowsRef.current.find(
+                        (win) => allowedTypes.has(win.type) && !win.minimized
+                    ) || windowsRef.current.find((win) => win.isMain);
+                if (candidate) {
+                    requestAnimationFrame(() => bringToFront(candidate.id));
+                }
+            }
+        },
+        [bringToFront, reopenWindow, stageGroups, stageManagerEnabled]
+    );
+
+    const handleStageManagerToggle = useCallback(() => {
+        if (stageManagerEnabled) {
+            setStageManagerEnabled(false);
+            const memory = stageManagerMemoryRef.current;
+            stageManagerMemoryRef.current = null;
+            if (memory) {
+                setWindows((wins) => {
+                    let changed = false;
+                    const next = wins.map((win) => {
+                        const record = memory.windows.find((entry) => entry.id === win.id);
+                        if (!record) return win;
+                        if (win.minimized === record.minimized) {
+                            return win;
+                        }
+                        changed = true;
+                        return { ...win, minimized: record.minimized };
+                    });
+                    return changed ? next : wins;
+                });
+                if (memory.focusedId) {
+                    requestAnimationFrame(() => bringToFront(memory.focusedId));
+                }
+            }
+            return;
+        }
+
+        if (focusMode) {
+            toggleFocusMode();
+        }
+
+        stageManagerMemoryRef.current = {
+            focusedId: windowsRef.current.reduce(
+                (top, win) => (!top || win.z > top.z ? win : top),
+                null
+            )?.id ?? null,
+            windows: windowsRef.current.map((win) => ({
+                id: win.id,
+                minimized: win.minimized,
+            })),
+        };
+
+        setStageManagerEnabled(true);
+        const targetGroup =
+            activeStageGroupId && stageGroups.some((group) => group.id === activeStageGroupId)
+                ? activeStageGroupId
+                : stageGroups[0]
+                ? stageGroups[0].id
+                : null;
+
+        if (targetGroup) {
+            requestAnimationFrame(() => activateStageGroup(targetGroup, { force: true }));
+        }
+    }, [
+        activateStageGroup,
+        activeStageGroupId,
+        focusMode,
+        stageGroups,
+        stageManagerEnabled,
+        toggleFocusMode,
+        bringToFront,
+    ]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const handleExternalToggle = () => {
+            handleStageManagerToggle();
+        };
+        window.addEventListener(STAGE_MANAGER_TOGGLE_EVENT, handleExternalToggle);
+        return () => {
+            window.removeEventListener(STAGE_MANAGER_TOGGLE_EVENT, handleExternalToggle);
+        };
+    }, [handleStageManagerToggle]);
+
+    const handleSaveStageGroup = useCallback(() => {
+        const visibleTypes = Array.from(
+            new Set(
+                windowsRef.current
+                    .filter((win) => !win.minimized || win.isMain)
+                    .map((win) => win.type)
+            )
+        );
+        if (visibleTypes.length === 0) return;
+
+        const sanitizedTypes = ensureStageGroupTypes(visibleTypes);
+        const newId = `stage-${Math.random().toString(36).slice(2, 8)}`;
+
+        setStageGroups((groups) => {
+            const label = generateStageGroupLabel(groups);
+            return [
+                ...groups,
+                {
+                    id: newId,
+                    label,
+                    windowTypes: sanitizedTypes,
+                    locked: false,
+                },
+            ];
+        });
+
+        setActiveStageGroupId(newId);
+        if (stageManagerEnabled) {
+            requestAnimationFrame(() => activateStageGroup(newId, { force: true }));
+        }
+    }, [activateStageGroup, stageManagerEnabled]);
+
+    const handleDeleteStageGroup = useCallback(
+        (groupId) => {
+            let removedActive = false;
+            let fallbackId = null;
+            setStageGroups((groups) => {
+                const target = groups.find((group) => group.id === groupId);
+                if (!target || target.locked) {
+                    return groups;
+                }
+                const filtered = groups.filter((group) => group.id !== groupId);
+                removedActive = activeStageGroupId === groupId;
+                fallbackId = filtered[0] ? filtered[0].id : null;
+                return filtered;
+            });
+
+            if (removedActive) {
+                setActiveStageGroupId(fallbackId);
+                if (stageManagerEnabled && fallbackId) {
+                    requestAnimationFrame(() =>
+                        activateStageGroup(fallbackId, { force: true, skipFocus: true })
+                    );
+                }
+            }
+        },
+        [activateStageGroup, activeStageGroupId, stageManagerEnabled]
+    );
+
     const renderMainContentMemo = useCallback(() => renderMainContent(), [renderMainContent]);
 
     const renderWindowContent = useCallback(
@@ -682,10 +1247,20 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
         [currentTrackTime, renderMainContentMemo, scratchpadText, todos]
     );
 
-    const minimisedWindows = useMemo(
-        () => windows.filter((win) => win.minimized),
-        [windows]
+    const activeStageGroup = useMemo(
+        () => stageGroups.find((group) => group.id === activeStageGroupId) || null,
+        [stageGroups, activeStageGroupId]
     );
+
+    const minimisedWindows = useMemo(() => {
+        if (!stageManagerEnabled || !activeStageGroup) {
+            return windows.filter((win) => win.minimized);
+        }
+        const allowedTypes = new Set(activeStageGroup.windowTypes);
+        return windows.filter(
+            (win) => win.minimized && (win.isMain || allowedTypes.has(win.type))
+        );
+    }, [windows, stageManagerEnabled, activeStageGroup]);
 
     const focusedWindow = useMemo(() => {
         if (windows.length === 0) return null;
@@ -695,12 +1270,17 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
     }, [windows]);
 
     const stageEntries = useMemo(() => {
+        const allowedTypes = activeStageGroup ? new Set(activeStageGroup.windowTypes) : null;
         const activeEntries = windows
             .filter((win) => !win.isMain)
             .map((win) => ({
                 type: win.type,
                 title: win.title,
-                status: win.minimized ? 'minimized' : 'open',
+                status: win.minimized
+                    ? stageManagerEnabled && allowedTypes && !allowedTypes.has(win.type)
+                        ? 'staged'
+                        : 'minimized'
+                    : 'open',
             }));
 
         const missingEntries = closedTypes
@@ -712,7 +1292,71 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
             }));
 
         return [...activeEntries, ...missingEntries];
-    }, [closedTypes, windows]);
+    }, [activeStageGroup, closedTypes, windows, stageManagerEnabled]);
+
+    const handleStageEntrySelect = useCallback(
+        (entry) => {
+            const existing = windowsRef.current.find((win) => win.type === entry.type);
+
+            const maybeAddToStageGroup = () => {
+                if (
+                    !stageManagerEnabled ||
+                    !activeStageGroup ||
+                    activeStageGroup.locked ||
+                    activeStageGroup.windowTypes.includes(entry.type)
+                ) {
+                    return;
+                }
+                setStageGroups((groups) =>
+                    groups.map((group) =>
+                        group.id === activeStageGroup.id
+                            ? {
+                                  ...group,
+                                  windowTypes: ensureStageGroupTypes([
+                                      ...group.windowTypes,
+                                      entry.type,
+                                  ]),
+                              }
+                            : group
+                    )
+                );
+                requestAnimationFrame(() =>
+                    activateStageGroup(activeStageGroup.id, { force: true })
+                );
+            };
+
+            if (existing) {
+                if (existing.minimized) {
+                    restoreWindow(entry.type);
+                } else {
+                    bringToFront(existing.id);
+                }
+                if (entry.status === 'staged') {
+                    maybeAddToStageGroup();
+                }
+                return;
+            }
+
+            reopenWindow(entry.type);
+            maybeAddToStageGroup();
+        },
+        [
+            activateStageGroup,
+            activeStageGroup,
+            bringToFront,
+            reopenWindow,
+            restoreWindow,
+            stageManagerEnabled,
+        ]
+    );
+
+    const quickLookTarget = useMemo(
+        () =>
+            quickLookWindowId
+                ? windows.find((win) => win.id === quickLookWindowId) || null
+                : null,
+        [quickLookWindowId, windows]
+    );
 
     if (isCompact) {
         return (
@@ -867,6 +1511,96 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                 ) : null}
             </AnimatePresence>
 
+            <AnimatePresence>
+                {quickLookTarget ? (
+                    <motion.div
+                        key="quick-look"
+                        className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 backdrop-blur-xl dark:bg-slate-950/55"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.18 }}
+                        onClick={() => setQuickLookWindowId(null)}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Quick Look"
+                    >
+                        <motion.div
+                            className="relative w-[min(90vw,900px)] max-h-[80vh] rounded-3xl border border-white/25 bg-white/90 p-6 text-slate-700 shadow-2xl backdrop-blur dark:border-white/10 dark:bg-slate-900/85 dark:text-slate-100"
+                            initial={{ scale: 0.96, y: 12 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 12 }}
+                            transition={{ duration: 0.18, ease: 'easeOut' }}
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <div className="mb-4 flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/60 text-brand-600 shadow-inner dark:bg-slate-800/70 dark:text-brand-300">
+                                        {windowIconForType(quickLookTarget.type)}
+                                    </span>
+                                    <div>
+                                        <p className="text-xs uppercase tracking-[0.32em] text-slate-400 dark:text-slate-500">Quick Look</p>
+                                        <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-100">
+                                            {quickLookTarget.title}
+                                        </h3>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setQuickLookWindowId(null)}
+                                    className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition hover:border-brand-200/60 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 dark:border-white/15 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-brand-300/60"
+                                >
+                                    <HiOutlineXMark className="h-4 w-4" />
+                                    Close
+                                </button>
+                            </div>
+                            <div className="max-h-[60vh] overflow-auto rounded-2xl border border-white/30 bg-white/80 p-4 shadow-inner dark:border-white/10 dark:bg-slate-900/70">
+                                {renderWindowContent(quickLookTarget)}
+                            </div>
+                            <p className="mt-4 text-[0.65rem] uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
+                                Press Space to toggle · {Math.round(quickLookTarget.width)} × {Math.round(quickLookTarget.height)}
+                            </p>
+                        </motion.div>
+                    </motion.div>
+                ) : null}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {snapPreview ? (
+                    <motion.div
+                        key="snap-preview"
+                        className="pointer-events-none fixed inset-0 z-[44] hidden lg:block"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.16, ease: 'easeOut' }}
+                        aria-hidden="true"
+                    >
+                        <div
+                            className="absolute overflow-hidden"
+                            style={{
+                                left: snapPreview.rect.x,
+                                top: snapPreview.rect.y,
+                                width: snapPreview.rect.width,
+                                height: snapPreview.rect.height,
+                                borderRadius: 'var(--macos-window-radius)',
+                            }}
+                        >
+                            <div className="absolute inset-0 rounded-[inherit] border border-brand-300/60 bg-gradient-to-br from-brand-400/18 via-brand-500/14 to-brand-600/20 shadow-[0_48px_120px_-50px_rgba(14,116,244,0.6)] backdrop-blur-2xl dark:border-brand-400/50 dark:from-brand-400/16 dark:via-brand-500/12 dark:to-brand-500/18" />
+                            <div className="absolute inset-0 rounded-[inherit] bg-brand-400/10 dark:bg-brand-300/10 mix-blend-screen" />
+                        </div>
+                        <div
+                            className="absolute left-1/2 -translate-x-1/2 rounded-full border border-white/45 bg-white/85 px-4 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-brand-600 shadow-lg backdrop-blur dark:border-white/10 dark:bg-slate-900/80 dark:text-brand-200"
+                            style={{
+                                top: Math.max(snapPreview.rect.y - 48, MAC_STAGE_MARGIN + 12),
+                            }}
+                        >
+                            Snap: {labelForSnapTarget(snapPreview.target)}
+                        </div>
+                    </motion.div>
+                ) : null}
+            </AnimatePresence>
+
             <div className="pointer-events-none fixed inset-0 z-[45] hidden lg:block">
                 <AnimatePresence>
                     {windows.filter((win) => !win.minimized).map((win) => (
@@ -881,6 +1615,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                             onClose={handleClose}
                             onMinimize={handleMinimize}
                             onZoom={handleZoom}
+                            onResizeStart={handleResizeStart}
                             onFocus={handleFocus}
                         >
                             {renderWindowContent(win)}
@@ -895,10 +1630,22 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                 </div>
             </div>
 
-            <div className="pointer-events-auto fixed left-6 top-[132px] z-[46] hidden xl:flex w-56 flex-col gap-3 rounded-3xl border border-white/40 bg-white/35 p-3 shadow-lg backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/40">
-                <div className="flex items-center justify-between px-1">
+            <div className="pointer-events-auto fixed left-6 top-[132px] z-[46] hidden xl:flex w-64 flex-col gap-3 rounded-3xl border border-white/40 bg-white/35 p-4 shadow-lg backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/40">
+                <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">Stage Manager</p>
-                    <span className="text-[0.6rem] uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">⌘↑</span>
+                    <button
+                        type="button"
+                        onClick={handleStageManagerToggle}
+                        aria-pressed={stageManagerEnabled}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.3em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 ${
+                            stageManagerEnabled
+                                ? 'border-brand-200/70 bg-brand-100 text-brand-600 dark:border-brand-400/60 dark:bg-brand-500/20 dark:text-brand-200'
+                                : 'border-white/40 bg-white/55 text-slate-600 hover:border-brand-200/60 hover:text-brand-600 dark:border-white/15 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-brand-300/60'
+                        }`}
+                    >
+                        <HiOutlineViewColumns className="h-4 w-4" />
+                        {stageManagerEnabled ? 'Enabled' : 'Disabled'}
+                    </button>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -909,54 +1656,132 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                         <HiOutlineSquares2X2 className="h-4 w-4" />
                         Mission Control
                     </button>
+                    <button
+                        type="button"
+                        onClick={toggleFocusMode}
+                        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.3em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 ${
+                            focusMode
+                                ? 'border-brand-300 bg-brand-100 text-brand-600 dark:border-brand-400/60 dark:bg-brand-500/20 dark:text-brand-200'
+                                : 'border-white/40 bg-white/55 text-slate-600 hover:border-brand-200/60 hover:text-brand-600 dark:border-white/15 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-brand-300/60'
+                        }`}
+                    >
+                        {focusMode ? 'Exit Focus' : 'Focus Main'}
+                    </button>
+                </div>
+                <div className="rounded-2xl border border-white/35 bg-white/55 p-3 text-xs text-slate-600 shadow-sm dark:border-white/10 dark:bg-slate-900/55 dark:text-slate-300">
+                    <div className="flex items-center gap-3">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white/35 text-brand-600 shadow-inner dark:bg-slate-800/70 dark:text-brand-300">
+                            <HiOutlineViewColumns className="h-4 w-4" />
+                        </span>
+                        <div className="flex-1">
+                            <p className="text-[0.65rem] uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Active Set</p>
+                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-100">
+                                {activeStageGroup ? activeStageGroup.label : 'No set selected'}
+                            </p>
+                        </div>
+                        <span className="text-[0.6rem] uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">⌘↑</span>
+                    </div>
+                    <p className="mt-3 text-[0.7rem] leading-relaxed text-slate-500 dark:text-slate-400">
+                        {stageManagerEnabled
+                            ? activeStageGroup
+                                ? `Showing ${activeStageGroup.windowTypes.length} window${activeStageGroup.windowTypes.length === 1 ? '' : 's'} in this scene.`
+                                : 'Choose a set to stage utilities alongside the primary workspace.'
+                            : 'Disabled — windows remain wherever you leave them.'}
+                    </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                    {stageGroups.map((group) => {
+                        const isActive = activeStageGroupId === group.id;
+                        const windowLabels = group.windowTypes
+                            .filter((type) => type !== WINDOW_TYPES.MAIN)
+                            .map((type) => typeToTitle(type));
+                        return (
+                            <div key={group.id} className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => activateStageGroup(group.id)}
+                                    className={`group flex-1 rounded-2xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 ${
+                                        isActive
+                                            ? 'border-brand-200/60 bg-white/70 shadow-sm dark:border-brand-400/40 dark:bg-slate-900/60'
+                                            : 'border-transparent bg-white/45 hover:border-brand-200/60 hover:bg-white/65 dark:border-transparent dark:bg-slate-900/40 dark:hover:border-brand-300/40 dark:hover:bg-slate-900/55'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-100">{group.label}</p>
+                                            <p className="text-[0.65rem] uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
+                                                {windowLabels.length > 0 ? windowLabels.join(', ') : 'Primary window'}
+                                            </p>
+                                        </div>
+                                        {isActive ? (
+                                            <span className="rounded-full border border-brand-200/60 px-2 py-1 text-[0.6rem] uppercase tracking-[0.28em] text-brand-600 dark:border-brand-400/60 dark:text-brand-200">
+                                                Active
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-1">
+                                        {group.windowTypes.map((type) => (
+                                            <span
+                                                key={`${group.id}-${type}`}
+                                                className={`inline-flex h-6 w-6 items-center justify-center rounded-lg bg-white/60 text-brand-600 shadow-inner dark:bg-slate-800/70 dark:text-brand-300 ${
+                                                    type === WINDOW_TYPES.MAIN ? 'opacity-70' : ''
+                                                }`}
+                                            >
+                                                {windowIconForType(type)}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </button>
+                                {!group.locked ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteStageGroup(group.id)}
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/35 bg-white/55 text-slate-500 transition hover:border-red-300/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/60 dark:border-white/10 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:border-red-400/60 dark:hover:text-red-300"
+                                        aria-label={`Remove ${group.label}`}
+                                    >
+                                        <HiOutlineXMark className="h-4 w-4" />
+                                    </button>
+                                ) : null}
+                            </div>
+                        );
+                    })}
                 </div>
                 <button
                     type="button"
-                    onClick={toggleFocusMode}
-                    className={`inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.3em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 ${
-                        focusMode
-                            ? 'border-brand-300 bg-brand-100 text-brand-600 dark:border-brand-400/60 dark:bg-brand-500/20 dark:text-brand-200'
-                            : 'border-white/40 bg-white/55 text-slate-600 hover:border-brand-200/60 hover:text-brand-600 dark:border-white/15 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-brand-300/60'
-                    }`}
+                    onClick={handleSaveStageGroup}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-dashed border-brand-300 bg-white/40 px-3 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-600 transition hover:border-brand-400 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 dark:border-brand-400/40 dark:bg-slate-900/40 dark:text-brand-300"
                 >
-                    {focusMode ? 'Exit Focus Mode' : 'Focus Main Window'}
+                    <HiOutlinePlus className="h-4 w-4" />
+                    Save Current Layout
                 </button>
-                <div className="flex flex-col gap-2">
-                    {stageEntries.map((entry) => (
-                        <button
-                            key={entry.type}
-                            type="button"
-                            onClick={() => {
-                                const existing = windowsRef.current.find((win) => win.type === entry.type);
-                                if (existing) {
-                                    if (existing.minimized) {
-                                        restoreWindow(entry.type);
-                                    } else {
-                                        bringToFront(existing.id);
-                                    }
-                                } else {
-                                    reopenWindow(entry.type);
-                                }
-                            }}
-                            className={`group flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2 text-left text-sm transition hover:border-brand-200/60 hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 dark:hover:border-brand-400/40 dark:hover:bg-slate-900/60 ${
-                                entry.status === 'open' ? 'bg-white/60 shadow-sm dark:bg-slate-900/60' : ''
-                            }`}
-                        >
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/30 text-brand-600 shadow-inner dark:text-brand-300">
-                                {windowIconForType(entry.type)}
-                            </span>
-                            <span className="flex-1">
-                                <span className="block text-slate-600 dark:text-slate-200">{entry.title}</span>
-                                <span className="text-[0.65rem] uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
-                                    {entry.status}
+                <div className="mt-2 border-t border-white/30 pt-2 dark:border-white/10">
+                    <p className="px-1 text-[0.65rem] uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Window Shelf</p>
+                    <div className="mt-2 flex flex-col gap-2">
+                        {stageEntries.map((entry) => (
+                            <button
+                                key={entry.type}
+                                type="button"
+                                onClick={() => handleStageEntrySelect(entry)}
+                                className={`group flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2 text-left text-sm transition hover:border-brand-200/60 hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 dark:hover:border-brand-400/40 dark:hover:bg-slate-900/60 ${
+                                    entry.status === 'open' ? 'bg-white/60 shadow-sm dark:bg-slate-900/60' : ''
+                                }`}
+                            >
+                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/30 text-brand-600 shadow-inner dark:text-brand-300">
+                                    {windowIconForType(entry.type)}
                                 </span>
-                            </span>
-                        </button>
-                    ))}
+                                <span className="flex-1">
+                                    <span className="block text-slate-600 dark:text-slate-200">{entry.title}</span>
+                                    <span className="text-[0.65rem] uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
+                                        {stageEntryStatusLabel(entry.status)}
+                                    </span>
+                                </span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 {minimisedWindows.length > 0 ? (
-                    <div className="mt-2 rounded-2xl border border-dashed border-slate-300/70 bg-white/40 p-3 text-xs text-slate-500 dark:border-slate-600/60 dark:bg-slate-900/40 dark:text-slate-300">
-                        Minimized: {minimisedWindows.map((win) => typeToTitle(win.type)).join(', ')}
+                    <div className="rounded-2xl border border-dashed border-slate-300/70 bg-white/40 p-3 text-xs text-slate-500 dark:border-slate-600/60 dark:bg-slate-900/40 dark:text-slate-300">
+                        Manual minimizes: {minimisedWindows.map((win) => typeToTitle(win.type)).join(', ')}
                     </div>
                 ) : null}
             </div>
@@ -1044,6 +1869,160 @@ function windowIconForType(type) {
         default:
             return null;
     }
+}
+
+function sanitizeStageGroups(rawGroups) {
+    if (!Array.isArray(rawGroups) || rawGroups.length === 0) {
+        return DEFAULT_STAGE_GROUPS;
+    }
+    const seenIds = new Set();
+    const sanitized = rawGroups
+        .map((group, index) => {
+            if (!group || typeof group !== 'object') return null;
+            const id =
+                typeof group.id === 'string' && group.id.trim().length > 0
+                    ? group.id.trim()
+                    : `stage-${Math.random().toString(36).slice(2, 8)}`;
+            if (seenIds.has(id)) return null;
+            seenIds.add(id);
+            const label =
+                typeof group.label === 'string' && group.label.trim().length > 0
+                    ? group.label.trim()
+                    : `Set ${index + 1}`;
+            const windowTypes = ensureStageGroupTypes(
+                Array.isArray(group.windowTypes) ? group.windowTypes : []
+            );
+            return {
+                id,
+                label,
+                windowTypes,
+                locked: Boolean(group.locked),
+            };
+        })
+        .filter(Boolean);
+
+    DEFAULT_STAGE_GROUPS.forEach((defaultGroup) => {
+        if (!sanitized.some((group) => group.id === defaultGroup.id)) {
+            sanitized.push(defaultGroup);
+        }
+    });
+
+    if (sanitized.length === 0) {
+        return DEFAULT_STAGE_GROUPS;
+    }
+    return sanitized;
+}
+
+function serializeStageGroup(group) {
+    return {
+        id: group.id,
+        label: group.label,
+        windowTypes: ensureStageGroupTypes(group.windowTypes || []),
+        locked: Boolean(group.locked),
+    };
+}
+
+function ensureStageGroupTypes(types) {
+    const allowed = new Set(Object.values(WINDOW_TYPES));
+    const next = [];
+    types.forEach((type) => {
+        if (!allowed.has(type)) return;
+        if (!next.includes(type)) {
+            next.push(type);
+        }
+    });
+    if (!next.includes(WINDOW_TYPES.MAIN)) {
+        next.unshift(WINDOW_TYPES.MAIN);
+    }
+    return next;
+}
+
+function generateStageGroupLabel(groups) {
+    const existing = new Set(groups.map((group) => group.label));
+    const base = 'Set';
+    let index = groups.length + 1;
+    let label = `${base} ${index}`;
+    while (existing.has(label)) {
+        index += 1;
+        label = `${base} ${index}`;
+    }
+    return label;
+}
+
+function stageEntryStatusLabel(status) {
+    switch (status) {
+        case 'open':
+            return 'open';
+        case 'minimized':
+            return 'minimized';
+        case 'staged':
+            return 'staged · off-screen';
+        case 'closed':
+            return 'closed';
+        default:
+            return status;
+    }
+}
+
+function resizeWindowByEdge(initial, edge, deltaX, deltaY, viewportWidth, viewportHeight) {
+    const minWidth = 320;
+    const minHeight = 260;
+    const maxWidth = Math.max(viewportWidth - 48, 360);
+    const maxHeight = Math.max(viewportHeight - 120, 260);
+
+    let left = initial.x;
+    let right = initial.x + initial.width;
+    let top = initial.y;
+    let bottom = initial.y + initial.height;
+
+    if (edge.includes('e')) {
+        const desiredRight = right + deltaX;
+        const maxRight = viewportWidth - 12;
+        right = clampNumber(desiredRight, left + minWidth, maxRight);
+    }
+    if (edge.includes('s')) {
+        const desiredBottom = bottom + deltaY;
+        const maxBottom = viewportHeight - 12;
+        bottom = clampNumber(desiredBottom, top + minHeight, maxBottom);
+    }
+    if (edge.includes('w')) {
+        const desiredLeft = left + deltaX;
+        const minLeft = 12;
+        left = clampNumber(desiredLeft, minLeft, right - minWidth);
+    }
+    if (edge.includes('n')) {
+        const desiredTop = top + deltaY;
+        const minTop = MAC_STAGE_MARGIN;
+        top = clampNumber(desiredTop, minTop, bottom - minHeight);
+    }
+
+    let width = clampNumber(right - left, minWidth, maxWidth);
+    let height = clampNumber(bottom - top, minHeight, maxHeight);
+
+    if (width !== right - left) {
+        if (edge.includes('w')) {
+            left = right - width;
+        } else {
+            right = left + width;
+        }
+    }
+
+    if (height !== bottom - top) {
+        if (edge.includes('n')) {
+            top = bottom - height;
+        } else {
+            bottom = top + height;
+        }
+    }
+
+    const coords = clampWindowCoords(left, top, width, height, viewportWidth, viewportHeight);
+
+    return {
+        x: coords.x,
+        y: coords.y,
+        width,
+        height,
+    };
 }
 
 function sanitizeWindowEntry(entry, viewportWidth, viewportHeight) {
@@ -1212,6 +2191,229 @@ function createDefaultWindows(windowTitle, viewportWidth, viewportHeight) {
     );
 
     return [main, scratchpad, status, nowPlaying, queue];
+}
+
+const SNAP_THRESHOLD = 84;
+const SNAP_CENTER_THRESHOLD = 140;
+const SNAP_GAP = 24;
+
+const SNAP_LABELS = {
+    full: 'Fill Stage',
+    left: 'Left Split',
+    right: 'Right Split',
+    top: 'Top Half',
+    bottom: 'Bottom Half',
+    tl: 'Top Left',
+    tr: 'Top Right',
+    bl: 'Bottom Left',
+    br: 'Bottom Right',
+    center: 'Centered',
+};
+
+function labelForSnapTarget(target) {
+    return SNAP_LABELS[target] ?? 'Snap Layout';
+}
+
+function computeStageArea(viewportWidth, viewportHeight) {
+    const horizontalMargin = 24;
+    const topMargin = MAC_STAGE_MARGIN;
+    const bottomMargin = 24;
+    const width = Math.max(360, viewportWidth - horizontalMargin * 2);
+    const height = Math.max(320, viewportHeight - topMargin - bottomMargin);
+    return {
+        x: horizontalMargin,
+        y: topMargin,
+        width,
+        height,
+    };
+}
+
+function getSnapRect(target, viewportWidth, viewportHeight) {
+    const stage = computeStageArea(viewportWidth, viewportHeight);
+    const halfWidth = Math.max(stage.width / 2 - SNAP_GAP / 2, 320);
+    const halfHeight = Math.max(stage.height / 2 - SNAP_GAP / 2, 260);
+
+    switch (target) {
+        case 'full':
+            return {
+                x: stage.x,
+                y: stage.y,
+                width: stage.width,
+                height: stage.height,
+            };
+        case 'left':
+            return {
+                x: stage.x,
+                y: stage.y,
+                width: halfWidth,
+                height: stage.height,
+            };
+        case 'right':
+            return {
+                x: stage.x + stage.width - halfWidth,
+                y: stage.y,
+                width: halfWidth,
+                height: stage.height,
+            };
+        case 'top':
+            return {
+                x: stage.x,
+                y: stage.y,
+                width: stage.width,
+                height: halfHeight,
+            };
+        case 'bottom':
+            return {
+                x: stage.x,
+                y: stage.y + stage.height - halfHeight,
+                width: stage.width,
+                height: halfHeight,
+            };
+        case 'tl':
+            return {
+                x: stage.x,
+                y: stage.y,
+                width: halfWidth,
+                height: halfHeight,
+            };
+        case 'tr':
+            return {
+                x: stage.x + stage.width - halfWidth,
+                y: stage.y,
+                width: halfWidth,
+                height: halfHeight,
+            };
+        case 'bl':
+            return {
+                x: stage.x,
+                y: stage.y + stage.height - halfHeight,
+                width: halfWidth,
+                height: halfHeight,
+            };
+        case 'br':
+            return {
+                x: stage.x + stage.width - halfWidth,
+                y: stage.y + stage.height - halfHeight,
+                width: halfWidth,
+                height: halfHeight,
+            };
+        case 'center': {
+            const width = Math.max(Math.min(stage.width * 0.7, 980), 420);
+            const height = Math.max(Math.min(stage.height * 0.72, 680), 320);
+            return {
+                x: stage.x + (stage.width - width) / 2,
+                y: stage.y + (stage.height - height) / 2,
+                width,
+                height,
+            };
+        }
+        default:
+            return null;
+    }
+}
+
+function computeSnapCandidate({ pointerX, pointerY, viewportWidth, viewportHeight, disable }) {
+    if (disable) return null;
+    const stage = computeStageArea(viewportWidth, viewportHeight);
+    if (
+        pointerX < stage.x - SNAP_THRESHOLD ||
+        pointerX > stage.x + stage.width + SNAP_THRESHOLD ||
+        pointerY < stage.y - SNAP_THRESHOLD ||
+        pointerY > stage.y + stage.height + SNAP_THRESHOLD
+    ) {
+        return null;
+    }
+
+    const distLeft = pointerX - stage.x;
+    const distRight = stage.x + stage.width - pointerX;
+    const distTop = pointerY - stage.y;
+    const distBottom = stage.y + stage.height - pointerY;
+
+    let target = null;
+
+    if (distLeft < SNAP_THRESHOLD && distTop < SNAP_THRESHOLD) {
+        target = 'tl';
+    } else if (distRight < SNAP_THRESHOLD && distTop < SNAP_THRESHOLD) {
+        target = 'tr';
+    } else if (distLeft < SNAP_THRESHOLD && distBottom < SNAP_THRESHOLD) {
+        target = 'bl';
+    } else if (distRight < SNAP_THRESHOLD && distBottom < SNAP_THRESHOLD) {
+        target = 'br';
+    } else if (distLeft < SNAP_THRESHOLD) {
+        target = 'left';
+    } else if (distRight < SNAP_THRESHOLD) {
+        target = 'right';
+    } else if (distTop < SNAP_THRESHOLD) {
+        const centerX = stage.x + stage.width / 2;
+        const centerRange = Math.max(stage.width * 0.24, 220);
+        target = Math.abs(pointerX - centerX) < centerRange ? 'full' : 'top';
+    } else if (distBottom < SNAP_THRESHOLD) {
+        target = 'bottom';
+    } else {
+        const centerX = stage.x + stage.width / 2;
+        const centerY = stage.y + stage.height / 2;
+        const withinCenterX = Math.abs(pointerX - centerX) < SNAP_CENTER_THRESHOLD;
+        const withinCenterY = Math.abs(pointerY - centerY) < SNAP_CENTER_THRESHOLD;
+        if (withinCenterX && withinCenterY) {
+            target = 'center';
+        }
+    }
+
+    if (!target) return null;
+    const rect = getSnapRect(target, viewportWidth, viewportHeight);
+    if (!rect) return null;
+    return { target, rect };
+}
+
+function rectsEqual(a, b, tolerance = 0.5) {
+    return (
+        Math.abs(a.x - b.x) <= tolerance &&
+        Math.abs(a.y - b.y) <= tolerance &&
+        Math.abs(a.width - b.width) <= tolerance &&
+        Math.abs(a.height - b.height) <= tolerance
+    );
+}
+
+function reconcileSnapPreview(previous, candidate, id) {
+    if (!candidate) {
+        if (previous && previous.id === id) {
+            return null;
+        }
+        return previous;
+    }
+    const next = { ...candidate, id };
+    if (previous && previous.id === id && previous.target === next.target && rectsEqual(previous.rect, next.rect)) {
+        return previous;
+    }
+    return next;
+}
+
+function applySnapLayout(win, target, viewportWidth, viewportHeight) {
+    const rect = getSnapRect(target, viewportWidth, viewportHeight);
+    if (!rect) return win;
+    const snapshot =
+        target === 'full'
+            ? {
+                  x: win.x,
+                  y: win.y,
+                  width: win.width,
+                  height: win.height,
+              }
+            : null;
+
+    const width = clampNumber(rect.width, 320, Math.max(viewportWidth - 48, 360));
+    const height = clampNumber(rect.height, 260, Math.max(viewportHeight - 120, 260));
+    const coords = clampWindowCoords(rect.x, rect.y, width, height, viewportWidth, viewportHeight);
+
+    return {
+        ...win,
+        x: coords.x,
+        y: coords.y,
+        width,
+        height,
+        isZoomed: target === 'full',
+        snapshot,
+    };
 }
 
 function createMainWindow(windowTitle, viewportWidth, viewportHeight, z = 21) {

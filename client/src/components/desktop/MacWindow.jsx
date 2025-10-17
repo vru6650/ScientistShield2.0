@@ -11,6 +11,7 @@ export default function MacWindow({
     onMinimize,
     onZoom,
     onFocus,
+    onResizeStart,
 }) {
     const {
         id,
@@ -58,12 +59,19 @@ export default function MacWindow({
         }
     };
 
+    const startResize = (direction) => (event) => {
+        if (typeof onResizeStart === 'function') {
+            onResizeStart(event, id, direction);
+        }
+    };
+
     return (
         <motion.div
             layout
             data-window-id={id}
             data-window-type={type}
-            className={`macos-window pointer-events-auto select-none ${isFocused ? 'ring-2 ring-brand-300/60 dark:ring-brand-500/60' : 'ring-0'}`}
+            data-focused={isFocused}
+            className={`macos-window pointer-events-auto select-none ${isFocused ? 'macos-window--focused ring-2 ring-brand-300/60 dark:ring-brand-500/60' : 'ring-0'}`}
             style={{
                 position: 'fixed',
                 top: y,
@@ -83,6 +91,14 @@ export default function MacWindow({
             role="group"
             aria-label={`${title} window`}
         >
+            <div className="macos-window__resize macos-window__resize--n" onPointerDown={startResize('n')} aria-hidden="true" />
+            <div className="macos-window__resize macos-window__resize--s" onPointerDown={startResize('s')} aria-hidden="true" />
+            <div className="macos-window__resize macos-window__resize--e" onPointerDown={startResize('e')} aria-hidden="true" />
+            <div className="macos-window__resize macos-window__resize--w" onPointerDown={startResize('w')} aria-hidden="true" />
+            <div className="macos-window__resize macos-window__resize--ne" onPointerDown={startResize('ne')} aria-hidden="true" />
+            <div className="macos-window__resize macos-window__resize--nw" onPointerDown={startResize('nw')} aria-hidden="true" />
+            <div className="macos-window__resize macos-window__resize--se" onPointerDown={startResize('se')} aria-hidden="true" />
+            <div className="macos-window__resize macos-window__resize--sw" onPointerDown={startResize('sw')} aria-hidden="true" />
             <div
                 className="macos-window__titlebar cursor-grab active:cursor-grabbing"
                 onPointerDown={handlePointerDown}
@@ -97,21 +113,27 @@ export default function MacWindow({
                         aria-label="Close window"
                         onClick={handleClose}
                         disabled={!allowClose}
-                    />
+                    >
+                        <span className="macos-traffic-light__glyph macos-traffic-light__glyph--close" aria-hidden="true" />
+                    </button>
                     <button
                         type="button"
                         className={`macos-traffic-light macos-traffic-light--minimize ${!allowMinimize ? 'opacity-40 cursor-not-allowed' : 'hover:brightness-110 transition'} `}
                         aria-label="Minimize window"
                         onClick={handleMinimize}
                         disabled={!allowMinimize}
-                    />
+                    >
+                        <span className="macos-traffic-light__glyph macos-traffic-light__glyph--minimize" aria-hidden="true" />
+                    </button>
                     <button
                         type="button"
                         className={`macos-traffic-light macos-traffic-light--zoom ${!allowZoom ? 'opacity-40 cursor-not-allowed' : 'hover:brightness-110 transition'} `}
                         aria-label="Zoom window"
                         onClick={handleZoom}
                         disabled={!allowZoom}
-                    />
+                    >
+                        <span className="macos-traffic-light__glyph macos-traffic-light__glyph--zoom" aria-hidden="true" />
+                    </button>
                 </div>
                 <div className="macos-window__title">
                     {icon ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-white/40 text-brand-600 shadow-inner">{icon}</span> : null}
@@ -153,6 +175,7 @@ MacWindow.propTypes = {
     onMinimize: PropTypes.func.isRequired,
     onZoom: PropTypes.func.isRequired,
     onFocus: PropTypes.func.isRequired,
+    onResizeStart: PropTypes.func.isRequired,
 };
 
 MacWindow.defaultProps = {

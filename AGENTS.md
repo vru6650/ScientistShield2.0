@@ -1,21 +1,34 @@
 # Repository Guidelines
 
-Contributors should mirror these practices to keep ScientistShield 2.0 stable and predictable.
+ScientistShield 2.0 stays predictable when every contributor follows these guardrails.
 
 ## Project Structure & Module Organization
-The monorepo hosts the Express API under `api/` (controllers, routes, services, models, utils). The Vite + React client lives in `client/src/` with feature folders (`pages/`, `components/`, `redux/`, `hooks/`) and Tailwind-driven styling in `theme/` and `index.css`. Upload artifacts persist under `uploads/`; transient code-runner scratch space is in `temp/` and can be deleted. Shared scripts and npm metadata are rooted in `package.json`.
+- `api/`: Express API containing controllers, routes, services, models, utils, and colocated `.test.js`.
+- `client/src/`: Vite + React features (`pages/`, `components/`, `redux/`, `hooks/`); Tailwind tokens in `theme/` and `index.css`.
+- `uploads/`: persistent artifacts—purge sensitive data post-test. `temp/`: throwaway runner scratch space.
+- Root `package.json`: shared scripts and lockfiles; assume commands run at the repo root.
 
 ## Build, Test, and Development Commands
-Run `npm install` once at the root; use `npm install --prefix client` after client-specific dependency changes. `npm run dev` launches the API with Nodemon, while `npm run dev --prefix client` starts the Vite dev server. `npm run build` installs dependencies and compiles the client bundle into `client/dist` before production. Use `npm start` to serve the Express API plus the built SPA.
+- `npm install` (root) and `npm install --prefix client` keep server and client dependencies aligned.
+- `npm run dev` restarts the API with Nodemon; `npm run dev --prefix client` serves the React app via Vite.
+- `npm run build` installs client deps and writes the production bundle to `client/dist`.
+- `npm start` serves the Express API and built SPA for realistic smoke tests.
 
 ## Coding Style & Naming Conventions
-Write modern ES modules (`import`/`export`) and keep indentation at 4 spaces for JS/TS and JSX. Prefer single quotes in JavaScript, PascalCase component files (e.g., `CreateProblem.jsx`), and kebab-case route slugs. Centralize shared logic inside `api/services/` or `client/src/utils/` before duplicating code. Run a formatter (Prettier or IDE equivalent) before opening a PR; keep Tailwind classes ordered by relevance rather than alphabetical noise.
+- Write ES modules with 4-space indentation across JS/TS/JSX; prefer single quotes.
+- Order Tailwind utilities by layout → spacing → color/state to stay readable.
+- Use PascalCase for React components (`CreateProblem.jsx`), kebab-case for routes, and consolidate shared logic in `api/services/` or `client/src/utils/`.
+- Run Prettier or your IDE formatter before staging changes.
 
 ## Testing Guidelines
-The backend uses Node’s native test runner with `.test.js` files co-located in `api/**`. Execute `npm test` from the root; it traverses `api/**/*.test.js`. Cover new routes, services, and edge cases (validation, RBAC, error paths). Structure describe blocks around the route or service name and favor descriptive test names (`should reject unauthenticated quiz creation`).
+- Use Node’s native test runner with `*.test.js` beside their modules.
+- Run `npm test` from the root; cover success, validation, authorization, and failure paths for every new route or service.
+- Name suites and cases descriptively (`describe('POST /quizzes')`, `should reject unauthenticated quiz creation`).
 
 ## Commit & Pull Request Guidelines
-Adopt conventional prefixes (`feat:`, `fix:`, `chore:`) for concise commit messages, capped at 72 characters. Squash noisy WIP commits before sharing. Pull requests must explain intent, list impacted endpoints/pages, and call out risky migrations or seeding steps. Link related issues and attach screenshots or terminal output for UI or CLI changes. Confirm `npm test` and both dev servers start cleanly before requesting review.
+- Adopt conventional commit prefixes (`feat:`, `fix:`, `chore:`) and keep messages ≤72 characters; squash throwaway WIP commits.
+- PRs must explain intent, note impacted endpoints/pages, flag risky migrations/seeding, attach screenshots or logs, and confirm `npm test`, `npm run dev`, and `npm run dev --prefix client` pass locally; always link related issues.
 
 ## Security & Configuration Tips
-Keep secrets in `.env`; never commit credentials or generated JWTs. Update the sample env when adding configuration knobs. Validate that code-runner changes cannot escape `temp/`, and reset uploaded artifacts if testing with sensitive files.
+- Keep secrets in `.env`; refresh `.env.example` whenever new config keys appear and never commit tokens or private keys.
+- Contain runner experiments within `temp/`, sanitize `uploads/` after handling sensitive files, and review dependency bumps for security or license risk before merging.

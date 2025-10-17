@@ -9,16 +9,18 @@ export const customFlowbiteTheme = {
     color: {
       // Primary maps to new WhiteSur brand accent
       primary:
-        'text-white bg-brand-600 hover:bg-brand-700 focus-visible:ring-brand-400',
+        'text-white shadow-[0_16px_32px_-18px_rgba(10,132,255,0.65)] bg-[linear-gradient(180deg,#0A84FF_0%,#0071E3_100%)] border border-white/40 hover:brightness-105 active:scale-[0.985] transition-transform focus-visible:ring-brand-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900',
       secondary:
-        'text-ink-800 bg-ink-100 hover:bg-ink-200 focus-visible:ring-ink-300',
+        'text-ink-800 bg-white/70 border border-white/60 shadow-[0_18px_38px_-24px_rgba(15,23,42,0.35)] backdrop-blur-lg hover:bg-white/80 hover:shadow-[0_18px_44px_-22px_rgba(37,99,235,0.25)] focus-visible:ring-brand-200 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-ink-100 dark:bg-ink-900/60 dark:border-white/15 dark:hover:bg-ink-900/70 dark:focus-visible:ring-brand-400/60',
       light:
-        'text-ink-700 bg-white border border-ink-200 hover:bg-ink-50 focus-visible:ring-ink-300',
+        'text-ink-700 bg-white/65 border border-white/55 hover:bg-white/75 focus-visible:ring-ink-200 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-ink-100 dark:bg-ink-900/55 dark:border-white/10 dark:hover:bg-ink-900/65 dark:focus-visible:ring-ink-500/60',
       danger: 'text-white bg-red-600 hover:bg-red-700 focus-visible:ring-red-300',
       success:
         'text-white bg-green-600 hover:bg-green-700 focus-visible:ring-green-300',
       // Accent option
       teal: 'text-white bg-accent-teal hover:bg-teal-500 focus-visible:ring-teal-300',
+      aqua:
+        'btn-aqua text-white shadow-[0_22px_40px_-24px_rgba(10,132,255,0.65)] focus-visible:ring-brand-200 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-brand-500/60',
     },
     size: {
       xs: 'h-7 px-2.5 text-xs',

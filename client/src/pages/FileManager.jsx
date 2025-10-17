@@ -224,6 +224,61 @@ const FINDER_QUICK_FILTERS = [
     },
 ];
 
+const FINDER_SPACES = [
+    {
+        id: 'workspace',
+        label: 'Workspace',
+        description: 'Design handoffs & briefs',
+        previewLayout: 'grid',
+        accent: 'from-sky-200/60 via-white/90 to-slate-100/80',
+        preferences: {
+            viewMode: 'grid',
+            sortOption: 'date-desc',
+            filterCategory: 'documents',
+            searchTerm: '',
+        },
+    },
+    {
+        id: 'media',
+        label: 'Media Lab',
+        description: 'Raw visuals & edits',
+        previewLayout: 'column',
+        accent: 'from-indigo-200/60 via-white/85 to-slate-100/75',
+        preferences: {
+            viewMode: 'column',
+            sortOption: 'name-asc',
+            filterCategory: 'images',
+            searchTerm: '',
+        },
+    },
+    {
+        id: 'archive',
+        label: 'Archive',
+        description: 'Long-term storage',
+        previewLayout: 'list',
+        accent: 'from-amber-200/60 via-white/85 to-slate-100/80',
+        preferences: {
+            viewMode: 'list',
+            sortOption: 'size-desc',
+            filterCategory: 'all',
+            searchTerm: '',
+        },
+    },
+    {
+        id: 'shared',
+        label: 'Shared Space',
+        description: 'Team dropbox',
+        previewLayout: 'grid',
+        accent: 'from-emerald-200/55 via-white/85 to-slate-100/70',
+        preferences: {
+            viewMode: 'grid',
+            sortOption: 'name-asc',
+            filterCategory: 'media',
+            searchTerm: '',
+        },
+    },
+];
+
 const RECENT_THRESHOLD_MS = 1000 * 60 * 60 * 24 * 7;
 
 const getItemExtension = (item) => {
@@ -307,6 +362,7 @@ export default function FileManager() {
     const [sortOption, setSortOption] = useState('name-asc');
     const [quickLookItem, setQuickLookItem] = useState(null);
     const [filterCategory, setFilterCategory] = useState('all');
+    const [activeSpaceId, setActiveSpaceId] = useState(FINDER_SPACES[0].id);
 
     const { data: directoryData, isFetching: isDirectoryLoading } = useQuery({
         queryKey: ['file-directory', currentFolder],
@@ -353,6 +409,10 @@ export default function FileManager() {
 
     const items = useMemo(() => directoryData?.items ?? [], [directoryData]);
     const breadcrumbs = breadcrumbTrail;
+    const activeSpace = useMemo(
+        () => FINDER_SPACES.find((space) => space.id === activeSpaceId) ?? FINDER_SPACES[0],
+        [activeSpaceId]
+    );
 
     const filteredItems = useMemo(() => {
         const lowered = searchTerm.trim().toLowerCase();
@@ -440,6 +500,27 @@ export default function FileManager() {
             return next;
         });
     }, []);
+
+    const handleSpaceChange = useCallback(
+        (spaceId) => {
+            const space = FINDER_SPACES.find((entry) => entry.id === spaceId);
+            if (!space) return;
+            setActiveSpaceId(spaceId);
+            if (space.preferences?.viewMode && space.preferences.viewMode !== viewMode) {
+                setViewMode(space.preferences.viewMode);
+            }
+            if (space.preferences?.sortOption && space.preferences.sortOption !== sortOption) {
+                setSortOption(space.preferences.sortOption);
+            }
+            if (space.preferences?.filterCategory && space.preferences.filterCategory !== filterCategory) {
+                setFilterCategory(space.preferences.filterCategory);
+            }
+            if (space.preferences?.searchTerm !== undefined && space.preferences.searchTerm !== searchTerm) {
+                setSearchTerm(space.preferences.searchTerm);
+            }
+        },
+        [viewMode, sortOption, filterCategory, searchTerm]
+    );
 
     const requestCreateFolder = useCallback(() => {
         const name = window.prompt('New folder name');
@@ -626,6 +707,27 @@ export default function FileManager() {
     );
 }
 
+function FinderWindowControls() {
+    const controls = [
+        { color: 'bg-[#ff5f57]', label: 'Close' },
+        { color: 'bg-[#febc2e]', label: 'Minimize' },
+        { color: 'bg-[#28c840]', label: 'Full screen' },
+    ];
+    return (
+        <span className="flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-2.5 py-1 shadow-inner shadow-white/80">
+            {controls.map((control) => (
+                <span
+                    key={control.label}
+                    className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded-full ${control.color} shadow-[0_0_0_1px_rgba(15,23,42,0.12)]`}
+                    aria-hidden="true"
+                >
+                    <span className="sr-only">{control.label}</span>
+                </span>
+            ))}
+        </span>
+    );
+}
+
 function FinderToolbar({
                            breadcrumbs,
                            onNavigate,
@@ -658,78 +760,171 @@ function FinderToolbar({
 
     return (
         <div className="flex flex-col gap-6 text-slate-700">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1.5">
-                        <span className="h-3.5 w-3.5 rounded-full bg-[#ff6057] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]" />
-                        <span className="h-3.5 w-3.5 rounded-full bg-[#ffbd2e] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]" />
-                        <span className="h-3.5 w-3.5 rounded-full bg-[#28c940] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]" />
-                    </span>
-                    <p className="rounded-full border border-slate-200/80 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 shadow-inner shadow-white/80">
-                        Finder
-                    </p>
-                    <span className="hidden items-center gap-1 rounded-full border border-transparent bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-inner shadow-white/70 sm:flex">
-                        <HiOutlineFolder className="text-slate-400" />
-                        {activeBreadcrumb.name}
-                    </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-semibold">
-                    <button
-                        type="button"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-600 shadow-sm shadow-slate-200 transition hover:border-slate-400 hover:text-slate-700"
-                        onClick={onRefresh}
-                    >
-                        <HiOutlineArrowPath className="text-sm" />
-                        Refresh
-                    </button>
-                    <button
-                        type="button"
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition ${
-                            hasSelection
-                                ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-sm hover:border-sky-300 hover:bg-sky-100'
-                                : 'cursor-not-allowed border-slate-200 bg-white text-slate-300'
-                        }`}
-                        onClick={onQuickLook}
-                        disabled={!hasSelection}
-                    >
-                        <HiOutlineEye className="text-sm" />
-                        Quick Look
-                    </button>
-                </div>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-1">
-                {quickFilters.map((filter) => {
-                    const Icon = filter.icon;
-                    const isActive = filterCategory === filter.value;
-                    return (
+            <div className="flex flex-col gap-4 rounded-[28px] border border-slate-200/70 bg-gradient-to-br from-white/95 via-slate-50/85 to-slate-100/75 p-5 shadow-[0_32px_80px_-48px_rgba(15,23,42,0.55)] backdrop-blur-xl">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <FinderWindowControls />
+                        <div className="flex items-center gap-2 rounded-full border border-white/70 bg-white/85 px-3 py-1 shadow-inner shadow-white/80">
+                            <span className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Finder</span>
+                            <span className="text-sm font-medium text-slate-600">{activeBreadcrumb.name}</span>
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
                         <button
-                            key={filter.value}
                             type="button"
-                            onClick={() => onFilterChange(filter.value)}
-                            className={`flex min-w-[10rem] items-center gap-3 rounded-2xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 ${
-                                isActive
-                                    ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-inner shadow-white/80'
-                                    : 'border-transparent bg-white/60 text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-700'
-                            }`}
-                            aria-pressed={isActive}
+                            className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/80 px-3 py-1.5 text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-700"
+                            onClick={onRefresh}
                         >
-                            <span
-                                className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg ${
-                                    isActive ? 'border-sky-200 bg-white text-sky-600' : 'border-slate-200 bg-slate-50 text-slate-500'
-                                }`}
-                            >
-                                <Icon />
-                            </span>
-                            <span className="flex flex-1 flex-col leading-tight">
-                                <span className="text-sm font-semibold">{filter.label}</span>
-                                <span className="text-[0.7rem] text-slate-400">{filter.description}</span>
-                            </span>
+                            <HiOutlineArrowPath className="text-sm" />
+                            <span className="hidden sm:inline">Refresh</span>
                         </button>
-                    );
-                })}
+                        <button
+                            type="button"
+                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 transition ${
+                                hasSelection
+                                    ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-sm hover:border-sky-300 hover:bg-sky-100'
+                                    : 'cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300'
+                            }`}
+                            onClick={onQuickLook}
+                            disabled={!hasSelection}
+                        >
+                            <HiOutlineEye className="text-sm" />
+                            <span className="hidden sm:inline">Quick Look</span>
+                        </button>
+                    </div>
             </div>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <nav className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm shadow-white/70">
+                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/75 p-2 shadow-inner shadow-white/70">
+                    {quickFilters.map((filter) => {
+                        const Icon = filter.icon;
+                        const isActive = filterCategory === filter.value;
+                        return (
+                            <button
+                                key={filter.value}
+                                type="button"
+                                onClick={() => onFilterChange(filter.value)}
+                                className={`group flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                                    isActive
+                                        ? 'bg-sky-500/15 text-sky-700 ring-1 ring-sky-200'
+                                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
+                                }`}
+                                aria-pressed={isActive}
+                            >
+                                <span
+                                    className={`flex h-6 w-6 items-center justify-center rounded-full border text-base ${
+                                        isActive ? 'border-sky-200 bg-white text-sky-600' : 'border-slate-200 bg-slate-50 text-slate-400 group-hover:border-slate-300'
+                                    }`}
+                                >
+                                    <Icon />
+                                </span>
+                                <span className="leading-tight">
+                                    <span className="block text-xs font-semibold">{filter.label}</span>
+                                    <span className="hidden text-[0.65rem] text-slate-400 sm:block">{filter.description}</span>
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center overflow-hidden rounded-full border border-slate-200/80 bg-white/80 text-xs shadow-inner shadow-white/70">
+                            <button
+                                type="button"
+                                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition ${
+                                    viewMode === 'grid'
+                                        ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
+                                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
+                                }`}
+                                onClick={() => onViewModeChange('grid')}
+                                aria-pressed={viewMode === 'grid'}
+                            >
+                                <HiOutlineSquare2Stack className="text-sm" />
+                                <span className="hidden sm:inline">Grid</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition ${
+                                    viewMode === 'list'
+                                        ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
+                                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
+                                }`}
+                                onClick={() => onViewModeChange('list')}
+                                aria-pressed={viewMode === 'list'}
+                            >
+                                <HiOutlineListBullet className="text-sm" />
+                                <span className="hidden sm:inline">List</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition ${
+                                    viewMode === 'column'
+                                        ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
+                                        : 'text-slate-500 hover:bg-white hover:text-slate-700'
+                                }`}
+                                onClick={() => onViewModeChange('column')}
+                                aria-pressed={viewMode === 'column'}
+                            >
+                                <HiOutlineViewColumns className="text-sm" />
+                                <span className="hidden sm:inline">Column</span>
+                            </button>
+                        </div>
+                        <label className="flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/85 px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-inner shadow-white/70">
+                            <HiOutlineArrowsUpDown className="text-sm text-slate-400" />
+                            <span>Sort</span>
+                            <select
+                                value={sortOption}
+                                onChange={(event) => onSortChange(event.target.value)}
+                                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 outline-none transition focus:border-sky-300 focus:ring-0"
+                            >
+                                <option value="name-asc">Name · A–Z</option>
+                                <option value="name-desc">Name · Z–A</option>
+                                <option value="date-desc">Date · Newest</option>
+                                <option value="date-asc">Date · Oldest</option>
+                                <option value="size-desc">Size · Largest</option>
+                                <option value="size-asc">Size · Smallest</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-1 sm:items-center sm:justify-end">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={onCreateFolder}
+                                disabled={isCreating}
+                                className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-700 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-100 disabled:text-slate-300"
+                            >
+                                <HiOutlinePlus className="text-sm" />
+                                <span>New Folder</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleUploadClick}
+                                disabled={isUploading}
+                                className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-gradient-to-r from-sky-100/80 via-white to-sky-50/80 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition hover:border-sky-300 hover:from-sky-200 hover:text-sky-800 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-100 disabled:text-slate-300"
+                            >
+                                <HiOutlineArrowUpOnSquare className="text-sm" />
+                                <span>Upload</span>
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                multiple
+                                onChange={handleFileChange}
+                            />
+                        </div>
+                        <div className="relative w-full sm:flex-1 sm:max-w-xs md:max-w-sm">
+                            <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                            <input
+                                type="search"
+                                placeholder="Search current folder"
+                                value={searchTerm}
+                                onChange={(event) => onSearchChange(event.target.value)}
+                                className="h-10 w-full rounded-full border border-slate-200/80 bg-white/90 pl-11 pr-3 text-sm text-slate-600 shadow-inner shadow-white/80 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <nav className="flex flex-wrap items-center gap-1 overflow-x-auto rounded-[20px] border border-slate-200/80 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-inner shadow-white/80">
                     {breadcrumbs.map((crumb, index) => {
                         const isLast = index === breadcrumbs.length - 1;
                         return (
@@ -737,12 +932,13 @@ function FinderToolbar({
                                 <button
                                     type="button"
                                     onClick={() => onNavigate(crumb.id ?? null, breadcrumbs.slice(0, index + 1))}
-                                    className={`rounded-xl border px-3 py-1 transition ${
+                                    className={`rounded-full border px-3 py-1.5 transition ${
                                         isLast
                                             ? 'cursor-default border-sky-200 bg-sky-50 text-sky-700 shadow-inner shadow-white/80'
-                                            : 'border-transparent bg-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-700'
+                                            : 'border-transparent bg-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-700'
                                     }`}
                                     disabled={isLast}
+                                    aria-current={isLast ? 'page' : undefined}
                                 >
                                     {crumb.name}
                                 </button>
@@ -751,101 +947,6 @@ function FinderToolbar({
                         );
                     })}
                 </nav>
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center overflow-hidden rounded-full border border-slate-200 bg-white/90 shadow-inner shadow-white/80">
-                        <button
-                            type="button"
-                            className={`flex items-center gap-1 px-3 py-1.5 text-sm transition ${
-                                viewMode === 'grid'
-                                    ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
-                                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
-                            }`}
-                            onClick={() => onViewModeChange('grid')}
-                        >
-                            <HiOutlineSquare2Stack />
-                            Grid
-                        </button>
-                        <button
-                            type="button"
-                            className={`flex items-center gap-1 px-3 py-1.5 text-sm transition ${
-                                viewMode === 'list'
-                                    ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
-                                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
-                            }`}
-                            onClick={() => onViewModeChange('list')}
-                        >
-                            <HiOutlineListBullet />
-                            List
-                        </button>
-                        <button
-                            type="button"
-                            className={`flex items-center gap-1 px-3 py-1.5 text-sm transition ${
-                                viewMode === 'column'
-                                    ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
-                                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
-                            }`}
-                            onClick={() => onViewModeChange('column')}
-                        >
-                            <HiOutlineViewColumns />
-                            Column
-                        </button>
-                    </div>
-                    <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm shadow-white/70">
-                        <HiOutlineArrowsUpDown className="text-base text-slate-400" />
-                        <span>Sort</span>
-                        <select
-                            value={sortOption}
-                            onChange={(event) => onSortChange(event.target.value)}
-                            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 outline-none transition focus:border-sky-300 focus:ring-0"
-                        >
-                            <option value="name-asc">Name · A–Z</option>
-                            <option value="name-desc">Name · Z–A</option>
-                            <option value="date-desc">Date · Newest</option>
-                            <option value="date-asc">Date · Oldest</option>
-                            <option value="size-desc">Size · Largest</option>
-                            <option value="size-asc">Size · Smallest</option>
-                        </select>
-                    </label>
-                </div>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={onCreateFolder}
-                        disabled={isCreating}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-400 hover:text-slate-700 disabled:cursor-not-allowed disabled:border-slate-100 disabled:text-slate-300"
-                    >
-                        <HiOutlinePlus className="text-base" />
-                        New Folder
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleUploadClick}
-                        disabled={isUploading}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-gradient-to-r from-sky-100 via-sky-50 to-white px-3 py-1.5 text-sm font-semibold text-sky-700 shadow-sm transition hover:border-sky-300 hover:from-sky-200 hover:text-sky-800 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-white disabled:text-slate-300"
-                    >
-                        <HiOutlineArrowUpOnSquare className="text-base" />
-                        Upload
-                    </button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        multiple
-                        onChange={handleFileChange}
-                    />
-                </div>
-                <div className="relative w-full max-w-md">
-                    <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input
-                        type="search"
-                        placeholder="Search current folder"
-                        value={searchTerm}
-                        onChange={(event) => onSearchChange(event.target.value)}
-                        className="h-11 w-full rounded-full border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-600 shadow-inner shadow-white/80 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-                    />
-                </div>
             </div>
         </div>
     );
@@ -889,10 +990,13 @@ function FinderSidebar({ tree, activeId, expandedFolders, onToggle, onNavigate, 
     return (
         <aside
             ref={drop}
-            className="h-[32rem] w-full rounded-[26px] border border-slate-200/70 bg-gradient-to-br from-white/90 via-white/80 to-slate-50/75 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.6)] backdrop-blur-xl lg:h-[36rem] lg:w-64"
+            className="h-[32rem] w-full rounded-[26px] border border-slate-200/60 bg-gradient-to-br from-white/92 via-[#f4f6fb] to-[#e9edf7] p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)] backdrop-blur-xl lg:h-[36rem] lg:w-64"
         >
-            <h2 className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Locations</h2>
-            <div className="space-y-1">
+            <h2 className="mb-5 flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <span className="inline-flex h-2 w-2 rounded-full bg-sky-300/80" />
+                Locations
+            </h2>
+            <div className="space-y-1.5">
                 <SidebarNode
                     node={{ id: null, name: 'All Files', children: folders }}
                     depth={0}
@@ -950,9 +1054,9 @@ function SidebarNode({ node, depth, activeId, expandedFolders, onToggle, onNavig
             <button
                 type="button"
                 onClick={handleClick}
-                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left transition ${
-                    isActive ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
-                } ${isOver && canDrop ? 'border border-dashed border-sky-300 bg-sky-50' : ''}`}
+                className={`group flex w-full items-center gap-2 rounded-[18px] px-3 py-2 text-left text-sm transition ${
+                    isActive ? 'bg-sky-500/15 text-sky-700 ring-1 ring-sky-300' : 'text-slate-600 hover:bg-white/70 hover:text-slate-800'
+                } ${isOver && canDrop ? 'border border-dashed border-sky-300 bg-sky-100/60' : ''}`}
             >
                 {node.children?.length ? (
                     <span
@@ -960,19 +1064,21 @@ function SidebarNode({ node, depth, activeId, expandedFolders, onToggle, onNavig
                             event.stopPropagation();
                             onToggle(node.id ?? null);
                         }}
-                        className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm"
+                        className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border bg-white/80 text-slate-500 shadow-sm transition ${
+                            isExpanded ? 'border-sky-200 text-sky-500' : 'border-slate-200 group-hover:border-slate-300'
+                        }`}
                     >
                         {isExpanded ? (
-                            <HiOutlineChevronDown className="text-xs" />
+                            <HiOutlineChevronDown className="text-[0.65rem]" />
                         ) : (
-                            <HiOutlineChevronRight className="text-xs" />
+                            <HiOutlineChevronRight className="text-[0.65rem]" />
                         )}
                     </span>
                 ) : (
                     <span className="h-6 w-6 flex-shrink-0" />
                 )}
-                <HiOutlineFolder className="text-sky-500" />
-                <span className="truncate text-sm">{node.name}</span>
+                <HiOutlineFolder className={`${isActive ? 'text-sky-500' : 'text-slate-400'} transition group-hover:text-sky-500`} />
+                <span className="truncate text-sm font-medium">{node.name}</span>
             </button>
             {isExpanded &&
                 node.children?.map((child) => (
@@ -1057,17 +1163,20 @@ function FinderContentArea({
     return (
         <div
             ref={drop}
-            className={`relative flex h-[32rem] flex-1 flex-col gap-4 rounded-[26px] border border-slate-200/70 bg-gradient-to-br from-white/85 via-white/75 to-slate-50/70 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.6)] backdrop-blur-xl transition lg:h-[36rem] ${
+            className={`relative flex h-[32rem] flex-1 flex-col gap-4 rounded-[26px] border border-white/60 bg-gradient-to-br from-white/95 via-[#f1f4fb] to-[#e7ecf9] p-6 shadow-[0_28px_80px_-48px_rgba(15,23,42,0.55)] backdrop-blur-xl transition lg:h-[36rem] ${
                 isRootOver && canDropRoot ? 'ring-2 ring-sky-300' : ''
             }`}
         >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-500">Contents</p>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-white/70 bg-white/75 px-4 py-2.5 shadow-inner shadow-white/80">
+                <div className="flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <span className="inline-flex h-2 w-2 rounded-full bg-sky-300/80" />
+                    Contents
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     {filterCategory !== 'all' ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-medium text-slate-500">
-                            {filterLabel}
-                            <span className="text-[0.65rem] uppercase tracking-[0.18em] text-slate-400">Filter</span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 font-medium text-slate-500 shadow-inner shadow-white/80">
+                            <span className="text-slate-400">Filter:</span>
+                            <span className="font-semibold text-slate-600">{filterLabel}</span>
                         </span>
                     ) : null}
                     {filterCategory !== 'all' && filterDescription ? (
@@ -1079,7 +1188,7 @@ function FinderContentArea({
                         className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[0.7rem] transition ${
                             selectedItem
                                 ? 'border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800'
-                                : 'cursor-not-allowed border-slate-200 bg-white text-slate-300'
+                                : 'cursor-not-allowed border-slate-200 bg-white/70 text-slate-300'
                         }`}
                         onClick={() => selectedItem && onQuickLook(selectedItem)}
                         disabled={!selectedItem}
@@ -1090,7 +1199,7 @@ function FinderContentArea({
                 </div>
             </div>
             {emptyState ? (
-                <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 text-sm text-slate-500">
+                <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-slate-200/70 bg-white/70 text-sm text-slate-500 shadow-inner shadow-white/70">
                     {emptyState}
                 </div>
             ) : (
@@ -1158,14 +1267,14 @@ FinderContentArea.defaultProps = {
 function FinderColumnView({ columns, selectedItemId, onSelect, onOpen, onRename, onDelete, onMove, onQuickLook }) {
     if (!columns?.length) {
         return (
-            <div className="flex flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-br from-white/90 via-white/80 to-slate-50/70 text-sm text-slate-500 shadow-inner shadow-white/70">
+            <div className="flex flex-1 items-center justify-center rounded-2xl border border-white/70 bg-gradient-to-br from-white/95 via-[#f3f5fb] to-[#e9edf9] text-sm text-slate-500 shadow-inner shadow-white/80">
                 Loading column view…
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white/92 via-white/82 to-slate-50/75 shadow-inner shadow-white/70">
+        <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/70 bg-gradient-to-br from-white/95 via-[#f3f5fb] to-[#e9edf9] shadow-inner shadow-white/80">
             <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto p-2">
                 {columns.map((column, index) => (
                     <FinderColumn
@@ -1254,11 +1363,11 @@ function FinderColumn({
             </div>
             <div className="flex-1 space-y-1 overflow-auto pr-1">
                 {isLoading ? (
-                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200/80 bg-white/50 text-xs text-slate-400">
+                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/70 bg-white/80 text-xs text-slate-400">
                         Loading…
                     </div>
                 ) : items.length === 0 ? (
-                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200/70 bg-slate-50/60 text-xs text-slate-400">
+                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/70 bg-white/75 text-xs text-slate-400">
                         {isLast ? 'This folder is empty.' : 'Select a folder to continue'}
                     </div>
                 ) : (
@@ -1462,31 +1571,31 @@ function FinderItemsView({ items, viewMode, selectedItemId, onSelect, onOpen, on
 
     if (viewMode === 'list') {
         return (
-            <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-inner shadow-white/70">
+            <div className="flex-1 overflow-auto rounded-2xl border border-white/70 bg-white/85 shadow-inner shadow-white/80">
                 <table className="min-w-full text-sm text-slate-600">
-                    <thead className="sticky top-0 bg-slate-100/90 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <tr>
-                        <th className="px-4 py-3">Name</th>
-                        <th className="px-4 py-3">Type</th>
-                        <th className="px-4 py-3">Size</th>
-                        <th className="px-4 py-3">Updated</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
+                    <thead className="sticky top-0 bg-[#eef1fb]/90 text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 backdrop-blur">
+                        <tr>
+                            <th className="px-4 py-3">Name</th>
+                            <th className="px-4 py-3">Type</th>
+                            <th className="px-4 py-3">Size</th>
+                            <th className="px-4 py-3">Updated</th>
+                            <th className="px-4 py-3 text-right">Actions</th>
+                        </tr>
                     </thead>
-                    <tbody>
-                    {items.map((item) => (
-                        <FinderListRow
-                            key={item.id}
-                            item={item}
-                            isSelected={selectedItemId === item.id}
-                            onSelect={onSelect}
-                            onOpen={onOpen}
-                            onRename={onRename}
-                            onDelete={onDelete}
-                            onMove={onMove}
-                            onQuickLook={onQuickLook}
-                        />
-                    ))}
+                    <tbody className="divide-y divide-slate-100/70">
+                        {items.map((item) => (
+                            <FinderListRow
+                                key={item.id}
+                                item={item}
+                                isSelected={selectedItemId === item.id}
+                                onSelect={onSelect}
+                                onOpen={onOpen}
+                                onRename={onRename}
+                                onDelete={onDelete}
+                                onMove={onMove}
+                                onQuickLook={onQuickLook}
+                            />
+                        ))}
                     </tbody>
                 </table>
             </div>
@@ -1494,7 +1603,7 @@ function FinderItemsView({ items, viewMode, selectedItemId, onSelect, onOpen, on
     }
 
     return (
-        <div className="grid flex-1 grid-cols-2 gap-4 overflow-auto rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-inner shadow-white/70 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid flex-1 grid-cols-2 gap-4 overflow-auto rounded-2xl border border-white/70 bg-white/85 p-5 shadow-inner shadow-white/80 sm:grid-cols-3 lg:grid-cols-4">
             {items.map((item) => (
                 <FinderGridCard
                     key={item.id}
@@ -1655,10 +1764,10 @@ function FinderGridCard({ item, isSelected, onSelect, onOpen, onRename, onDelete
             ref={ref}
             onClick={() => onSelect((prev) => (prev === item.id ? null : item.id))}
             onDoubleClick={() => onOpen(item)}
-            className={`relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border px-4 py-5 text-center transition shadow-[0_12px_30px_-20px_rgba(15,23,42,0.22)] ${
+            className={`relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border px-4 py-5 text-center transition ${
                 isSelected
-                    ? 'border-sky-300 bg-sky-50 text-sky-800 shadow-[0_18px_40px_-18px_rgba(56,189,248,0.35)]'
-                    : 'border-slate-200/70 bg-white text-slate-600 hover:border-slate-300 hover:shadow-[0_18px_44px_-22px_rgba(15,23,42,0.28)]'
+                    ? 'border-sky-200 bg-white/95 text-sky-700 ring-2 ring-sky-300 shadow-[0_22px_48px_-24px_rgba(37,99,235,0.45)]'
+                    : 'border-transparent bg-white/80 text-slate-600 shadow-[0_12px_30px_-22px_rgba(15,23,42,0.22)] hover:border-slate-200/80 hover:bg-white/90 hover:shadow-[0_22px_52px_-28px_rgba(15,23,42,0.28)]'
             } ${isDragging ? 'opacity-60' : ''} ${isOver && canDrop ? 'ring-2 ring-sky-300' : ''}`}
         >
             <FinderItemIcon item={item} size="md" />
@@ -1670,7 +1779,7 @@ function FinderGridCard({ item, isSelected, onSelect, onOpen, onRename, onDelete
                         event.stopPropagation();
                         onRename(item);
                     }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 transition hover:border-slate-300 hover:text-slate-700"
+                    className="rounded-lg border border-white/70 bg-white/90 px-2 py-1 transition hover:border-slate-300 hover:text-slate-700"
                 >
                     Rename
                 </button>
@@ -1680,7 +1789,7 @@ function FinderGridCard({ item, isSelected, onSelect, onOpen, onRename, onDelete
                         event.stopPropagation();
                         onDelete(item);
                     }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-rose-500 transition hover:border-rose-300 hover:text-rose-600"
+                    className="rounded-lg border border-white/70 bg-white/90 px-2 py-1 text-rose-500 transition hover:border-rose-300 hover:text-rose-600"
                 >
                     Delete
                 </button>
@@ -1690,7 +1799,7 @@ function FinderGridCard({ item, isSelected, onSelect, onOpen, onRename, onDelete
                         event.stopPropagation();
                         onQuickLook(item);
                     }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sky-600 transition hover:border-sky-300 hover:text-sky-700"
+                    className="rounded-lg border border-white/70 bg-white/90 px-2 py-1 text-sky-600 transition hover:border-sky-300 hover:text-sky-700"
                 >
                     View
                 </button>
@@ -1745,8 +1854,8 @@ function FinderListRow({ item, isSelected, onSelect, onOpen, onRename, onDelete,
             ref={ref}
             onClick={() => onSelect((prev) => (prev === item.id ? null : item.id))}
             onDoubleClick={() => onOpen(item)}
-            className={`cursor-pointer border-b border-slate-200/70 text-sm transition ${
-                isSelected ? 'bg-sky-50 text-sky-800' : 'hover:bg-slate-50'
+            className={`cursor-pointer text-sm transition ${
+                isSelected ? 'bg-sky-500/10 text-sky-800 ring-1 ring-inset ring-sky-200' : 'hover:bg-white/70'
             } ${isDragging ? 'opacity-60' : ''} ${isOver && canDrop ? 'outline outline-2 outline-sky-300' : ''}`}
         >
             <td className="flex items-center gap-3 px-4 py-3">
@@ -1764,7 +1873,7 @@ function FinderListRow({ item, isSelected, onSelect, onOpen, onRename, onDelete,
                             event.stopPropagation();
                             onRename(item);
                         }}
-                        className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 transition hover:border-slate-300 hover:text-slate-700"
+                        className="flex items-center gap-1 rounded-lg border border-white/70 bg-white/90 px-2 py-1 transition hover:border-slate-300 hover:text-slate-700"
                     >
                         <HiOutlinePencilSquare />
                         Rename
@@ -1775,7 +1884,7 @@ function FinderListRow({ item, isSelected, onSelect, onOpen, onRename, onDelete,
                             event.stopPropagation();
                             onDelete(item);
                         }}
-                        className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-rose-500 transition hover:border-rose-300 hover:text-rose-600"
+                        className="flex items-center gap-1 rounded-lg border border-white/70 bg-white/90 px-2 py-1 text-rose-500 transition hover:border-rose-300 hover:text-rose-600"
                     >
                         <HiOutlineTrash />
                         Delete
@@ -1786,7 +1895,7 @@ function FinderListRow({ item, isSelected, onSelect, onOpen, onRename, onDelete,
                             event.stopPropagation();
                             onQuickLook(item);
                         }}
-                        className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-sky-600 transition hover:border-sky-300 hover:text-sky-700"
+                        className="flex items-center gap-1 rounded-lg border border-white/70 bg-white/90 px-2 py-1 text-sky-600 transition hover:border-sky-300 hover:text-sky-700"
                     >
                         <HiOutlineEye />
                         View
@@ -1866,7 +1975,7 @@ function FinderPreviewPane({ item, onRename, onDelete, onQuickLook }) {
 
     if (!item) {
         return (
-            <aside className="hidden h-[32rem] w-full flex-col items-center justify-center rounded-[26px] border border-slate-200/70 bg-white/80 p-5 text-center text-sm text-slate-500 shadow-sm shadow-slate-200/70 lg:flex lg:h-[36rem] lg:w-72">
+            <aside className="hidden h-[32rem] w-full flex-col items-center justify-center rounded-[26px] border border-white/60 bg-gradient-to-br from-white/95 via-[#f3f5fb] to-[#e8ecf9] p-5 text-center text-sm text-slate-500 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)] backdrop-blur-xl lg:flex lg:h-[36rem] lg:w-72">
                 Select a file or folder to see details.
             </aside>
         );
@@ -1875,7 +1984,7 @@ function FinderPreviewPane({ item, onRename, onDelete, onQuickLook }) {
     const isImage = item.mimeType?.startsWith('image/');
 
     return (
-        <aside className="hidden h-[32rem] w-full flex-col gap-4 rounded-[26px] border border-slate-200/70 bg-white/85 p-5 text-sm text-slate-600 shadow-sm shadow-slate-200/70 lg:flex lg:h-[36rem] lg:w-72">
+        <aside className="hidden h-[32rem] w-full flex-col gap-4 rounded-[26px] border border-white/60 bg-gradient-to-br from-white/95 via-[#f3f5fb] to-[#e8ecf9] p-5 text-sm text-slate-600 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)] backdrop-blur-xl lg:flex lg:h-[36rem] lg:w-72">
             <div className="flex items-start justify-between gap-2">
                 <h3 className="line-clamp-2 text-sm font-semibold text-slate-700">{item.name}</h3>
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[0.65rem] uppercase tracking-[0.16em] text-slate-500">
@@ -1929,7 +2038,7 @@ function FinderPreviewPane({ item, onRename, onDelete, onQuickLook }) {
                 <button
                     type="button"
                     onClick={() => onRename(item)}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-2 transition hover:border-slate-300 hover:text-slate-700"
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/70 bg-white/90 px-2 py-2 transition hover:border-slate-300 hover:text-slate-700"
                 >
                     <HiOutlinePencilSquare />
                     Rename
@@ -1937,7 +2046,7 @@ function FinderPreviewPane({ item, onRename, onDelete, onQuickLook }) {
                 <button
                     type="button"
                     onClick={() => onDelete(item)}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-rose-500 transition hover:border-rose-300 hover:text-rose-600"
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/70 bg-white/90 px-2 py-2 text-rose-500 transition hover:border-rose-300 hover:text-rose-600"
                 >
                     <HiOutlineTrash />
                     Delete
@@ -1946,7 +2055,7 @@ function FinderPreviewPane({ item, onRename, onDelete, onQuickLook }) {
                     <button
                         type="button"
                         onClick={() => onQuickLook(item)}
-                        className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sky-600 transition hover:border-sky-300 hover:text-sky-700"
+                        className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/70 bg-white/90 px-2 py-2 text-sky-600 transition hover:border-sky-300 hover:text-sky-700"
                     >
                         <HiOutlineEye />
                         Quick Look
@@ -1993,17 +2102,17 @@ function FinderStatusBar({ totalItems, visibleItems, totalSize, selection, filte
     const isFiltering = !selection && (Boolean(searchTerm) || (filterLabel && filterLabel !== 'All'));
 
     return (
-        <footer className="mt-4 flex flex-col gap-2 rounded-[24px] border border-slate-200/70 bg-white/85 px-6 py-3 text-xs text-slate-500 shadow-sm shadow-slate-200/70 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <footer className="mt-6 flex flex-col gap-2 rounded-[24px] border border-white/60 bg-gradient-to-r from-white/95 via-[#f2f4fb] to-[#e9edf9] px-6 py-3 text-xs text-slate-500 shadow-[0_18px_46px_-32px_rgba(15,23,42,0.45)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
                 <HiOutlineEllipsisHorizontal className="text-lg text-slate-400" />
                 <span className="font-medium text-slate-600">{info}</span>
                 {filterLabel && filterLabel !== 'All' ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
                         {filterLabel}
                     </span>
                 ) : null}
                 {searchTerm ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
                         Search "{searchTerm}"
                     </span>
                 ) : null}
@@ -2096,7 +2205,7 @@ function QuickLookModal({ item, onClose }) {
             onClick={onClose}
         >
             <div
-                className="relative flex max-h-full w-full max-w-3xl flex-col gap-5 rounded-[30px] border border-slate-200/70 bg-white/95 p-6 shadow-[0_48px_120px_-40px_rgba(15,23,42,0.6)]"
+                className="relative flex max-h-full w-full max-w-3xl flex-col gap-5 rounded-[30px] border border-white/60 bg-gradient-to-br from-white/97 via-[#f5f7fd] to-[#e7ebf9] p-6 shadow-[0_48px_120px_-40px_rgba(15,23,42,0.6)] backdrop-blur-xl"
                 onClick={(event) => event.stopPropagation()}
             >
                 <div className="flex items-center justify-between">
@@ -2108,13 +2217,13 @@ function QuickLookModal({ item, onClose }) {
                     </div>
                     <button
                         type="button"
-                        className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                        className="rounded-full border border-white/70 bg-white/90 px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
                         onClick={onClose}
                     >
                         Close
                     </button>
                 </div>
-                <div className="flex flex-1 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
+                <div className="flex flex-1 items-center justify-center overflow-hidden rounded-3xl border border-white/70 bg-white/85 p-4">
                     {isImage && item.previewUrl ? (
                         <img src={item.previewUrl} alt={item.name} className="max-h-full max-w-full rounded-2xl object-contain" />
                     ) : loading ? (
@@ -2125,7 +2234,7 @@ function QuickLookModal({ item, onClose }) {
                                 <FinderItemIcon item={item} size="sm" />
                                 <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Quick Look</span>
                             </div>
-                            <pre className="flex-1 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-600 shadow-inner shadow-white/70">
+                            <pre className="flex-1 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/70 bg-white/95 p-4 text-sm leading-relaxed text-slate-600 shadow-inner shadow-white/80">
                                 {previewContent}
                             </pre>
                         </div>
