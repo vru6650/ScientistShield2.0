@@ -9,6 +9,7 @@ import {
     HiOutlineTrash,
     HiOutlinePencilSquare,
     HiOutlineMagnifyingGlass,
+    HiOutlineChevronLeft,
     HiOutlineChevronRight,
     HiOutlineChevronDown,
     HiOutlineArrowUpOnSquare,
@@ -550,9 +551,10 @@ export default function FileManager() {
     const activeFilter = FINDER_QUICK_FILTERS.find((option) => option.value === filterCategory) ?? FINDER_QUICK_FILTERS[0];
 
     return (
-        <section className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-10 lg:px-4">
-            <header className="flex flex-col gap-4 rounded-[28px] border border-white/40 bg-white/60 p-0.5 shadow-[0_30px_90px_-50px_rgba(15,23,42,0.7)] backdrop-blur-xl">
-                <div className="rounded-[26px] bg-gradient-to-br from-white/95 via-white/85 to-slate-50/80 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]">
+        <section className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
+            <header className="relative overflow-hidden rounded-[28px] border border-slate-200/65 bg-gradient-to-br from-slate-100/70 via-white/85 to-white shadow-[0_40px_90px_-45px_rgba(30,41,59,0.55)] backdrop-blur-xl">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/80 via-white/40 to-transparent" />
+                <div className="relative rounded-[26px] bg-gradient-to-br from-white/95 via-white/85 to-slate-50/75 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
                     <FinderToolbar
                         breadcrumbs={breadcrumbs}
                         onNavigate={handleNavigate}
@@ -648,6 +650,7 @@ function FinderToolbar({
     const fileInputRef = useRef(null);
     const activeBreadcrumb = breadcrumbs[breadcrumbs.length - 1] ?? { name: 'All Files' };
     const quickFilters = FINDER_QUICK_FILTERS;
+    const canNavigateBack = breadcrumbs.length > 1;
 
     const handleUploadClick = () => fileInputRef.current?.click();
     const handleFileChange = (event) => {
@@ -656,27 +659,65 @@ function FinderToolbar({
         event.target.value = '';
     };
 
+    const handleNavigateBack = () => {
+        if (!canNavigateBack) return;
+        const previous = breadcrumbs[breadcrumbs.length - 2];
+        onNavigate(previous.id ?? null, breadcrumbs.slice(0, -1));
+    };
+
+    const handleNavigateHome = () => {
+        onNavigate(null, [{ id: null, name: 'All Files' }]);
+    };
+
     return (
         <div className="flex flex-col gap-6 text-slate-700">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/60 bg-white/75 px-4 py-3 shadow-inner shadow-white/80">
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="flex items-center gap-2 pr-4">
                         <span className="h-3.5 w-3.5 rounded-full bg-[#ff6057] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]" />
                         <span className="h-3.5 w-3.5 rounded-full bg-[#ffbd2e] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]" />
                         <span className="h-3.5 w-3.5 rounded-full bg-[#28c940] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]" />
                     </span>
-                    <p className="rounded-full border border-slate-200/80 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 shadow-inner shadow-white/80">
-                        Finder
-                    </p>
-                    <span className="hidden items-center gap-1 rounded-full border border-transparent bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-inner shadow-white/70 sm:flex">
+                    <div className="flex items-center gap-2 rounded-full border border-slate-200/70 bg-slate-100/60 px-1.5 py-1 text-slate-500 shadow-inner shadow-white/70">
+                        <button
+                            type="button"
+                            onClick={handleNavigateBack}
+                            disabled={!canNavigateBack}
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition ${
+                                canNavigateBack
+                                    ? 'border-transparent bg-white text-slate-600 hover:bg-slate-100'
+                                    : 'cursor-not-allowed border-transparent bg-white/80 text-slate-300'
+                            }`}
+                            aria-label="Go back"
+                        >
+                            <HiOutlineChevronLeft />
+                        </button>
+                        <button
+                            type="button"
+                            disabled
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-transparent bg-white/80 text-slate-300"
+                            aria-label="Go forward"
+                        >
+                            <HiOutlineChevronRight />
+                        </button>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleNavigateHome}
+                        className="hidden items-center gap-2 rounded-full border border-transparent bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 shadow-inner shadow-white/70 transition hover:border-slate-200 hover:text-slate-700 sm:inline-flex"
+                    >
                         <HiOutlineFolder className="text-slate-400" />
+                        Finder
+                    </button>
+                    <span className="hidden items-center gap-2 rounded-full border border-transparent bg-white/70 px-3 py-1 text-xs text-slate-500 shadow-inner shadow-white/70 sm:flex">
+                        <HiOutlineChevronRight className="text-slate-300" />
                         {activeBreadcrumb.name}
                     </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-semibold">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                     <button
                         type="button"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-600 shadow-sm shadow-slate-200 transition hover:border-slate-400 hover:text-slate-700"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/70 bg-white px-3 py-1.5 text-slate-600 shadow-sm shadow-slate-200 transition hover:border-slate-300 hover:bg-white/90 hover:text-slate-700"
                         onClick={onRefresh}
                     >
                         <HiOutlineArrowPath className="text-sm" />
@@ -686,8 +727,8 @@ function FinderToolbar({
                         type="button"
                         className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition ${
                             hasSelection
-                                ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-sm hover:border-sky-300 hover:bg-sky-100'
-                                : 'cursor-not-allowed border-slate-200 bg-white text-slate-300'
+                                ? 'border-sky-200 bg-gradient-to-r from-sky-100/70 via-white to-sky-50 text-sky-700 shadow-[0_1px_0_rgba(255,255,255,0.8)] hover:from-sky-200/80'
+                                : 'cursor-not-allowed border-slate-200/70 bg-white/70 text-slate-300'
                         }`}
                         onClick={onQuickLook}
                         disabled={!hasSelection}
@@ -697,39 +738,8 @@ function FinderToolbar({
                     </button>
                 </div>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-1">
-                {quickFilters.map((filter) => {
-                    const Icon = filter.icon;
-                    const isActive = filterCategory === filter.value;
-                    return (
-                        <button
-                            key={filter.value}
-                            type="button"
-                            onClick={() => onFilterChange(filter.value)}
-                            className={`flex min-w-[10rem] items-center gap-3 rounded-2xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 ${
-                                isActive
-                                    ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-inner shadow-white/80'
-                                    : 'border-transparent bg-white/60 text-slate-500 hover:border-slate-200 hover:bg-white hover:text-slate-700'
-                            }`}
-                            aria-pressed={isActive}
-                        >
-                            <span
-                                className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg ${
-                                    isActive ? 'border-sky-200 bg-white text-sky-600' : 'border-slate-200 bg-slate-50 text-slate-500'
-                                }`}
-                            >
-                                <Icon />
-                            </span>
-                            <span className="flex flex-1 flex-col leading-tight">
-                                <span className="text-sm font-semibold">{filter.label}</span>
-                                <span className="text-[0.7rem] text-slate-400">{filter.description}</span>
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <nav className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm shadow-white/70">
+                <nav className="flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200/70 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-inner shadow-white/70">
                     {breadcrumbs.map((crumb, index) => {
                         const isLast = index === breadcrumbs.length - 1;
                         return (
@@ -737,10 +747,10 @@ function FinderToolbar({
                                 <button
                                     type="button"
                                     onClick={() => onNavigate(crumb.id ?? null, breadcrumbs.slice(0, index + 1))}
-                                    className={`rounded-xl border px-3 py-1 transition ${
+                                    className={`rounded-xl px-3 py-1 text-sm transition ${
                                         isLast
-                                            ? 'cursor-default border-sky-200 bg-sky-50 text-sky-700 shadow-inner shadow-white/80'
-                                            : 'border-transparent bg-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-700'
+                                            ? 'cursor-default bg-sky-500/10 text-sky-700 shadow-inner shadow-white/80'
+                                            : 'bg-transparent text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
                                     }`}
                                     disabled={isLast}
                                 >
@@ -752,13 +762,13 @@ function FinderToolbar({
                     })}
                 </nav>
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center overflow-hidden rounded-full border border-slate-200 bg-white/90 shadow-inner shadow-white/80">
+                    <div className="flex items-center overflow-hidden rounded-full border border-slate-200/70 bg-slate-100/70 text-sm text-slate-500 shadow-inner shadow-white/80">
                         <button
                             type="button"
-                            className={`flex items-center gap-1 px-3 py-1.5 text-sm transition ${
+                            className={`flex items-center gap-1 px-3 py-1.5 transition ${
                                 viewMode === 'grid'
-                                    ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
-                                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
+                                    ? 'bg-white text-slate-700 shadow-inner shadow-white/80'
+                                    : 'hover:bg-white/70 hover:text-slate-700'
                             }`}
                             onClick={() => onViewModeChange('grid')}
                         >
@@ -767,10 +777,10 @@ function FinderToolbar({
                         </button>
                         <button
                             type="button"
-                            className={`flex items-center gap-1 px-3 py-1.5 text-sm transition ${
+                            className={`flex items-center gap-1 px-3 py-1.5 transition ${
                                 viewMode === 'list'
-                                    ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
-                                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
+                                    ? 'bg-white text-slate-700 shadow-inner shadow-white/80'
+                                    : 'hover:bg-white/70 hover:text-slate-700'
                             }`}
                             onClick={() => onViewModeChange('list')}
                         >
@@ -779,10 +789,10 @@ function FinderToolbar({
                         </button>
                         <button
                             type="button"
-                            className={`flex items-center gap-1 px-3 py-1.5 text-sm transition ${
+                            className={`flex items-center gap-1 px-3 py-1.5 transition ${
                                 viewMode === 'column'
-                                    ? 'bg-sky-500/20 text-sky-700 shadow-inner shadow-white/90'
-                                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700'
+                                    ? 'bg-white text-slate-700 shadow-inner shadow-white/80'
+                                    : 'hover:bg-white/70 hover:text-slate-700'
                             }`}
                             onClick={() => onViewModeChange('column')}
                         >
@@ -790,7 +800,7 @@ function FinderToolbar({
                             Column
                         </button>
                     </div>
-                    <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm shadow-white/70">
+                    <label className="flex items-center gap-2 rounded-full border border-slate-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm shadow-white/70">
                         <HiOutlineArrowsUpDown className="text-base text-slate-400" />
                         <span>Sort</span>
                         <select
@@ -808,43 +818,76 @@ function FinderToolbar({
                     </label>
                 </div>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={onCreateFolder}
-                        disabled={isCreating}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-400 hover:text-slate-700 disabled:cursor-not-allowed disabled:border-slate-100 disabled:text-slate-300"
-                    >
-                        <HiOutlinePlus className="text-base" />
-                        New Folder
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleUploadClick}
-                        disabled={isUploading}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-gradient-to-r from-sky-100 via-sky-50 to-white px-3 py-1.5 text-sm font-semibold text-sky-700 shadow-sm transition hover:border-sky-300 hover:from-sky-200 hover:text-sky-800 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-white disabled:text-slate-300"
-                    >
-                        <HiOutlineArrowUpOnSquare className="text-base" />
-                        Upload
-                    </button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        multiple
-                        onChange={handleFileChange}
-                    />
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex w-full gap-2 overflow-x-auto pb-1">
+                    {quickFilters.map((filter) => {
+                        const Icon = filter.icon;
+                        const isActive = filterCategory === filter.value;
+                        return (
+                            <button
+                                key={filter.value}
+                                type="button"
+                                onClick={() => onFilterChange(filter.value)}
+                                className={`flex min-w-[9rem] items-center gap-3 rounded-2xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 ${
+                                    isActive
+                                        ? 'border-sky-200 bg-white/90 text-sky-700 shadow-[0_18px_40px_-28px_rgba(14,165,233,0.5)]'
+                                        : 'border-transparent bg-white/45 text-slate-500 hover:border-slate-200 hover:bg-white/70 hover:text-slate-700'
+                                }`}
+                                aria-pressed={isActive}
+                            >
+                                <span
+                                    className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg ${
+                                        isActive ? 'border-sky-200 bg-white text-sky-600' : 'border-slate-200 bg-white/70 text-slate-400'
+                                    }`}
+                                >
+                                    <Icon />
+                                </span>
+                                <span className="flex flex-1 flex-col leading-tight">
+                                    <span className="text-sm font-semibold">{filter.label}</span>
+                                    <span className="text-[0.7rem] text-slate-400">{filter.description}</span>
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
-                <div className="relative w-full max-w-md">
-                    <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input
-                        type="search"
-                        placeholder="Search current folder"
-                        value={searchTerm}
-                        onChange={(event) => onSearchChange(event.target.value)}
-                        className="h-11 w-full rounded-full border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-600 shadow-inner shadow-white/80 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-                    />
+                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={onCreateFolder}
+                            disabled={isCreating}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 shadow-[0_1px_0_rgba(255,255,255,0.9)] transition hover:border-slate-300 hover:bg-white/90 hover:text-slate-700 disabled:cursor-not-allowed disabled:border-slate-100 disabled:text-slate-300"
+                        >
+                            <HiOutlinePlus className="text-base" />
+                            New Folder
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleUploadClick}
+                            disabled={isUploading}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-gradient-to-r from-sky-100 via-white to-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700 shadow-[0_1px_0_rgba(255,255,255,0.8)] transition hover:border-sky-300 hover:from-sky-200 hover:text-sky-800 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-white disabled:text-slate-300"
+                        >
+                            <HiOutlineArrowUpOnSquare className="text-base" />
+                            Upload
+                        </button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            multiple
+                            onChange={handleFileChange}
+                        />
+                    </div>
+                    <div className="relative w-full min-w-[16rem] sm:max-w-xs">
+                        <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                        <input
+                            type="search"
+                            placeholder="Search current folder"
+                            value={searchTerm}
+                            onChange={(event) => onSearchChange(event.target.value)}
+                            className="h-11 w-full rounded-full border border-transparent bg-slate-100/80 pl-11 pr-4 text-sm text-slate-600 shadow-inner shadow-white/80 outline-none transition focus:border-sky-300 focus:bg-white/90 focus:ring-2 focus:ring-sky-100"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -889,7 +932,7 @@ function FinderSidebar({ tree, activeId, expandedFolders, onToggle, onNavigate, 
     return (
         <aside
             ref={drop}
-            className="h-[32rem] w-full rounded-[26px] border border-slate-200/70 bg-gradient-to-br from-white/90 via-white/80 to-slate-50/75 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.6)] backdrop-blur-xl lg:h-[36rem] lg:w-64"
+            className="h-[32rem] w-full rounded-[26px] border border-white/55 bg-gradient-to-br from-white/88 via-white/78 to-slate-100/60 p-5 shadow-[0_28px_70px_-46px_rgba(30,41,59,0.5)] backdrop-blur-xl lg:h-[36rem] lg:w-64"
         >
             <h2 className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Locations</h2>
             <div className="space-y-1">
@@ -950,9 +993,11 @@ function SidebarNode({ node, depth, activeId, expandedFolders, onToggle, onNavig
             <button
                 type="button"
                 onClick={handleClick}
-                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left transition ${
-                    isActive ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
-                } ${isOver && canDrop ? 'border border-dashed border-sky-300 bg-sky-50' : ''}`}
+                className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left transition ${
+                    isActive
+                        ? 'border-sky-300 bg-sky-500/15 text-slate-700 shadow-[0_14px_34px_-22px_rgba(56,189,248,0.32)]'
+                        : 'border-transparent text-slate-600 hover:border-slate-200/70 hover:bg-white/70 hover:text-slate-800'
+                } ${isOver && canDrop ? 'border-dashed border-sky-300 bg-sky-50/70' : ''}`}
             >
                 {node.children?.length ? (
                     <span
@@ -960,7 +1005,7 @@ function SidebarNode({ node, depth, activeId, expandedFolders, onToggle, onNavig
                             event.stopPropagation();
                             onToggle(node.id ?? null);
                         }}
-                        className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm"
+                        className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200/70 bg-white/80 text-slate-500 shadow-sm"
                     >
                         {isExpanded ? (
                             <HiOutlineChevronDown className="text-xs" />
@@ -1057,7 +1102,7 @@ function FinderContentArea({
     return (
         <div
             ref={drop}
-            className={`relative flex h-[32rem] flex-1 flex-col gap-4 rounded-[26px] border border-slate-200/70 bg-gradient-to-br from-white/85 via-white/75 to-slate-50/70 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.6)] backdrop-blur-xl transition lg:h-[36rem] ${
+            className={`relative flex h-[32rem] flex-1 flex-col gap-4 rounded-[26px] border border-white/55 bg-gradient-to-br from-white/88 via-white/78 to-slate-100/60 p-5 shadow-[0_28px_80px_-48px_rgba(30,41,59,0.55)] backdrop-blur-xl transition lg:h-[36rem] ${
                 isRootOver && canDropRoot ? 'ring-2 ring-sky-300' : ''
             }`}
         >
@@ -1078,8 +1123,8 @@ function FinderContentArea({
                         type="button"
                         className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[0.7rem] transition ${
                             selectedItem
-                                ? 'border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800'
-                                : 'cursor-not-allowed border-slate-200 bg-white text-slate-300'
+                                ? 'border-sky-200 bg-gradient-to-r from-sky-100/70 via-white to-sky-50 text-sky-700 shadow-[0_1px_0_rgba(255,255,255,0.75)] hover:from-sky-200/80'
+                                : 'cursor-not-allowed border-slate-200/70 bg-white/70 text-slate-300'
                         }`}
                         onClick={() => selectedItem && onQuickLook(selectedItem)}
                         disabled={!selectedItem}
@@ -1090,7 +1135,7 @@ function FinderContentArea({
                 </div>
             </div>
             {emptyState ? (
-                <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 text-sm text-slate-500">
+                <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-slate-200/70 bg-white/65 text-sm text-slate-500">
                     {emptyState}
                 </div>
             ) : (
@@ -1158,14 +1203,14 @@ FinderContentArea.defaultProps = {
 function FinderColumnView({ columns, selectedItemId, onSelect, onOpen, onRename, onDelete, onMove, onQuickLook }) {
     if (!columns?.length) {
         return (
-            <div className="flex flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-br from-white/90 via-white/80 to-slate-50/70 text-sm text-slate-500 shadow-inner shadow-white/70">
+            <div className="flex flex-1 items-center justify-center rounded-2xl border border-white/55 bg-white/80 text-sm text-slate-500 shadow-[0_18px_48px_-32px_rgba(30,41,59,0.38)]">
                 Loading column view…
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white/92 via-white/82 to-slate-50/75 shadow-inner shadow-white/70">
+        <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/55 bg-white/85 shadow-[0_18px_48px_-32px_rgba(30,41,59,0.38)]">
             <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto p-2">
                 {columns.map((column, index) => (
                     <FinderColumn
@@ -1245,7 +1290,7 @@ function FinderColumn({
     return (
         <div
             ref={drop}
-            className={`flex min-w-[16rem] max-w-[22rem] flex-1 flex-col rounded-[1.5rem] border border-white/40 bg-white/45 px-3 py-3 backdrop-blur-lg shadow-[0_18px_44px_-28px_rgba(15,23,42,0.35)] transition ${
+            className={`flex min-w-[16rem] max-w-[22rem] flex-1 flex-col rounded-[1.5rem] border border-white/55 bg-white/75 px-3 py-3 backdrop-blur-lg shadow-[0_20px_50px_-32px_rgba(30,41,59,0.36)] transition ${
                 isOver && canDrop ? 'ring-2 ring-sky-300' : ''
             }`}
         >
@@ -1254,11 +1299,11 @@ function FinderColumn({
             </div>
             <div className="flex-1 space-y-1 overflow-auto pr-1">
                 {isLoading ? (
-                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200/80 bg-white/50 text-xs text-slate-400">
+                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200/70 bg-white/60 text-xs text-slate-400">
                         Loading…
                     </div>
                 ) : items.length === 0 ? (
-                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200/70 bg-slate-50/60 text-xs text-slate-400">
+                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200/70 bg-white/55 text-xs text-slate-400">
                         {isLast ? 'This folder is empty.' : 'Select a folder to continue'}
                     </div>
                 ) : (
@@ -1354,8 +1399,8 @@ function FinderColumnRow({ item, isHighlighted, isLastColumn, columnIndex, onSel
     );
 
     const actionBase = isHighlighted
-        ? 'rounded-lg bg-white/10 px-2 py-1 text-[0.7rem] font-semibold text-white transition hover:bg-white/20'
-        : 'rounded-lg bg-white px-2 py-1 text-[0.7rem] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700';
+        ? 'rounded-lg bg-white/20 px-2 py-1 text-[0.7rem] font-semibold text-slate-700 transition hover:bg-white/30'
+        : 'rounded-lg bg-white/80 px-2 py-1 text-[0.7rem] font-medium text-slate-500 transition hover:bg-white hover:text-slate-700';
 
     return (
         <div
@@ -1365,16 +1410,16 @@ function FinderColumnRow({ item, isHighlighted, isLastColumn, columnIndex, onSel
             onClick={handleSelect}
             onDoubleClick={() => onOpen(item, { depth: columnIndex })}
             onKeyDown={handleKeyDown}
-            className={`group relative flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-2 text-sm transition ${
+            className={`group relative flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
                 isHighlighted
-                    ? 'bg-sky-500 text-white shadow-[0_18px_36px_-18px_rgba(56,189,248,0.55)]'
-                    : 'text-slate-600 hover:bg-white/80 hover:shadow-[0_18px_36px_-24px_rgba(15,23,42,0.35)]'
+                    ? 'border-sky-200/80 bg-sky-500/20 text-slate-700 shadow-[0_20px_44px_-24px_rgba(56,189,248,0.4)]'
+                    : 'border-transparent text-slate-600 hover:border-slate-200/70 hover:bg-white/75 hover:shadow-[0_20px_44px_-28px_rgba(30,41,59,0.32)]'
             } ${isDragging ? 'opacity-70' : ''} ${isOver && canDrop ? 'ring-2 ring-sky-300' : ''}`}
         >
             <FinderItemIcon item={item} size="sm" />
             <div className="min-w-0 flex-1">
-                <p className={`truncate text-sm font-medium ${isHighlighted ? 'text-white' : 'text-slate-600'}`}>{item.name}</p>
-                <p className={`truncate text-[0.7rem] ${isHighlighted ? 'text-white/70' : 'text-slate-400'}`}>
+                <p className={`truncate text-sm font-medium ${isHighlighted ? 'text-slate-700' : 'text-slate-600'}`}>{item.name}</p>
+                <p className={`truncate text-[0.7rem] ${isHighlighted ? 'text-slate-500' : 'text-slate-400'}`}>
                     {item.type === 'file' ? formatSize(item.size) : 'Folder'}
                 </p>
             </div>
@@ -1462,9 +1507,9 @@ function FinderItemsView({ items, viewMode, selectedItemId, onSelect, onOpen, on
 
     if (viewMode === 'list') {
         return (
-            <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-inner shadow-white/70">
+            <div className="flex-1 overflow-auto rounded-2xl border border-white/55 bg-white/80 shadow-[0_18px_48px_-30px_rgba(30,41,59,0.4)]">
                 <table className="min-w-full text-sm text-slate-600">
-                    <thead className="sticky top-0 bg-slate-100/90 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <thead className="sticky top-0 bg-white/90 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 shadow-[0_1px_0_rgba(148,163,184,0.25)]">
                     <tr>
                         <th className="px-4 py-3">Name</th>
                         <th className="px-4 py-3">Type</th>
@@ -1494,7 +1539,7 @@ function FinderItemsView({ items, viewMode, selectedItemId, onSelect, onOpen, on
     }
 
     return (
-        <div className="grid flex-1 grid-cols-2 gap-4 overflow-auto rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-inner shadow-white/70 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid flex-1 grid-cols-2 gap-4 overflow-auto rounded-2xl border border-white/55 bg-white/85 p-4 shadow-[0_18px_48px_-30px_rgba(30,41,59,0.38)] sm:grid-cols-3 lg:grid-cols-4">
             {items.map((item) => (
                 <FinderGridCard
                     key={item.id}
@@ -1655,10 +1700,10 @@ function FinderGridCard({ item, isSelected, onSelect, onOpen, onRename, onDelete
             ref={ref}
             onClick={() => onSelect((prev) => (prev === item.id ? null : item.id))}
             onDoubleClick={() => onOpen(item)}
-            className={`relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border px-4 py-5 text-center transition shadow-[0_12px_30px_-20px_rgba(15,23,42,0.22)] ${
+            className={`relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border px-4 py-5 text-center transition shadow-[0_16px_38px_-24px_rgba(30,41,59,0.32)] ${
                 isSelected
-                    ? 'border-sky-300 bg-sky-50 text-sky-800 shadow-[0_18px_40px_-18px_rgba(56,189,248,0.35)]'
-                    : 'border-slate-200/70 bg-white text-slate-600 hover:border-slate-300 hover:shadow-[0_18px_44px_-22px_rgba(15,23,42,0.28)]'
+                    ? 'border-sky-300 bg-sky-500/15 text-slate-700 shadow-[0_22px_46px_-20px_rgba(56,189,248,0.35)]'
+                    : 'border-white/55 bg-white/80 text-slate-600 hover:border-slate-200/80 hover:bg-white hover:shadow-[0_22px_48px_-24px_rgba(30,41,59,0.34)]'
             } ${isDragging ? 'opacity-60' : ''} ${isOver && canDrop ? 'ring-2 ring-sky-300' : ''}`}
         >
             <FinderItemIcon item={item} size="md" />
@@ -1670,7 +1715,7 @@ function FinderGridCard({ item, isSelected, onSelect, onOpen, onRename, onDelete
                         event.stopPropagation();
                         onRename(item);
                     }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 transition hover:border-slate-300 hover:text-slate-700"
+                    className="rounded-lg border border-slate-200/70 bg-white/80 px-2 py-1 transition hover:border-slate-300 hover:bg-white hover:text-slate-700"
                 >
                     Rename
                 </button>
@@ -1680,7 +1725,7 @@ function FinderGridCard({ item, isSelected, onSelect, onOpen, onRename, onDelete
                         event.stopPropagation();
                         onDelete(item);
                     }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-rose-500 transition hover:border-rose-300 hover:text-rose-600"
+                    className="rounded-lg border border-rose-200/70 bg-white/80 px-2 py-1 text-rose-500 transition hover:border-rose-300 hover:bg-white hover:text-rose-600"
                 >
                     Delete
                 </button>
@@ -1690,7 +1735,7 @@ function FinderGridCard({ item, isSelected, onSelect, onOpen, onRename, onDelete
                         event.stopPropagation();
                         onQuickLook(item);
                     }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sky-600 transition hover:border-sky-300 hover:text-sky-700"
+                    className="rounded-lg border border-sky-200/70 bg-white/80 px-2 py-1 text-sky-600 transition hover:border-sky-300 hover:bg-white hover:text-sky-700"
                 >
                     View
                 </button>
@@ -1745,13 +1790,13 @@ function FinderListRow({ item, isSelected, onSelect, onOpen, onRename, onDelete,
             ref={ref}
             onClick={() => onSelect((prev) => (prev === item.id ? null : item.id))}
             onDoubleClick={() => onOpen(item)}
-            className={`cursor-pointer border-b border-slate-200/70 text-sm transition ${
-                isSelected ? 'bg-sky-50 text-sky-800' : 'hover:bg-slate-50'
+            className={`cursor-pointer border-b border-slate-200/50 text-sm transition ${
+                isSelected ? 'bg-sky-500/10 text-slate-700' : 'hover:bg-slate-100/50'
             } ${isDragging ? 'opacity-60' : ''} ${isOver && canDrop ? 'outline outline-2 outline-sky-300' : ''}`}
         >
             <td className="flex items-center gap-3 px-4 py-3">
                 <FinderItemIcon item={item} size="sm" />
-                <span className="truncate text-slate-600">{item.name}</span>
+                <span className="truncate text-slate-700">{item.name}</span>
             </td>
             <td className="px-4 py-3 capitalize text-slate-500">{item.type}</td>
             <td className="px-4 py-3 text-slate-500">{item.type === 'file' ? formatSize(item.size) : '—'}</td>
@@ -1764,7 +1809,7 @@ function FinderListRow({ item, isSelected, onSelect, onOpen, onRename, onDelete,
                             event.stopPropagation();
                             onRename(item);
                         }}
-                        className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 transition hover:border-slate-300 hover:text-slate-700"
+                        className="flex items-center gap-1 rounded-lg border border-slate-200/70 bg-white/80 px-2 py-1 transition hover:border-slate-300 hover:bg-white hover:text-slate-700"
                     >
                         <HiOutlinePencilSquare />
                         Rename
@@ -1775,7 +1820,7 @@ function FinderListRow({ item, isSelected, onSelect, onOpen, onRename, onDelete,
                             event.stopPropagation();
                             onDelete(item);
                         }}
-                        className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-rose-500 transition hover:border-rose-300 hover:text-rose-600"
+                        className="flex items-center gap-1 rounded-lg border border-rose-200/70 bg-white/80 px-2 py-1 text-rose-500 transition hover:border-rose-300 hover:bg-white hover:text-rose-600"
                     >
                         <HiOutlineTrash />
                         Delete
@@ -1786,7 +1831,7 @@ function FinderListRow({ item, isSelected, onSelect, onOpen, onRename, onDelete,
                             event.stopPropagation();
                             onQuickLook(item);
                         }}
-                        className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-sky-600 transition hover:border-sky-300 hover:text-sky-700"
+                        className="flex items-center gap-1 rounded-lg border border-sky-200/70 bg-white/80 px-2 py-1 text-sky-600 transition hover:border-sky-300 hover:bg-white hover:text-sky-700"
                     >
                         <HiOutlineEye />
                         View
@@ -1993,17 +2038,17 @@ function FinderStatusBar({ totalItems, visibleItems, totalSize, selection, filte
     const isFiltering = !selection && (Boolean(searchTerm) || (filterLabel && filterLabel !== 'All'));
 
     return (
-        <footer className="mt-4 flex flex-col gap-2 rounded-[24px] border border-slate-200/70 bg-white/85 px-6 py-3 text-xs text-slate-500 shadow-sm shadow-slate-200/70 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <footer className="mt-4 flex flex-col gap-2 rounded-[24px] border border-white/55 bg-white/80 px-6 py-3 text-xs text-slate-500 shadow-[0_14px_40px_-28px_rgba(30,41,59,0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
-                <HiOutlineEllipsisHorizontal className="text-lg text-slate-400" />
+                <HiOutlineEllipsisHorizontal className="text-lg text-slate-300" />
                 <span className="font-medium text-slate-600">{info}</span>
                 {filterLabel && filterLabel !== 'All' ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
                         {filterLabel}
                     </span>
                 ) : null}
                 {searchTerm ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
                         Search "{searchTerm}"
                     </span>
                 ) : null}
