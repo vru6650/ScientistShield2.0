@@ -125,6 +125,10 @@ const tutorialSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+tutorialSchema.index({ category: 1, updatedAt: -1 });
+tutorialSchema.index({ authorId: 1, updatedAt: -1 });
+tutorialSchema.index({ createdAt: -1 });
+
 const Tutorial = mongoose.model('Tutorial', tutorialSchema);
 
 const dropLegacyChapterSlugIndex = async () => {

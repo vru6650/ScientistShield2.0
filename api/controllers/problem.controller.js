@@ -2,14 +2,8 @@ import Problem from '../models/problem.model.js';
 import { errorHandler } from '../utils/error.js';
 import jwt from 'jsonwebtoken';
 import { indexSearchDocument, removeSearchDocument } from '../services/search.service.js';
-
-const generateSlug = (text = '') =>
-    text
-        .toString()
-        .toLowerCase()
-        .trim()
-        .replace(/[\s\W-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+import { generateSlug } from '../utils/slug.js';
+import { normalizePagination } from '../utils/pagination.js';
 
 const buildProblemQuery = (query, allowDrafts) => {
     const filters = {};
@@ -121,7 +115,7 @@ export const createProblem = async (req, res, next) => {
         return next(errorHandler(400, 'Title, description, and problem statement are required.'));
     }
 
-    const slug = generateSlug(title);
+    const slug = generateSlug(String(title));
 
     try {
         const problem = new Problem({
@@ -159,8 +153,10 @@ export const createProblem = async (req, res, next) => {
 
 export const getProblems = async (req, res, next) => {
     try {
-        const startIndex = parseInt(req.query.startIndex, 10) || 0;
-        const limit = Math.min(parseInt(req.query.limit, 10) || 12, 50);
+        const { startIndex, limit } = normalizePagination(req.query, {
+            defaultLimit: 12,
+            maxLimit: 50,
+        });
         const sort = req.query.sort || 'newest';
 
         const allowDrafts = req.query.includeDrafts === 'true' && canPreviewDrafts(req);
@@ -173,30 +169,24 @@ export const getProblems = async (req, res, next) => {
             challenging: { difficulty: -1, 'stats.accepted': 1 },
         };
 
-        const problems = await Problem.find(filters)
+        const problemsQuery = Problem.find(filters)
             .sort(sortOptions[sort] || sortOptions.newest)
             .skip(startIndex)
             .limit(limit)
             .lean();
 
-        const totalProblems = await Problem.countDocuments(filters);
-
         const now = new Date();
         const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        const lastMonthProblems = await Problem.countDocuments({
-            ...filters,
-            createdAt: { $gte: oneMonthAgo },
-        });
 
-        const topicCounts = await Problem.aggregate([
+        const topicCountsPipeline = [
             { $match: filters },
             { $unwind: { path: '$topics', preserveNullAndEmptyArrays: false } },
             { $group: { _id: '$topics', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
             { $limit: 12 },
-        ]);
+        ];
 
-        const difficultyCounts = await Problem.aggregate([
+        const difficultyCountsPipeline = [
             { $match: filters },
             {
                 $group: {
@@ -204,7 +194,19 @@ export const getProblems = async (req, res, next) => {
                     count: { $sum: 1 },
                 },
             },
-        ]);
+        ];
+
+        const [problems, totalProblems, lastMonthProblems, topicCounts, difficultyCounts] =
+            await Promise.all([
+                problemsQuery,
+                Problem.countDocuments(filters),
+                Problem.countDocuments({
+                    ...filters,
+                    createdAt: { $gte: oneMonthAgo },
+                }),
+                Problem.aggregate(topicCountsPipeline),
+                Problem.aggregate(difficultyCountsPipeline),
+            ]);
 
         res.status(200).json({
             problems: problems.map(mapProblemSummary),
@@ -271,7 +273,7 @@ export const updateProblem = async (req, res, next) => {
     const updatePayload = { ...req.body };
 
     if (updatePayload.title) {
-        updatePayload.slug = generateSlug(updatePayload.title);
+        updatePayload.slug = generateSlug(String(updatePayload.title));
     }
 
     try {

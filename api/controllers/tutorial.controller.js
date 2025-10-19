@@ -1,14 +1,8 @@
 import Tutorial from '../models/tutorial.model.js';
 import { errorHandler } from '../utils/error.js';
 import { indexSearchDocument, removeSearchDocument } from '../services/search.service.js';
-
-const generateSlug = (text) => {
-    return text
-        .split(' ')
-        .join('-')
-        .toLowerCase()
-        .replace(/[^a-zA-Z0-9-]/g, '');
-};
+import { generateSlug } from '../utils/slug.js';
+import { normalizePagination } from '../utils/pagination.js';
 
 export const createTutorial = async (req, res, next) => {
     if (!req.user.isAdmin) {
@@ -20,7 +14,7 @@ export const createTutorial = async (req, res, next) => {
         return next(errorHandler(400, 'Please provide all required fields for the tutorial.'));
     }
 
-    const slug = generateSlug(title);
+    const slug = generateSlug(String(title));
 
     const chaptersToSave = chapters.map(chapter => {
         if (chapter.contentType !== 'quiz' || chapter.quizId === '') {
@@ -51,8 +45,10 @@ export const createTutorial = async (req, res, next) => {
 
 export const getTutorials = async (req, res, next) => {
     try {
-        const startIndex = parseInt(req.query.startIndex) || 0;
-        const limit = parseInt(req.query.limit) || 9;
+        const { startIndex, limit } = normalizePagination(req.query, {
+            defaultLimit: 9,
+            maxLimit: 50,
+        });
         const sortDirection = req.query.order === 'asc' ? 1 : -1;
 
         const query = {
@@ -69,23 +65,27 @@ export const getTutorials = async (req, res, next) => {
             }),
         };
 
-        const tutorials = await Tutorial.find(query)
-            .sort({ updatedAt: sortDirection })
-            .skip(startIndex)
-            .limit(limit);
-
-        const totalTutorials = await Tutorial.countDocuments(query);
-
         const now = new Date();
         const oneMonthAgo = new Date(
             now.getFullYear(),
             now.getMonth() - 1,
             now.getDate()
         );
-        const lastMonthTutorials = await Tutorial.countDocuments({
-            ...query,
-            createdAt: { $gte: oneMonthAgo },
-        });
+
+        const tutorialsQuery = Tutorial.find(query)
+            .sort({ updatedAt: sortDirection })
+            .skip(startIndex)
+            .limit(limit)
+            .lean();
+
+        const [tutorials, totalTutorials, lastMonthTutorials] = await Promise.all([
+            tutorialsQuery,
+            Tutorial.countDocuments(query),
+            Tutorial.countDocuments({
+                ...query,
+                createdAt: { $gte: oneMonthAgo },
+            }),
+        ]);
 
         res.status(200).json({
             tutorials,
@@ -109,7 +109,7 @@ export const updateTutorial = async (req, res, next) => {
         thumbnail,
     };
     if (title) {
-        updateFields.slug = generateSlug(title);
+        updateFields.slug = generateSlug(String(title));
     }
 
     try {
@@ -166,7 +166,7 @@ export const addChapter = async (req, res, next) => {
             return next(errorHandler(404, 'Tutorial not found.'));
         }
 
-        const chapterSlug = generateSlug(chapterTitle);
+        const chapterSlug = generateSlug(String(chapterTitle));
         if (tutorial.chapters.some(c => c.chapterSlug === chapterSlug)) {
             return next(errorHandler(400, 'Chapter with this title already exists in this tutorial.'));
         }
@@ -213,7 +213,7 @@ export const updateChapter = async (req, res, next) => {
         Object.assign(chapter, updateFields);
 
         if (chapterTitle !== undefined) {
-            const newChapterSlug = generateSlug(chapterTitle);
+            const newChapterSlug = generateSlug(String(chapterTitle));
             if (tutorial.chapters.some(c => c.chapterSlug === newChapterSlug && c._id.toString() !== chapter._id.toString())) {
                 return next(errorHandler(400, 'Another chapter with this title already exists.'));
             }

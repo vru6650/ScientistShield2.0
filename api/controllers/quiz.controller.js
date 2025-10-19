@@ -1,15 +1,8 @@
 // api/controllers/quiz.controller.js
 import Quiz from '../models/quiz.model.js';
 import { errorHandler } from '../utils/error.js';
-
-// Helper to generate a slug (can be reused from your post/tutorial controller)
-const generateSlug = (text) => {
-    return text
-        .split(' ')
-        .join('-')
-        .toLowerCase()
-        .replace(/[^a-zA-Z0-9-]/g, '');
-};
+import { generateSlug } from '../utils/slug.js';
+import { normalizePagination } from '../utils/pagination.js';
 
 export const createQuiz = async (req, res, next) => {
     if (!req.user.isAdmin) {
@@ -21,7 +14,7 @@ export const createQuiz = async (req, res, next) => {
         return next(errorHandler(400, 'Please provide quiz title and at least one question.'));
     }
 
-    const slug = generateSlug(title);
+    const slug = generateSlug(String(title));
 
     const newQuiz = new Quiz({
         title,
@@ -43,11 +36,13 @@ export const createQuiz = async (req, res, next) => {
 
 export const getQuizzes = async (req, res, next) => {
     try {
-        const startIndex = parseInt(req.query.startIndex) || 0;
-        const limit = parseInt(req.query.limit) || 9;
+        const { startIndex, limit } = normalizePagination(req.query, {
+            defaultLimit: 9,
+            maxLimit: 50,
+        });
         const sortDirection = req.query.sort === 'asc' ? 1 : -1;
 
-        const quizzes = await Quiz.find({
+        const filters = {
             ...(req.query.quizId && { _id: req.query.quizId }),
             ...(req.query.slug && { slug: req.query.slug }),
             ...(req.query.category && { category: req.query.category }),
@@ -58,24 +53,27 @@ export const getQuizzes = async (req, res, next) => {
                 ],
             }),
             ...(req.query.relatedTutorialId && { relatedTutorials: req.query.relatedTutorialId }),
-        })
+        };
+
+        const now = new Date();
+        const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+
+        const quizzesQuery = Quiz.find(filters)
             .sort({ updatedAt: sortDirection })
             .skip(startIndex)
             .limit(limit)
             .populate('createdBy', 'username profilePicture') // Populate user info
-            .populate('relatedTutorials', 'title slug'); // Populate related tutorial basic info
+            .populate('relatedTutorials', 'title slug') // Populate related tutorial basic info
+            .lean();
 
-        const totalQuizzes = await Quiz.countDocuments();
-
-        const now = new Date();
-        const oneMonthAgo = new Date(
-            now.getFullYear(),
-            now.getMonth() - 1,
-            now.getDate()
-        );
-        const lastMonthQuizzes = await Quiz.countDocuments({
-            createdAt: { $gte: oneMonthAgo },
-        });
+        const [quizzes, totalQuizzes, lastMonthQuizzes] = await Promise.all([
+            quizzesQuery,
+            Quiz.countDocuments(filters),
+            Quiz.countDocuments({
+                ...filters,
+                createdAt: { $gte: oneMonthAgo },
+            }),
+        ]);
 
         res.status(200).json({
             quizzes,
@@ -130,7 +128,7 @@ export const updateQuiz = async (req, res, next) => {
         relatedTutorials,
     };
     if (title) {
-        updateFields.slug = generateSlug(title);
+        updateFields.slug = generateSlug(String(title));
     }
 
     try {

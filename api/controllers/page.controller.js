@@ -2,6 +2,7 @@ import Page from '../models/page.model.js';
 import { indexSearchDocument, removeSearchDocument } from '../services/search.service.js';
 import { errorHandler } from '../utils/error.js';
 import slugify from '../utils/slugify.js';
+import { normalizePagination } from '../utils/pagination.js';
 
 const allowedSectionTypes = new Set(['hero', 'rich-text', 'feature-grid', 'cta', 'custom']);
 const allowedAlignments = new Set(['left', 'center', 'right']);
@@ -166,8 +167,10 @@ export const getPages = async (req, res, next) => {
             return next(errorHandler(403, 'Only administrators can view content pages.'));
         }
 
-        const startIndex = Math.max(parseInt(req.query.startIndex, 10) || 0, 0);
-        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
+        const { startIndex, limit } = normalizePagination(req.query, {
+            defaultLimit: 10,
+            maxLimit: 50,
+        });
         const status = req.query.status;
         const searchTerm = req.query.searchTerm?.toString().trim();
 

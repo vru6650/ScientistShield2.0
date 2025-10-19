@@ -58,6 +58,10 @@ const postSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+postSchema.index({ category: 1, updatedAt: -1 });
+postSchema.index({ userId: 1, updatedAt: -1 });
+postSchema.index({ createdAt: -1 });
+
 const Post = mongoose.model('Post', postSchema);
 
 export default Post;

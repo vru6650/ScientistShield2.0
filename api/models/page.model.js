@@ -67,6 +67,10 @@ const pageSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+pageSchema.index({ status: 1, updatedAt: -1 });
+pageSchema.index({ createdBy: 1, updatedAt: -1 });
+pageSchema.index({ publishedAt: -1 });
+
 const Page = mongoose.model('Page', pageSchema);
 
 export default Page;

@@ -61,6 +61,10 @@ const quizSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+quizSchema.index({ category: 1, updatedAt: -1 });
+quizSchema.index({ relatedTutorials: 1, updatedAt: -1 });
+quizSchema.index({ createdAt: -1 });
+
 const Quiz = mongoose.model('Quiz', quizSchema);
 
 export default Quiz;

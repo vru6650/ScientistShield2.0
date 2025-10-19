@@ -208,6 +208,12 @@ const problemSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+problemSchema.index({ difficulty: 1, updatedAt: -1 });
+problemSchema.index({ isPublished: 1, updatedAt: -1 });
+problemSchema.index({ topics: 1, updatedAt: -1 });
+problemSchema.index({ tags: 1, updatedAt: -1 });
+problemSchema.index({ companies: 1, updatedAt: -1 });
+
 const Problem = mongoose.model('Problem', problemSchema);
 
 export default Problem;

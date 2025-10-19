@@ -2,7 +2,7 @@
 
 ![Node.js](https://img.shields.io/badge/node-%3E%3D18.0-brightgreen) ![MongoDB](https://img.shields.io/badge/MongoDB-6.x-green) ![License](https://img.shields.io/badge/license-MIT-blue) ![Build](https://img.shields.io/badge/build-Vite%20%2B%20Express-orange)
 
-ScientistShield 2.0 is a modern MERN knowledge platform that bundles tutorials, quizzes, problems, search, and safe multi‑language code runners into a single learning experience. The project ships with a production-ready Express backend, a Vite + React frontend, and optional Elasticsearch integration for full‑text search.
+ScientistShield 2.0 is a modern MERN knowledge platform that bundles tutorials, quizzes, problems, search, and safe multi‑language code runners into a single learning experience. The project ships with a production-ready Express backend, a Vite + React frontend, and optional Elasticsearch integration for full‑text search. A macOS-inspired desktop workspace with Stage Manager keeps admin tools, readers, and utilities organized across sessions.
 
 ---
 
@@ -28,6 +28,7 @@ ScientistShield 2.0 is a modern MERN knowledge platform that bundles tutorials, 
 - **Safe Execution** – Sandbox endpoints for JavaScript, Python, C/C++, Java, and C# with defensive timeouts and helpful failure messages.
 - **Authentication** – JWT + cookie sessions, role‑based routes, and secure API middlewares.
 - **Operations Ready** – Production build script, shared logger, centralized error handler, and environment driven configuration.
+- **Desktop Workspace** – Persistent Stage Manager scenes, Mission Control, and dock controls for a macOS-like productivity flow.
 
 ## Architecture
 ```
@@ -190,6 +191,7 @@ The client UI adopts a WhiteSur (macOS Big Sur) inspired theme featuring frosted
   - Reset with `localStorage.removeItem('iconPack'); location.reload();`
 - The header features macOS-style window controls. Glass surfaces use the `glass-effect` utility to adapt across light/dark modes.
 - The PWA manifest `theme_color` matches the accent color for cohesive installations.
+- Use the dock's **Stage Manager** control to toggle curated window groups. State persists via `localStorage` (`scientistshield.desktop.stageManager.v1`) and broadcasts across components so the desktop and dock stay in sync.
 
 ---
 

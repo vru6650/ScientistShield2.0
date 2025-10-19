@@ -1,6 +1,7 @@
 import Post from '../models/post.model.js';
 import { errorHandler } from '../utils/error.js';
 import { generateSlug } from '../utils/slug.js';
+import { normalizePagination } from '../utils/pagination.js';
 import { indexSearchDocument, removeSearchDocument } from '../services/search.service.js';
 
 // --- CREATE, DELETEPOST, UPDATEPOST functions are here ---
@@ -13,7 +14,7 @@ export const create = async (req, res, next) => {
   if (!req.body.title || !req.body.content) {
     return next(errorHandler(400, 'Please provide all required fields'));
   }
-  const slug = generateSlug(req.body.title);
+  const slug = generateSlug(String(req.body.title));
   const newPost = new Post({
     ...req.body,
     slug,
@@ -29,64 +30,60 @@ export const create = async (req, res, next) => {
 };
 
 export const getposts = async (req, res, next) => {
-  try {
-    const startIndex = parseInt(req.query.startIndex) || 0;
-    const limit = parseInt(req.query.limit) || 9;
+    try {
+        const { startIndex, limit } = normalizePagination(req.query, {
+            defaultLimit: 9,
+            maxLimit: 50,
+        });
 
-    // Determine sort direction: 1 for 'asc', -1 for 'desc'
-    const sortDirection = req.query.order === 'asc' ? 1 : -1;
+        // Determine sort direction: 1 for 'asc', -1 for 'desc'
+        const sortDirection = req.query.order === 'asc' ? 1 : -1;
 
-    // Determine the field to sort by
-    // Default to 'updatedAt' if no 'sort' parameter is provided
-    const sortBy = req.query.sort || 'updatedAt';
+        // Determine the field to sort by (defaults to updatedAt)
+        const sortBy = req.query.sort || 'updatedAt';
 
-    // Construct the sort object
-    // If sorting by claps, we typically want the highest claps first (descending)
-    // For other fields like updatedAt or createdAt, use the specified sortDirection
-    let sortOptions = {};
-    if (sortBy === 'claps') {
-      sortOptions.claps = -1; // Always sort claps in descending order (most claps first)
-    } else {
-      sortOptions[sortBy] = sortDirection;
+        // Construct the sort object
+        const sortOptions = sortBy === 'claps' ? { claps: -1 } : { [sortBy]: sortDirection };
+
+        const filters = {
+            ...(req.query.userId && { userId: req.query.userId }),
+            ...(req.query.category && { category: req.query.category }),
+            ...(req.query.slug && { slug: req.query.slug }),
+            ...(req.query.postId && { _id: req.query.postId }),
+            ...(req.query.searchTerm && {
+                $or: [
+                    { title: { $regex: req.query.searchTerm, $options: 'i' } },
+                    { content: { $regex: req.query.searchTerm, $options: 'i' } },
+                ],
+            }),
+        };
+
+        const now = new Date();
+        const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+
+        const postsQuery = Post.find(filters)
+            .sort(sortOptions)
+            .skip(startIndex)
+            .limit(limit)
+            .lean();
+
+        const [posts, totalPosts, lastMonthPosts] = await Promise.all([
+            postsQuery,
+            Post.countDocuments(filters),
+            Post.countDocuments({
+                ...filters,
+                createdAt: { $gte: oneMonthAgo },
+            }),
+        ]);
+
+        res.status(200).json({
+            posts,
+            totalPosts,
+            lastMonthPosts,
+        });
+    } catch (error) {
+        next(error);
     }
-
-    const posts = await Post.find({
-      // Existing query conditions remain the same
-      ...(req.query.userId && { userId: req.query.userId }),
-      ...(req.query.category && { category: req.query.category }),
-      ...(req.query.slug && { slug: req.query.slug }),
-      ...(req.query.postId && { _id: req.query.postId }),
-      ...(req.query.searchTerm && {
-        $or: [
-          { title: { $regex: req.query.searchTerm, $options: 'i' } },
-          { content: { $regex: req.query.searchTerm, $options: 'i' } },
-        ],
-      }),
-    })
-        .sort(sortOptions) // Apply the dynamic sort options
-        .skip(startIndex)
-        .limit(limit);
-
-    const totalPosts = await Post.countDocuments();
-
-    const now = new Date();
-    const oneMonthAgo = new Date(
-        now.getFullYear(),
-        now.getMonth() - 1,
-        now.getDate()
-    );
-    const lastMonthPosts = await Post.countDocuments({
-      createdAt: { $gte: oneMonthAgo },
-    });
-
-    res.status(200).json({
-      posts,
-      totalPosts,
-      lastMonthPosts,
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
 export const deletepost = async (req, res, next) => {
@@ -107,7 +104,7 @@ export const updatepost = async (req, res, next) => {
     return next(errorHandler(403, 'You are not allowed to update this post'));
   }
   try {
-    const slug = req.body.title ? generateSlug(req.body.title) : undefined;
+    const slug = req.body.title ? generateSlug(String(req.body.title)) : undefined;
 
     const updatedPost = await Post.findByIdAndUpdate(
         req.params.postId,
