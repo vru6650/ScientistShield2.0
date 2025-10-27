@@ -21,6 +21,7 @@ import InteractiveCodeBlock from '../components/InteractiveCodeBlock.jsx';
 import InteractiveReadingSurface from '../components/InteractiveReadingSurface.jsx';
 import ReadingControlCenter from '../components/ReadingControlCenter';
 import useReadingSettings from '../hooks/useReadingSettings';
+import { apiFetch } from '../utils/apiFetch';
 
 import '../Tiptap.css';
 import '../pages/Scrollbar.css';
@@ -314,7 +315,7 @@ export default function SingleTutorialPage() {
         if (!currentUser) { navigate('/sign-in'); return; }
         if (isCompleted) return;
         try {
-            const res = await fetch(`/api/tutorial/complete/${tutorial._id}/${activeChapter._id}`, {
+            const res = await apiFetch(`/api/tutorial/complete/${tutorial._id}/${activeChapter._id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

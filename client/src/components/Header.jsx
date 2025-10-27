@@ -9,7 +9,7 @@ import { useEffect, useState, useRef } from 'react';
 import { signoutSuccess } from '../redux/user/userSlice';
 import CommandMenu from './CommandMenu';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
-import ControlCenter from './ControlCenter';
+import { apiFetch } from '../utils/apiFetch';
 
 // No nav links — header shows only logo and profile
 
@@ -77,7 +77,7 @@ export default function Header() {
   const handleSignout = async () => {
     setIsSigningOut(true);
     try {
-      await fetch('/api/user/signout', { method: 'POST' });
+      await apiFetch('/api/user/signout', { method: 'POST' });
       dispatch(signoutSuccess());
     } catch (error) {
       console.log(error.message);
@@ -181,8 +181,6 @@ export default function Header() {
                     ⌘K
                   </span>
                 </button>
-                {/* Control Center trigger */}
-                <ControlCenter onOpenCommandMenu={() => setIsCommandMenuOpen(true)} />
                 {currentUser ? (
                     <div className="relative" ref={profileRef}>
                         <button

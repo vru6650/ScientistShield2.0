@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
+import { apiFetch } from '../utils/apiFetch';
 
 // API function to bookmark/unbookmark a post
 const bookmarkPost = async (postId, token) => {
@@ -12,10 +13,9 @@ const bookmarkPost = async (postId, token) => {
         headers.Authorization = `Bearer ${token}`;
     }
 
-    const res = await fetch(`/api/post/${postId}/bookmark`, {
+    const res = await apiFetch(`/api/post/${postId}/bookmark`, {
         method: 'PUT',
         headers,
-        credentials: 'include',
     });
     if (!res.ok) {
         const errorData = await res.json();

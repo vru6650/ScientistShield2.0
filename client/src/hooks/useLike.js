@@ -1,92 +1,148 @@
-import { useState, useEffect } from 'react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { togglePostClap } from '../services/postService';
 
-const toggleLikeStatus = async (postId) => {
-    const res = await fetch(`/api/post/clap/${postId}`, {
-        method: 'PUT',
-    });
-
-    if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to update like status.');
+const normalizeIds = (values) => {
+    if (!Array.isArray(values)) {
+        return [];
     }
-
-    return res.json();
+    return values.map((value) => value?.toString()).filter(Boolean);
 };
 
-export const useLike = (initialLikes, initialIsLiked, postId) => {
-    const queryClient = useQueryClient();
+const toSafeCount = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+export const useLike = ({ postId, initialClaps = 0, initialClappedBy = [] }) => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { currentUser } = useSelector((state) => state.user);
+    const currentUserId = currentUser?._id ?? null;
 
-    const [likeCount, setLikeCount] = useState(initialLikes || 0);
-    const [isLiked, setIsLiked] = useState(!!initialIsLiked);
+    const normalizedClappedBy = useMemo(
+        () => normalizeIds(initialClappedBy),
+        [initialClappedBy],
+    );
+
+    const [likeCount, setLikeCount] = useState(toSafeCount(initialClaps));
+    const [isLiked, setIsLiked] = useState(
+        currentUserId ? normalizedClappedBy.includes(currentUserId) : false,
+    );
 
     useEffect(() => {
-        setLikeCount(initialLikes || 0);
-    }, [initialLikes]);
+        setLikeCount(toSafeCount(initialClaps));
+    }, [initialClaps]);
 
     useEffect(() => {
-        setIsLiked(!!initialIsLiked);
-    }, [initialIsLiked]);
+        if (!postId || !currentUserId) {
+            setIsLiked(false);
+            return;
+        }
+        setIsLiked(normalizedClappedBy.includes(currentUserId));
+    }, [normalizedClappedBy, currentUserId, postId]);
 
-    const { mutate, isLoading } = useMutation({
-        mutationFn: () => {
-            if (!currentUser) {
-                navigate('/sign-in');
-                return Promise.reject(new Error('You must be logged in to like a post.'));
+    const {
+        mutate,
+        isLoading,
+    } = useMutation({
+        mutationFn: togglePostClap,
+        onMutate: async (targetPostId) => {
+            if (!targetPostId || !currentUserId) {
+                return undefined;
             }
-            return toggleLikeStatus(postId);
-        },
-        onMutate: async () => {
-            await queryClient.cancelQueries({ queryKey: ['post', postId] });
-            const previousPost = queryClient.getQueryData(['post', postId]);
+
+            await queryClient.cancelQueries({ queryKey: ['post', targetPostId] });
+            const previousPost = queryClient.getQueryData(['post', targetPostId]);
 
             const previousLikeCount = likeCount;
             const previousIsLiked = isLiked;
-
             const optimisticIsLiked = !previousIsLiked;
-            const optimisticLikeCount = previousLikeCount + (optimisticIsLiked ? 1 : -1);
+
+            const optimisticLikeCount = Math.max(
+                0,
+                previousLikeCount + (optimisticIsLiked ? 1 : -1),
+            );
 
             setIsLiked(optimisticIsLiked);
             setLikeCount(optimisticLikeCount);
 
-            queryClient.setQueryData(['post', postId], (oldData) => {
-                if (!oldData) return;
+            queryClient.setQueryData(['post', targetPostId], (oldData) => {
+                if (!oldData) {
+                    return oldData;
+                }
+
+                const existing = normalizeIds(oldData.clappedBy);
+
+                const updatedClappedBy = optimisticIsLiked
+                    ? Array.from(new Set([...existing, currentUserId]))
+                    : existing.filter((id) => id !== currentUserId);
+
                 return {
                     ...oldData,
                     claps: optimisticLikeCount,
-                    clappedBy: optimisticIsLiked
-                        ? [...(oldData.clappedBy || []), currentUser._id]
-                        : (oldData.clappedBy || []).filter(id => id !== currentUser._id),
+                    clappedBy: updatedClappedBy,
                 };
             });
 
-            return { previousPost, previousLikeCount, previousIsLiked };
+            return {
+                targetPostId,
+                previousPost,
+                previousLikeCount,
+                previousIsLiked,
+            };
         },
-        onError: (err, _variables, context) => {
-            queryClient.setQueryData(['post', postId], context.previousPost);
-            setLikeCount(context.previousLikeCount);
-            setIsLiked(context.previousIsLiked);
-            console.error(err);
+        onError: (error, _variables, context) => {
+            if (context?.targetPostId) {
+                queryClient.setQueryData(['post', context.targetPostId], context.previousPost);
+            }
+            if (typeof context?.previousLikeCount === 'number') {
+                setLikeCount(context.previousLikeCount);
+            }
+            setIsLiked(Boolean(context?.previousIsLiked));
+            console.error(error);
         },
         onSuccess: (data) => {
-            if (!data) return;
-            setLikeCount(data.claps || 0);
-            setIsLiked(data.clappedBy?.includes(currentUser?._id) || false);
+            if (!data) {
+                return;
+            }
+            setLikeCount(toSafeCount(data.claps));
+
+            if (currentUserId) {
+                setIsLiked(normalizeIds(data.clappedBy).includes(currentUserId));
+            } else {
+                setIsLiked(false);
+            }
         },
-        onSettled: () => {
+        onSettled: (_data, _error, targetPostId) => {
+            if (!targetPostId) {
+                return;
+            }
             queryClient.invalidateQueries({ queryKey: ['posts'] });
-            queryClient.invalidateQueries({ queryKey: ['post', postId] });
+            queryClient.invalidateQueries({ queryKey: ['post', targetPostId] });
         },
     });
+
+    const handleLike = useCallback(() => {
+        if (!postId) {
+            console.warn('Cannot toggle claps without a post identifier.');
+            return;
+        }
+
+        if (!currentUser) {
+            navigate('/sign-in');
+            return;
+        }
+
+        mutate(postId);
+    }, [postId, currentUser, navigate, mutate]);
 
     return {
         likeCount,
         isLiked,
         isLoading,
-        handleLike: mutate
+        handleLike,
     };
 };

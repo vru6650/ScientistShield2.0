@@ -10,6 +10,7 @@ import { useCloudinaryUpload } from '../hooks/useCloudinaryUpload';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import parse from 'html-react-parser';
+import { apiFetch } from '../utils/apiFetch';
 
 const DRAFT_KEY = 'postDraft';
 
@@ -142,7 +143,7 @@ export default function CreatePost() {
     }
     dispatch({ type: 'PUBLISH_START' });
     try {
-      const res = await fetch('/api/post/create', {
+      const res = await apiFetch('/api/post/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(state.formData),

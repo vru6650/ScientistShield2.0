@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { Tooltip, Spinner } from 'flowbite-react';
-import moment from 'moment';
+import { formatRelativeTimeFromNow, isWithinPastHours } from '../utils/date.js';
 
 // --- Icon and Hook Imports ---
 import {
@@ -552,19 +552,19 @@ CardInsightPanel.propTypes = {
     formattedCategory: PropTypes.string.isRequired,
 };
 
-const CardBody = ({ post, likeCount, authorUsername }) => {
-    const { previewText, wordCount, readingMinutes, readingLabel } = useMemo(
-        () => buildPostInsights(post.content, post.title),
-        [post.content, post.title]
-    );
-    const safeCaption = previewText || 'Untitled post';
-    const likeTotal = Number.isFinite(likeCount) ? likeCount : 0;
+const CardBody = ({
+    post,
+    authorUsername,
+    insights,
+    likeTotal,
+    publishedLabel,
+    isTrending,
+    isFresh,
+    formattedCategory,
+}) => {
+    const safeCaption = insights.previewText || 'Untitled post';
     const hasSlug = Boolean(post?.slug);
-    const publishedLabel = post?.createdAt ? moment(post.createdAt).fromNow() : 'Recently';
     const showMoreLink = (safeCaption.endsWith('…') || safeCaption.endsWith('...')) && hasSlug;
-    const formattedCategory = formatCategory(post?.category);
-    const isTrending = likeTotal >= 50;
-    const isFresh = post?.createdAt ? moment().diff(moment(post.createdAt), 'hours') <= 48 : false;
 
     return (
         <div className="px-3 pb-3 text-sm text-gray-800 dark:text-gray-200">
@@ -585,9 +585,9 @@ const CardBody = ({ post, likeCount, authorUsername }) => {
                 </div>
 
                 <CardInsightPanel
-                    readingMinutes={readingMinutes}
-                    readingLabel={readingLabel}
-                    wordCount={wordCount}
+                    readingMinutes={insights.readingMinutes}
+                    readingLabel={insights.readingLabel}
+                    wordCount={insights.wordCount}
                     likeTotal={likeTotal}
                     isTrending={isTrending}
                     isFresh={isFresh}
@@ -618,14 +618,32 @@ const CardBody = ({ post, likeCount, authorUsername }) => {
                     </span>
                     <span className="inline-flex items-center gap-2">
                         <FaBookOpen aria-hidden className="text-base" />
-                        {readingMinutes > 0 ? `${readingMinutes} min journey` : 'Skim friendly'}
+                        {insights.readingMinutes > 0 ? `${insights.readingMinutes} min journey` : 'Skim friendly'}
                     </span>
                 </div>
             </div>
         </div>
     );
 };
-CardBody.propTypes = { post: PropTypes.object.isRequired, likeCount: PropTypes.number, authorUsername: PropTypes.string };
+CardBody.propTypes = {
+    post: PropTypes.object.isRequired,
+    authorUsername: PropTypes.string,
+    insights: PropTypes.shape({
+        previewText: PropTypes.string.isRequired,
+        wordCount: PropTypes.number.isRequired,
+        readingMinutes: PropTypes.number.isRequired,
+        readingLabel: PropTypes.string.isRequired,
+    }).isRequired,
+    likeTotal: PropTypes.number.isRequired,
+    publishedLabel: PropTypes.string.isRequired,
+    isTrending: PropTypes.bool.isRequired,
+    isFresh: PropTypes.bool.isRequired,
+    formattedCategory: PropTypes.string.isRequired,
+};
+
+CardBody.defaultProps = {
+    authorUsername: '...'
+};
 
 
 
@@ -657,19 +675,22 @@ export default function PostCard({ post }) {
         setShareTooltip(post?.slug ? 'Share' : 'Link unavailable');
     }, [post?.slug]);
 
-    const scheduleShareTooltipReset = () => {
+    const postSlug = post?.slug ?? null;
+    const shareResetLabel = postSlug ? 'Share' : 'Link unavailable';
+
+    const scheduleShareTooltipReset = useCallback(() => {
         if (shareResetTimeoutRef.current) {
             clearTimeout(shareResetTimeoutRef.current);
         }
-        shareResetTimeoutRef.current = setTimeout(() => setShareTooltip(post?.slug ? 'Share' : 'Link unavailable'), 2000);
-    };
+        shareResetTimeoutRef.current = setTimeout(() => setShareTooltip(shareResetLabel), 2000);
+    }, [shareResetLabel]);
 
-    const updateShareTooltip = (message) => {
+    const updateShareTooltip = useCallback((message) => {
         setShareTooltip(message);
         scheduleShareTooltipReset();
-    };
+    }, [scheduleShareTooltipReset]);
 
-    const copyToClipboard = async (text) => {
+    const copyToClipboard = useCallback(async (text) => {
         if (!text) return false;
         try {
             if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -697,28 +718,32 @@ export default function PostCard({ post }) {
             console.error('Clipboard copy via execCommand failed:', error);
             return false;
         }
-    };
+    }, []);
 
     const postId = post?._id;
     const canInteractWithPost = Boolean(postId);
-    const { likeCount, isLiked, isLoading: isLikeLoading, handleLike } = useLike(post.claps || 0, post.clappedBy?.includes(currentUser?._id), postId);
+    const { likeCount, isLiked, isLoading: isLikeLoading, handleLike } = useLike({
+        postId,
+        initialClaps: post?.claps ?? 0,
+        initialClappedBy: post?.clappedBy ?? [],
+    });
     const { isBookmarked, isLoading: isBookmarkLoading, handleBookmark } = useBookmark(post.bookmarkedBy?.includes(currentUser?._id), postId);
 
-    const handleActionClick = (e, actionHandler) => {
+    const handleActionClick = useCallback((e, actionHandler) => {
         e.preventDefault();
         e.stopPropagation();
         if (!canInteractWithPost) { return; }
         if (!currentUser) { navigate('/sign-in'); return; }
         actionHandler();
-    };
+    }, [canInteractWithPost, currentUser, navigate]);
 
-    const handleCardClick = (event) => {
+    const handleCardClick = useCallback((event) => {
         if (event?.defaultPrevented) return;
 
         const interactiveElement = event?.target?.closest('button, a, input, textarea, select, label');
         if (interactiveElement) return;
 
-        if (!post?.slug) return;
+        if (!postSlug) return;
 
         if (navigationTimeoutRef.current) {
             clearTimeout(navigationTimeoutRef.current);
@@ -726,11 +751,13 @@ export default function PostCard({ post }) {
 
         navigationTimeoutRef.current = setTimeout(() => {
             navigationTimeoutRef.current = null;
-            navigate(`/post/${post.slug}`);
+            if (postSlug) {
+                navigate(`/post/${postSlug}`);
+            }
         }, 180);
-    };
+    }, [navigate, postSlug]);
 
-    const handleMediaDoubleClick = (e) => {
+    const handleMediaDoubleClick = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -746,19 +773,29 @@ export default function PostCard({ post }) {
             setShowLikeHeart(true);
             setTimeout(() => setShowLikeHeart(false), 800);
         }
-    };
+    }, [canInteractWithPost, currentUser, handleLike, isLiked, navigate]);
 
-    const handleShareClick = async (e) => {
+    const shareUrl = useMemo(() => {
+        if (!postSlug || typeof window === 'undefined') {
+            return '';
+        }
+        return `${window.location.origin}/post/${postSlug}`;
+    }, [postSlug]);
+
+    const shareData = useMemo(() => ({
+        title: post.title,
+        text: post.title,
+        url: shareUrl,
+    }), [post.title, shareUrl]);
+
+    const handleShareClick = useCallback(async (e) => {
         e.preventDefault();
         e.stopPropagation();
 
-        if (!post?.slug) {
+        if (!postSlug || !shareData.url) {
             updateShareTooltip('Link unavailable');
             return;
         }
-
-        const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${post.slug}` : '';
-        const shareData = { title: post.title, text: post.title, url: shareUrl };
 
         if (typeof navigator !== 'undefined' && navigator.share) {
             try {
@@ -776,13 +813,27 @@ export default function PostCard({ post }) {
 
         const copied = await copyToClipboard(shareData.url);
         updateShareTooltip(copied ? 'Link copied!' : 'Copy failed');
-    };
+    }, [copyToClipboard, shareData, postSlug, updateShareTooltip]);
 
-    // Compute quick insights for media overlays and badges
-    const insights = useMemo(() => buildPostInsights(post.content, post.title), [post.content, post.title]);
-    const likeTotal = Number.isFinite(likeCount) ? likeCount : 0;
-    const isTrending = likeTotal >= 50;
-    const isFresh = post?.createdAt ? moment().diff(moment(post.createdAt), 'hours') <= 48 : false;
+    const insights = useMemo(
+        () => buildPostInsights(post.content, post.title),
+        [post.content, post.title],
+    );
+    const likeTotal = useMemo(() => (Number.isFinite(likeCount) ? likeCount : 0), [likeCount]);
+    const isTrending = useMemo(() => likeTotal >= 50, [likeTotal]);
+    const createdAtValue = post?.createdAt ?? null;
+    const publishedLabel = useMemo(
+        () => formatRelativeTimeFromNow(createdAtValue),
+        [createdAtValue],
+    );
+    const isFresh = useMemo(
+        () => isWithinPastHours(createdAtValue, 48),
+        [createdAtValue],
+    );
+    const formattedCategory = useMemo(
+        () => formatCategory(post?.category),
+        [post?.category],
+    );
 
     return (
         <motion.div
@@ -835,8 +886,13 @@ export default function PostCard({ post }) {
 
                 <CardBody
                     post={post}
-                    likeCount={likeCount}
                     authorUsername={author?.username || '...'}
+                    insights={insights}
+                    likeTotal={likeTotal}
+                    publishedLabel={publishedLabel}
+                    isTrending={isTrending}
+                    isFresh={isFresh}
+                    formattedCategory={formattedCategory}
                 />
             </div>
         </motion.div>

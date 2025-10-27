@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { useCloudinaryUpload } from '../hooks/useCloudinaryUpload';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
+import { apiFetch } from '../utils/apiFetch';
 
 // Import Redux actions
 import {
@@ -89,7 +90,7 @@ export default function DashProfile() {
 
     try {
       dispatch(updateStart());
-      const res = await fetch(`/api/user/update/${currentUser._id}`, {
+      const res = await apiFetch(`/api/user/update/${currentUser._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -114,7 +115,7 @@ export default function DashProfile() {
     setShowModal(false);
     try {
       dispatch(deleteUserStart());
-      const res = await fetch(`/api/user/delete/${currentUser._id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/user/delete/${currentUser._id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) {
         dispatch(deleteUserFailure(data.message));
@@ -130,7 +131,7 @@ export default function DashProfile() {
   const handleSignout = async () => {
     setIsSigningOut(true);
     try {
-      const res = await fetch('/api/user/signout', { method: 'POST' });
+      const res = await apiFetch('/api/user/signout', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) {
         console.log(data.message);

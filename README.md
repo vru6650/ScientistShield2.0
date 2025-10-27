@@ -183,6 +183,37 @@ The suite covers controllers, routes, services, and utilities using Node's built
 
 ---
 
+## Stage Manager Workspace
+Stage Manager powers the macOS-inspired desktop by keeping related windows grouped into curated “scenes” so you can jump between workflows without losing context.
+
+### Key capabilities
+- Toggle Stage Manager from the dock control or with `⌘⌥S` (`Ctrl+Alt+S` on Windows/Linux).
+- Cycle scenes via `⌘⌥→` / `⌘⌥←`, or open Mission Control with `⌘↑` to pick a window visually.
+- Scene activation restores missing utility panes and minimizes anything that does not belong, keeping the layout tidy.
+- The window shelf revives closed or staged utilities and can add them back into the active scene with one click.
+- Hot corners trigger Stage Manager (bottom-left), Mission Control, Quick Look, and Focus Mode; flick the pointer into a corner to fire the mapped action.
+
+### Default scenes
+- **Workspace** – Primary reading surface paired with the System Status utility.
+- **Creator Kit** – Main window alongside Scratchpad and Now Playing for content creation.
+- **Planning Loop** – Main window with the Action Queue for roadmap triage.
+
+Locked scenes ship with the workspace. Use **Save Current Layout** inside the Stage Manager panel to capture your own sets; every visible utility is recorded (the primary window is always included). Remove any unlocked set from the same panel and the dock will stay in sync automatically.
+
+### Persistence & data keys
+Stage Manager synchronizes state across tabs through `localStorage`:
+
+```
+scientistshield.desktop.stageManager.v1   // Scene definitions, enabled flag, active scene
+scientistshield.desktop.windowState.v2    // Window positions, sizes, z-index, focus memory
+scientistshield.desktop.hotCorners.v1     // Enabled state and per-corner actions
+scientistshield.desktop.scratchpad        // Scratchpad text content
+```
+
+Clear those keys when you need a clean slate during development or QA.
+
+---
+
 ## WhiteSur Theme
 The client UI adopts a WhiteSur (macOS Big Sur) inspired theme featuring frosted glass surfaces, rounded corners, and a signature blue accent (`#0A84FF`).
 

@@ -182,44 +182,82 @@ export const submitQuiz = async (req, res, next) => {
                 continue;
             }
 
+            const options = Array.isArray(question.options) ? question.options : [];
+            const correctOptionTexts = options
+                .filter((opt) => opt && opt.isCorrect)
+                .map((opt) => (typeof opt.text === 'string' ? opt.text : String(opt.text)))
+                .filter((text) => text !== undefined && text !== null);
+            const sortedCorrectOptions = [...correctOptionTexts].sort();
+
+            const rawCorrectAnswer = typeof question.correctAnswer === 'string' ? question.correctAnswer : '';
+            const trimmedCorrectAnswer = rawCorrectAnswer.trim();
+            const hasManualAnswer = trimmedCorrectAnswer.length > 0;
+
             let isCorrect = false;
             let feedback = '';
+            let correctAnswerForResult = null;
 
             if (question.questionType === 'mcq') {
                 // For MCQ, userAnswer should be an array of selected option texts or a single string
                 const userSelectedTexts = Array.isArray(submittedAnswer.userAnswer)
-                    ? submittedAnswer.userAnswer.sort()
-                    : [submittedAnswer.userAnswer].sort();
-                const correctOptionTexts = question.options
-                    .filter(opt => opt.isCorrect)
-                    .map(opt => opt.text)
-                    .sort();
+                    ? submittedAnswer.userAnswer
+                        .filter((value) => value !== undefined && value !== null)
+                        .map((value) => String(value))
+                    : submittedAnswer.userAnswer !== undefined && submittedAnswer.userAnswer !== null
+                        ? [String(submittedAnswer.userAnswer)]
+                        : [];
 
-                if (userSelectedTexts.length === correctOptionTexts.length &&
-                    userSelectedTexts.every((val, i) => val === correctOptionTexts[i])) {
+                const sortedUserSelections = [...userSelectedTexts].sort();
+
+                correctAnswerForResult = sortedCorrectOptions.length > 0 ? correctOptionTexts : [];
+
+                if (sortedCorrectOptions.length === 0) {
+                    feedback = 'Correct options are not configured for this question yet.';
+                } else if (
+                    sortedUserSelections.length === sortedCorrectOptions.length &&
+                    sortedUserSelections.every((val, i) => val === sortedCorrectOptions[i])
+                ) {
                     isCorrect = true;
                     feedback = 'Correct!';
                 } else {
                     feedback = `Incorrect. Correct answer(s): ${correctOptionTexts.join(', ')}.`;
                 }
             } else if (question.questionType === 'fill-in-the-blank') {
-                if (typeof submittedAnswer.userAnswer === 'string' &&
-                    submittedAnswer.userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()) {
+                correctAnswerForResult = hasManualAnswer ? trimmedCorrectAnswer : null;
+
+                if (!hasManualAnswer) {
+                    feedback = 'Incorrect. This question is not configured with an expected answer yet.';
+                } else if (
+                    typeof submittedAnswer.userAnswer === 'string' &&
+                    submittedAnswer.userAnswer.trim().toLowerCase() === trimmedCorrectAnswer.toLowerCase()
+                ) {
                     isCorrect = true;
                     feedback = 'Correct!';
                 } else {
-                    feedback = `Incorrect. Expected: "${question.correctAnswer}".`;
+                    feedback = `Incorrect. Expected: "${trimmedCorrectAnswer}".`;
                 }
             } else if (question.questionType === 'code-output') {
                 // For code-output, you'd typically run the code in a sandbox and compare output.
                 // For this example, we'll just compare the string output.
-                if (typeof submittedAnswer.userAnswer === 'string' &&
-                    submittedAnswer.userAnswer.trim() === question.correctAnswer.trim()) {
+                correctAnswerForResult = hasManualAnswer ? rawCorrectAnswer : null;
+
+                if (!hasManualAnswer) {
+                    feedback = 'Incorrect Output. This question is not configured with an expected output yet.';
+                } else if (
+                    typeof submittedAnswer.userAnswer === 'string' &&
+                    submittedAnswer.userAnswer.trim() === trimmedCorrectAnswer
+                ) {
                     isCorrect = true;
                     feedback = 'Correct Output!';
                 } else {
-                    feedback = `Incorrect Output. Expected: \n"${question.correctAnswer}"\nYour output:\n"${submittedAnswer.userAnswer}"`;
+                    feedback = `Incorrect Output. Expected: \n"${rawCorrectAnswer}"\nYour output:\n"${submittedAnswer.userAnswer ?? ''}"`;
                 }
+            } else {
+                correctAnswerForResult = hasManualAnswer
+                    ? trimmedCorrectAnswer
+                    : correctOptionTexts.length > 0
+                        ? correctOptionTexts
+                        : null;
             }
 
             if (isCorrect) {
@@ -230,7 +268,7 @@ export const submitQuiz = async (req, res, next) => {
                 questionId: question._id,
                 questionText: question.questionText,
                 userAnswer: submittedAnswer.userAnswer,
-                correctAnswer: question.correctAnswer || question.options.filter(opt => opt.isCorrect).map(opt => opt.text),
+                correctAnswer: correctAnswerForResult,
                 isCorrect,
                 explanation: question.explanation,
                 feedback,

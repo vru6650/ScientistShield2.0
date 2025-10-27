@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createQuiz } from './quiz.controller.js';
+import { createQuiz, submitQuiz } from './quiz.controller.js';
+import Quiz from '../models/quiz.model.js';
 
 const mockResponse = () => {
     const res = {};
@@ -56,4 +57,69 @@ test('createQuiz returns 400 error when questions array is empty', async () => {
         nextCalledWith.message,
         'Please provide quiz title and at least one question.'
     );
+});
+
+const createResponseDouble = () => {
+    return {
+        statusCode: 0,
+        payload: null,
+        status(code) {
+            this.statusCode = code;
+            return this;
+        },
+        json(data) {
+            this.payload = data;
+            return this;
+        },
+    };
+};
+
+test('submitQuiz returns correct answers for fill-in-the-blank questions without options array', async () => {
+    const originalFindById = Quiz.findById;
+
+    const question = {
+        _id: 'question-1',
+        questionType: 'fill-in-the-blank',
+        questionText: 'Name the JavaScript runtime used by Node.js.',
+        correctAnswer: undefined,
+        explanation: 'Node.js uses the V8 engine under the hood.',
+    };
+
+    const questions = [question];
+    questions.id = (id) => questions.find((item) => String(item._id) === String(id));
+
+    Quiz.findById = () => Promise.resolve({
+        questions,
+    });
+
+    const req = {
+        params: { quizId: 'quiz-123' },
+        body: {
+            answers: [
+                {
+                    questionId: 'question-1',
+                    userAnswer: 'v8',
+                },
+            ],
+        },
+    };
+    const res = createResponseDouble();
+
+    let forwardedError;
+    try {
+        await submitQuiz(req, res, (err) => {
+            forwardedError = err;
+        });
+    } finally {
+        Quiz.findById = originalFindById;
+    }
+
+    assert.strictEqual(forwardedError, undefined);
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(res.payload, 'Expected response payload to be set');
+    assert.strictEqual(res.payload.score, 0);
+    assert.strictEqual(res.payload.totalQuestions, 1);
+    assert.deepEqual(res.payload.results[0].correctAnswer, null);
+    assert.strictEqual(res.payload.results[0].isCorrect, false);
+    assert.match(res.payload.results[0].feedback, /not configured/i);
 });

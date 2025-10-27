@@ -633,6 +633,36 @@ button:focus-visible {
   transform: translate3d(0, -2px, 0);
 }
 
+.macos-window--dragging {
+  box-shadow:
+    var(--macos-window-shadow-focused),
+    0 42px 120px -58px rgba(15, 23, 42, 0.45);
+  cursor: grabbing !important;
+  transform: translate3d(0, -4px, 0);
+}
+
+.dark .macos-window--dragging {
+  box-shadow:
+    var(--macos-window-shadow-focused),
+    0 42px 120px -58px rgba(3, 7, 18, 0.75);
+}
+
+.macos-window--fullscreen {
+  margin: 0;
+  border-radius: 0;
+  border-width: 0;
+  box-shadow: none;
+}
+
+.macos-window--fullscreen .macos-window__content,
+.macos-window--fullscreen .macos-window__body {
+  border-radius: 0;
+}
+
+.macos-window--fullscreen .macos-window__resize {
+  display: none;
+}
+
 .macos-window__resize {
   position: absolute;
   z-index: 5;
@@ -1629,11 +1659,69 @@ button:focus-visible {
   margin-bottom: 0.5rem;
 }
 
+/* Control Center slider styling */
+input.control-slider[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+input.control-slider[type='range']::-webkit-slider-runnable-track {
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--control-fill, rgba(255, 255, 255, 0.85)) 0,
+    var(--control-fill, rgba(255, 255, 255, 0.85)) var(--control-value, 50%),
+    var(--control-track, rgba(148, 163, 184, 0.25)) var(--control-value, 50%),
+    var(--control-track, rgba(148, 163, 184, 0.25)) 100%
+  );
+}
+
+input.control-slider[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-top: -0.45rem;
+  border-radius: 9999px;
+  background-color: var(--control-thumb, #ffffff);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 10px 22px -14px rgba(15, 23, 42, 0.8);
+}
+
+input.control-slider[type='range']::-moz-range-track {
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: var(--control-track, rgba(148, 163, 184, 0.25));
+}
+
+input.control-slider[type='range']::-moz-range-progress {
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: var(--control-fill, rgba(255, 255, 255, 0.85));
+}
+
+input.control-slider[type='range']::-moz-range-thumb {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 9999px;
+  background-color: var(--control-thumb, #ffffff);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 10px 22px -14px rgba(15, 23, 42, 0.8);
+}
+
 /*
  * ========================================
  * Reading Control Center Support Styles
  * ========================================
  */
+
 
 .reading-surface {
   border-radius: 1.75rem;

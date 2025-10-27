@@ -1,53 +1,83 @@
 // src/components/ClapButton.jsx
-import { useState, useEffect } from 'react';
+import { memo } from 'react';
 import { Button } from 'flowbite-react';
 import { HiOutlineHandThumbUp } from 'react-icons/hi2';
-import { useSelector } from 'react-redux';
+import PropTypes from 'prop-types';
+import { useLike } from '../hooks/useLike';
 
-export default function ClapButton({ post }) {
-    const { currentUser } = useSelector((state) => state.user);
-    const [claps, setClaps] = useState(post.claps || 0);
-    const [isClapped, setIsClapped] = useState(false);
+const normalizeIds = (values) => {
+    if (!Array.isArray(values)) {
+        return [];
+    }
+    return values.map((value) => value?.toString()).filter(Boolean);
+};
 
-    // Check if the user has already clapped this post on component mount
-    useEffect(() => {
-        if (currentUser && post.clappedBy && post.clappedBy.includes(currentUser._id)) {
-            setIsClapped(true);
-        }
-    }, [currentUser, post.clappedBy]);
+const arraysShallowEqual = (a, b) => {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+        if (a[i] !== b[i]) return false;
+    }
+    return true;
+};
 
+function ClapButton({ postId, initialClaps = 0, initialClappedBy = [] }) {
+    if (!postId) {
+        return null;
+    }
 
-    const handleClap = async () => {
-        if (!currentUser) {
-            // Or trigger a modal to prompt login
-            alert('You must be logged in to clap!');
-            return;
-        }
-        try {
-            const res = await fetch(`/api/post/clap/${post._id}`, {
-                method: 'PUT',
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setClaps(data.claps);
-                setIsClapped(data.clappedBy.includes(currentUser._id));
-            }
-        } catch (error) {
-            console.error('Failed to clap:', error);
-        }
-    };
+    const { likeCount, isLiked, isLoading, handleLike } = useLike({
+        postId,
+        initialClaps,
+        initialClappedBy,
+    });
+
+    const clapLabel = likeCount === 1 ? '1 clap' : `${likeCount} claps`;
 
     return (
         <div className="flex items-center gap-2">
             <Button
+                type="button"
                 outline
-                gradientDuoTone='purpleToBlue'
-                onClick={handleClap}
-                className={`transition-all duration-200 ${isClapped ? 'ring-2 ring-cyan-500' : ''}`}
+                gradientDuoTone="purpleToBlue"
+                onClick={handleLike}
+                disabled={isLoading}
+                aria-pressed={isLiked}
+                aria-label={isLiked ? 'Remove clap' : 'Clap this post'}
+                className={`transition-all duration-200 ${isLiked ? 'ring-2 ring-cyan-500' : ''}`}
             >
-                <HiOutlineHandThumbUp className={`h-6 w-6 ${isClapped ? 'text-cyan-500' : ''}`} />
+                <HiOutlineHandThumbUp
+                    className={`h-6 w-6 ${isLiked ? 'text-cyan-500' : ''}`}
+                    aria-hidden="true"
+                />
             </Button>
-            <span className='text-gray-500 dark:text-gray-400'>{claps} claps</span>
+            <span className="text-gray-500 dark:text-gray-400" aria-live="polite">
+                {clapLabel}
+            </span>
         </div>
     );
 }
+
+ClapButton.propTypes = {
+    postId: PropTypes.string,
+    initialClaps: PropTypes.number,
+    initialClappedBy: PropTypes.arrayOf(
+        PropTypes.oneOfType([PropTypes.string, PropTypes.shape({})]),
+    ),
+};
+
+ClapButton.defaultProps = {
+    postId: null,
+    initialClaps: 0,
+    initialClappedBy: [],
+};
+
+const areEqual = (prevProps, nextProps) => {
+    if (prevProps.postId !== nextProps.postId) return false;
+    if (prevProps.initialClaps !== nextProps.initialClaps) return false;
+    const prevIds = normalizeIds(prevProps.initialClappedBy);
+    const nextIds = normalizeIds(nextProps.initialClappedBy);
+    return arraysShallowEqual(prevIds, nextIds);
+};
+
+export default memo(ClapButton, areEqual);

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
 import { FaCheck, FaTimes } from 'react-icons/fa';
+import { apiFetch } from '../utils/apiFetch';
 
 export default function DashComments() {
   const { currentUser } = useSelector((state) => state.user);
@@ -13,7 +14,7 @@ export default function DashComments() {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const res = await fetch(`/api/comment/getcomments`);
+        const res = await apiFetch('/api/comment/getcomments');
         const data = await res.json();
         if (res.ok) {
           setComments(data.comments);
@@ -33,9 +34,7 @@ export default function DashComments() {
   const handleShowMore = async () => {
     const startIndex = comments.length;
     try {
-      const res = await fetch(
-        `/api/comment/getcomments?startIndex=${startIndex}`
-      );
+      const res = await apiFetch(`/api/comment/getcomments?startIndex=${startIndex}`);
       const data = await res.json();
       if (res.ok) {
         setComments((prev) => [...prev, ...data.comments]);
@@ -51,12 +50,9 @@ export default function DashComments() {
   const handleDeleteComment = async () => {
     setShowModal(false);
     try {
-      const res = await fetch(
-        `/api/comment/deleteComment/${commentIdToDelete}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const res = await apiFetch(`/api/comment/deleteComment/${commentIdToDelete}`, {
+        method: 'DELETE',
+      });
       const data = await res.json();
       if (res.ok) {
         setComments((prev) =>

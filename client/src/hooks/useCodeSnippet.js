@@ -1,5 +1,6 @@
 // client/src/hooks/useCodeSnippet.js
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../utils/apiFetch';
 
 export default function useCodeSnippet(snippetId) {
     const [snippet, setSnippet] = useState(null);
@@ -16,7 +17,7 @@ export default function useCodeSnippet(snippetId) {
             setIsLoading(true);
             setError(null);
             try {
-                const res = await fetch(`/api/code-snippet/${snippetId}`);
+                const res = await apiFetch(`/api/code-snippet/${snippetId}`);
                 const data = await res.json();
                 if (!res.ok) {
                     throw new Error(data.message || 'Failed to fetch code snippet');

@@ -1,3 +1,5 @@
+import { apiFetch } from '../utils/apiFetch';
+
 export const getSearchResults = async (params = {}, options = {}) => {
     const searchParams = new URLSearchParams();
 
@@ -27,7 +29,7 @@ export const getSearchResults = async (params = {}, options = {}) => {
     const queryString = searchParams.toString();
     const url = queryString ? `/api/search?${queryString}` : '/api/search';
 
-    const res = await fetch(url, { signal: options.signal });
+    const res = await apiFetch(url, { signal: options.signal });
     if (!res.ok) {
         const { message } = await res.json().catch(() => ({ message: 'Failed to fetch search results' }));
         throw new Error(message || 'Failed to fetch search results');

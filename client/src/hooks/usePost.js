@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import { apiFetch } from '../utils/apiFetch';
 
 // --- API Fetch Function ---
 const fetchPostBySlug = async (slug) => {
-    const res = await fetch(`/api/post/getposts?slug=${slug}`);
+    const res = await apiFetch(`/api/post/getposts?slug=${slug}`);
 
     if (!res.ok) {
         const errorData = await res.json();

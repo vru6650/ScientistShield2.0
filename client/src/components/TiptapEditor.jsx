@@ -26,6 +26,7 @@ import TiptapToolbar from './TiptapToolbar';
 import { useCloudinaryUpload } from '../hooks/useCloudinaryUpload';
 import CodeSnippet from '../tiptap/CodeSnippet';
 import ColoredCodeBlock from '../tiptap/ColoredCodeBlock';
+import { apiFetch } from '../utils/apiFetch';
 
 export default function TiptapEditor({ content, onChange, placeholder }) {
     const { upload, isUploading } = useCloudinaryUpload();
@@ -140,7 +141,7 @@ export default function TiptapEditor({ content, onChange, placeholder }) {
         if (!editor) return;
 
         try {
-            const res = await fetch('/api/code-snippet/create', {
+            const res = await apiFetch('/api/code-snippet/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ html: '', css: '', js: '' }),

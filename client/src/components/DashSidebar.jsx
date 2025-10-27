@@ -15,6 +15,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { signoutSuccess } from '../redux/user/userSlice';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
+import { apiFetch } from '../utils/apiFetch';
 
 // Define sidebar links in a configuration array
 const sidebarLinks = [
@@ -47,7 +48,7 @@ export default function DashSidebar() {
   const handleSignout = async () => {
     setIsSigningOut(true);
     try {
-      await fetch('/api/user/signout', { method: 'POST' });
+      await apiFetch('/api/user/signout', { method: 'POST' });
       dispatch(signoutSuccess());
     } catch (error) {
       console.log(error.message);

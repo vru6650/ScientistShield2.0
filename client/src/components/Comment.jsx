@@ -1,11 +1,12 @@
-import moment from 'moment';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FaThumbsUp, FaEdit, FaTrashAlt } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
-import { Button, Textarea, Spinner } from 'flowbite-react';
+import { Button, Textarea } from 'flowbite-react';
 import { motion } from 'framer-motion';
 import useUser from '../hooks/useUser'; // Import our new hook
 import DeleteConfirmationModal from './DeleteConfirmationModal'; // Import our new modal
+import { formatRelativeTimeFromNow } from '../utils/date.js';
+import { apiFetch } from '../utils/apiFetch';
 
 export default function Comment({ comment, onLike, onEdit, onDelete }) {
   const { currentUser } = useSelector((state) => state.user);
@@ -24,7 +25,7 @@ export default function Comment({ comment, onLike, onEdit, onDelete }) {
 
   const handleSave = async () => {
     try {
-      const res = await fetch(`/api/comment/editComment/${comment._id}`, {
+      const res = await apiFetch(`/api/comment/editComment/${comment._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -83,7 +84,7 @@ export default function Comment({ comment, onLike, onEdit, onDelete }) {
               {user ? `@${user.username}` : 'anonymous user'}
             </span>
               <span className='text-gray-500 dark:text-gray-400 text-xs'>
-              {moment(comment.createdAt).fromNow()}
+              {formatRelativeTimeFromNow(comment.createdAt)}
             </span>
             </div>
             {isEditing ? (

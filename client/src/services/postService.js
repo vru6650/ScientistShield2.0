@@ -1,11 +1,12 @@
 // client/src/services/postService.js
+import { apiFetch } from '../utils/apiFetch';
 /**
  * A service file for post-related API calls.
  */
 
 // This function remains correct for general-purpose fetching.
 export const getPosts = async (searchQuery) => {
-    const res = await fetch(`/api/post/getposts?${searchQuery}`);
+    const res = await apiFetch(`/api/post/getposts?${searchQuery}`);
     if (!res.ok) {
         throw new Error('Failed to fetch posts');
     }
@@ -23,7 +24,7 @@ export const getPosts = async (searchQuery) => {
 export const getAdminPosts = async ({ queryKey, pageParam = 0 }) => {
     // UPDATED: Get the userId from the queryKey passed by React Query.
     const userId = queryKey[1];
-    const res = await fetch(`/api/post/getposts?userId=${userId}&startIndex=${pageParam}`);
+    const res = await apiFetch(`/api/post/getposts?userId=${userId}&startIndex=${pageParam}`);
     if (!res.ok) throw new Error('Failed to fetch admin posts');
     return res.json();
 };
@@ -37,7 +38,7 @@ export const getAdminPosts = async ({ queryKey, pageParam = 0 }) => {
  */
 export const deletePost = async ({ postId, userId }) => {
     // UPDATED: The function now accepts an object and sends both IDs to the backend.
-    const res = await fetch(`/api/post/deletepost/${postId}/${userId}`, {
+    const res = await apiFetch(`/api/post/deletepost/${postId}/${userId}`, {
         method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to delete post');
@@ -46,7 +47,7 @@ export const deletePost = async ({ postId, userId }) => {
 
 // This function is correct.
 export const getPost = async (postId) => {
-    const res = await fetch(`/api/post/getposts?postId=${postId}`);
+    const res = await apiFetch(`/api/post/getposts?postId=${postId}`);
     if (!res.ok) throw new Error('Failed to fetch post data.');
     const data = await res.json();
     // The getposts route returns an array, so we take the first element.
@@ -55,7 +56,7 @@ export const getPost = async (postId) => {
 
 // This function is correct.
 export const updatePost = async ({ postId, userId, formData }) => {
-    const res = await fetch(`/api/post/updatepost/${postId}/${userId}`, {
+    const res = await apiFetch(`/api/post/updatepost/${postId}/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -69,10 +70,30 @@ export const updatePost = async ({ postId, userId, formData }) => {
 
 // This function is correct.
 export const getRecentPosts = async () => {
-    const res = await fetch('/api/post/getposts?limit=9');
+    const res = await apiFetch('/api/post/getposts?limit=9');
     if (!res.ok) {
         throw new Error('Failed to fetch recent posts');
     }
     const data = await res.json();
     return data.posts;
+};
+
+export const togglePostClap = async (postId) => {
+    if (!postId) {
+        throw new Error('Post identifier is required to update claps.');
+    }
+
+    const response = await apiFetch(`/api/post/clap/${postId}`, {
+        method: 'PUT',
+    });
+
+    const payload = await response
+        .json()
+        .catch(() => ({ message: 'Failed to parse server response.' }));
+
+    if (!response.ok) {
+        throw new Error(payload?.message || 'Failed to update clap status.');
+    }
+
+    return payload;
 };

@@ -1,3 +1,5 @@
+import { apiFetch } from '../utils/apiFetch';
+
 /**
  * Handles the sign-in API request.
  * @param {object} formData - The user's email and password.
@@ -5,7 +7,7 @@
  * @throws {Error} - Throws an error if the network response is not ok.
  */
 export const signInUser = async (formData) => {
-    const res = await fetch('/api/auth/signin', {
+    const res = await apiFetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -31,7 +33,7 @@ export const signInUser = async (formData) => {
  * @throws {Error} - Throws an error if the network response is not ok.
  */
 export const signUpUser = async (formData) => {
-    const res = await fetch('/api/auth/signup', {
+    const res = await apiFetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -49,14 +51,14 @@ export const signUpUser = async (formData) => {
 
 
 export const getPost = async (postId) => {
-    const res = await fetch(`/api/post/getposts?postId=${postId}`);
+    const res = await apiFetch(`/api/post/getposts?postId=${postId}`);
     if (!res.ok) throw new Error('Failed to fetch post data.');
     const data = await res.json();
     return data.posts[0];
 };
 
 export const updatePost = async ({ postId, userId, formData }) => {
-    const res = await fetch(`/api/post/updatepost/${postId}/${userId}`, {
+    const res = await apiFetch(`/api/post/updatepost/${postId}/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

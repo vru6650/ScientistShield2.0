@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { apiFetch } from '../utils/apiFetch';
 
 const defaultDashboardState = Object.freeze({
     users: [],
@@ -39,16 +40,14 @@ export default function useAdminDashboardData(isEnabled) {
         setError(null);
 
         try {
-            const authRequestOptions = { credentials: 'include' };
-
             const [userRes, postRes, commentRes, pageRes, tutorialRes, quizRes, problemRes] = await Promise.all([
-                fetch('/api/user/getusers?limit=5', authRequestOptions),
-                fetch('/api/post/getposts?limit=5', authRequestOptions),
-                fetch('/api/comment/getcomments?limit=5', authRequestOptions),
-                fetch('/api/pages?limit=5', authRequestOptions),
-                fetch('/api/tutorial/gettutorials?limit=5'),
-                fetch('/api/quizzes?limit=5'),
-                fetch('/api/problems?limit=5&includeDrafts=true'),
+                apiFetch('/api/user/getusers?limit=5'),
+                apiFetch('/api/post/getposts?limit=5'),
+                apiFetch('/api/comment/getcomments?limit=5'),
+                apiFetch('/api/pages?limit=5'),
+                apiFetch('/api/tutorial/gettutorials?limit=5'),
+                apiFetch('/api/quizzes?limit=5'),
+                apiFetch('/api/problems?limit=5&includeDrafts=true'),
             ]);
 
             const [userData, postData, commentData, pageData, tutorialData, quizData, problemData] = await Promise.all([

@@ -9,6 +9,7 @@ import ImageViewer from 'react-simple-image-viewer';
 import { Helmet } from 'react-helmet-async';
 import { FaClock, FaBookOpen, FaCalendarAlt, FaArrowRight, FaCommentDots, FaChevronUp, FaChevronLeft, FaChevronRight, FaLink, FaPrint, FaQuestionCircle } from 'react-icons/fa';
 import { HiOutlineSparkles } from 'react-icons/hi';
+import { apiFetch } from '../utils/apiFetch';
 
 // --- Component Imports ---
 import CommentSection from '../components/CommentSection';
@@ -27,7 +28,7 @@ import '../Tiptap.css';
 
 // --- API fetching functions ---
 const fetchPostBySlug = async (postSlug) => {
-    const res = await fetch(`/api/post/getposts?slug=${postSlug}`);
+    const res = await apiFetch(`/api/post/getposts?slug=${postSlug}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to fetch post.');
     if (data.posts.length === 0) throw new Error('Post not found.');
@@ -37,7 +38,7 @@ const fetchPostBySlug = async (postSlug) => {
 const fetchRelatedPosts = async (category) => {
     if (!category) return [];
     try {
-        const res = await fetch(`/api/post/getposts?category=${category}&limit=3`);
+        const res = await apiFetch(`/api/post/getposts?category=${category}&limit=3`);
         if (!res.ok) return [];
         const data = await res.json();
         return data.posts;
@@ -519,7 +520,11 @@ export default function PostPage() {
                                 <span className='truncate text-sm font-medium text-slate-700 dark:text-slate-200'>{post.title}</span>
                             </div>
                             <div className='flex items-center gap-2'>
-                                <ClapButton post={post} />
+                                <ClapButton
+                                    postId={post._id}
+                                    initialClaps={post.claps ?? 0}
+                                    initialClappedBy={post.clappedBy ?? []}
+                                />
                                 <Tooltip content='Copy link'>
                                     <button onClick={handleCopyLink} className='rounded-full border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'>
                                         <FaLink className='h-4 w-4' />
@@ -726,7 +731,11 @@ export default function PostPage() {
 
                         <div className='flex flex-col gap-6 rounded-3xl border border-slate-200/70 bg-white/95 p-6 shadow-xl shadow-slate-200/70 backdrop-blur dark:border-white/5 dark:bg-slate-900/80 dark:shadow-slate-900/60 sm:flex-row sm:items-center sm:justify-between'>
                             <div className='flex flex-1 flex-col items-start gap-4 sm:flex-row sm:items-center'>
-                                <ClapButton post={post} />
+                                <ClapButton
+                                    postId={post._id}
+                                    initialClaps={post.claps ?? 0}
+                                    initialClappedBy={post.clappedBy ?? []}
+                                />
                                 <div className='max-w-sm text-left'>
                                     <p className='text-sm font-semibold text-slate-600 dark:text-slate-200'>Enjoying this insight?</p>
                                     <p className='text-sm text-slate-500 dark:text-slate-400'>Applaud the author and let them know this story resonated with you.</p>
@@ -835,7 +844,7 @@ export default function PostPage() {
                                 <div className='mt-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500 p-[1px]'>
                                     <div className='rounded-2xl bg-white p-5 text-center dark:bg-slate-950'>
                                         <p className='text-sm font-medium text-slate-700 dark:text-slate-200'>Adjust the reading experience to match your focus preference.</p>
-                                        <p className='mt-2 text-xs text-slate-500 dark:text-slate-400'>Use the floating control center to tweak focus mode, guide lines and contrast.</p>
+                                        <p className='mt-2 text-xs text-slate-500 dark:text-slate-400'>Use the Control Center in the header to toggle focus mode and fine-tune brightness or sound.</p>
                                     </div>
                                 </div>
                             </div>

@@ -11,6 +11,7 @@ import { SiCplusplus, SiCsharp } from 'react-icons/si';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import useCodeSnippet from '../hooks/useCodeSnippet';
+import { apiFetch } from '../utils/apiFetch';
 
 const supportedLanguages = ['javascript', 'cpp', 'python', 'java', 'csharp'];
 const storageLanguages = [...supportedLanguages, 'html', 'css'];
@@ -381,7 +382,7 @@ export default function CodeEditor({ initialCode = {}, language = 'javascript', 
         }
 
         try {
-            const res = await fetch(endpoint, {
+            const res = await apiFetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code: codes[selectedLanguage] }),

@@ -138,13 +138,16 @@ export const clapPost = async (req, res, next) => {
     }
 
     const userId = req.user.id;
-    const userIndex = post.clappedBy.indexOf(userId);
+    const userIdString = userId.toString();
+    const userIndex = post.clappedBy.findIndex(
+        (clapperId) => clapperId.toString() === userIdString
+    );
 
     if (userIndex === -1) {
       post.claps += 1;
       post.clappedBy.push(userId);
     } else {
-      post.claps -= 1;
+      post.claps = Math.max(0, post.claps - 1);
       post.clappedBy.splice(userIndex, 1);
     }
 
@@ -167,7 +170,10 @@ export const bookmarkPost = async (req, res, next) => {
     }
 
     const userId = req.user.id;
-    const userIndex = post.bookmarkedBy.indexOf(userId);
+    const userIdString = userId.toString();
+    const userIndex = post.bookmarkedBy.findIndex(
+        (bookmarkUserId) => bookmarkUserId.toString() === userIdString
+    );
 
     let isBookmarked;
 

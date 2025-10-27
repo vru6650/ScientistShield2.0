@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../utils/apiFetch';
 
 // A simple in-memory cache to store fetched user data
 const userCache = new Map();
@@ -26,7 +27,7 @@ export default function useUser(userId) {
             try {
                 setIsLoading(true);
                 setError(null);
-                const res = await fetch(`/api/user/${userId}`);
+                const res = await apiFetch(`/api/user/${userId}`);
                 const data = await res.json();
 
                 if (res.ok) {
