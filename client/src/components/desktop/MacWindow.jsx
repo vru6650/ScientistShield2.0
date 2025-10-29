@@ -32,7 +32,7 @@ function MacWindow({
         isMain,
     } = windowData;
     const isFullScreen = Boolean(windowData.isZoomed);
-    const IconComponent = iconComponentForType(type);
+    const IconComponent = windowData.iconComponent || iconComponentForType(type);
 
     const handlePointerDown = (event) => {
         if (typeof onPointerDown === 'function') {

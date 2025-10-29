@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import { Routes, useNavigate } from 'react-router-dom';
 import {
     HiOutlineAdjustmentsHorizontal,
     HiOutlineArrowsPointingOut,
@@ -14,11 +15,13 @@ import {
 } from 'react-icons/hi2';
 
 import { STAGE_MANAGER_STATE_EVENT, STAGE_MANAGER_STORAGE_KEY, STAGE_MANAGER_TOGGLE_EVENT } from '../../constants/desktop';
+import { buildRouteElements, mainLayoutRoutes } from '../../routes/mainLayoutRoutes.jsx';
 import MacWindow from './MacWindow';
 import StageManagerPanel from './StageManagerPanel.jsx';
 import StageShelf from './StageShelf.jsx';
 import WindowControlHints from './WindowControlHints.jsx';
 import { renderWindowIcon } from './windowIcons';
+import MacDock from './MacDock.jsx';
 
 const WINDOW_STORAGE_VERSION = 2;
 const WINDOW_STORAGE_KEY = 'scientistshield.desktop.windowState.v2';
@@ -67,6 +70,40 @@ const DRAG_MOMENTUM_FRAME_CLAMP = 32;
 const DRAG_POINTER_OFFSET_X = 28;
 const DRAG_POINTER_OFFSET_Y = -56;
 
+const WindowRouteFallback = () => (
+    <div className="flex h-full items-center justify-center px-6 text-center text-sm text-slate-500 dark:text-slate-400">
+        Loading workspace...
+    </div>
+);
+
+function WindowRouteRenderer({ location }) {
+    const routeElements = useMemo(() => buildRouteElements(mainLayoutRoutes), []);
+    if (!location) {
+        return <WindowRouteFallback />;
+    }
+    return (
+        <Suspense fallback={<WindowRouteFallback />}>
+            <Routes location={location}>
+                {routeElements}
+            </Routes>
+        </Suspense>
+    );
+}
+
+WindowRouteRenderer.propTypes = {
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+        search: PropTypes.string,
+        hash: PropTypes.string,
+        state: PropTypes.any,
+        key: PropTypes.string,
+    }),
+};
+
+WindowRouteRenderer.defaultProps = {
+    location: null,
+};
+
 const createDefaultHotCornerState = () => ({
     enabled: true,
     corners: { ...HOT_CORNER_DEFAULTS },
@@ -79,6 +116,171 @@ const WINDOW_TYPES = {
     STATUS: 'status',
     QUEUE: 'queue',
 };
+
+const APP_ICON_MAP = Object.freeze({
+    home: HiOutlineSquares2X2,
+    tutorials: HiOutlineSparkles,
+    quizzes: HiOutlineRectangleStack,
+    tools: HiOutlineAdjustmentsHorizontal,
+    problems: HiOutlineShieldCheck,
+    dashboard: HiOutlineViewColumns,
+    projects: HiOutlineRectangleStack,
+    search: HiOutlineSparkles,
+    about: HiOutlineSparkles,
+    admin: HiOutlineAdjustmentsHorizontal,
+    'file-manager': HiOutlineSquares2X2,
+    content: HiOutlineSparkles,
+    default: HiOutlineSquares2X2,
+});
+
+const APP_ACCENTS = Object.freeze({
+    home: 'linear-gradient(135deg, rgba(14,116,244,0.85), rgba(56,189,248,0.65))',
+    tutorials: 'linear-gradient(135deg, rgba(236,72,153,0.85), rgba(168,85,247,0.6))',
+    quizzes: 'linear-gradient(135deg, rgba(251,191,36,0.85), rgba(249,115,22,0.7))',
+    tools: 'linear-gradient(135deg, rgba(59,130,246,0.8), rgba(14,165,233,0.65))',
+    problems: 'linear-gradient(135deg, rgba(45,212,191,0.85), rgba(45,197,253,0.6))',
+    dashboard: 'linear-gradient(135deg, rgba(147,197,253,0.85), rgba(59,130,246,0.6))',
+    projects: 'linear-gradient(135deg, rgba(251,113,133,0.85), rgba(248,113,113,0.6))',
+    search: 'linear-gradient(135deg, rgba(190,242,100,0.85), rgba(59,130,246,0.55))',
+    about: 'linear-gradient(135deg, rgba(251,191,36,0.8), rgba(249,115,22,0.6))',
+    admin: 'linear-gradient(135deg, rgba(214,158,46,0.85), rgba(249,115,22,0.6))',
+    'file-manager': 'linear-gradient(135deg, rgba(96,165,250,0.85), rgba(56,189,248,0.6))',
+    content: 'linear-gradient(135deg, rgba(165,180,252,0.85), rgba(99,102,241,0.6))',
+    default: 'linear-gradient(135deg, rgba(148,163,184,0.75), rgba(203,213,225,0.55))',
+});
+
+const APP_ROUTE_CONFIG = Object.freeze([
+    { key: 'home', label: 'Home', match: (path) => path === '/' || path === '' },
+    { key: 'tutorials', label: 'Tutorials', match: (path) => path.startsWith('/tutorials') },
+    { key: 'quizzes', label: 'Quizzes', match: (path) => path.startsWith('/quizzes') },
+    { key: 'tools', label: 'Tools', match: (path) => path.startsWith('/tools') || path.startsWith('/algorithm-') || path.startsWith('/code-') },
+    { key: 'problems', label: 'Problems', match: (path) => path.startsWith('/problems') },
+    { key: 'projects', label: 'Projects', match: (path) => path.startsWith('/projects') },
+    { key: 'search', label: 'Search', match: (path) => path.startsWith('/search') },
+    { key: 'content', label: 'Content', match: (path) => path.startsWith('/content') },
+    { key: 'dashboard', label: 'Dashboard', match: (path) => path.startsWith('/dashboard') },
+    { key: 'admin', label: 'Admin', match: (path) => path.startsWith('/admin') || path.startsWith('/create-') || path.startsWith('/update-') },
+    { key: 'file-manager', label: 'File Manager', match: (path) => path.startsWith('/file-manager') },
+    { key: 'about', label: 'About', match: (path) => path.startsWith('/about') },
+    { key: 'default', label: 'Workspace', match: () => true },
+]);
+
+const APP_WINDOW_ID_PREFIX = 'app';
+
+function iconForAppKey(key) {
+    return APP_ICON_MAP[key] || APP_ICON_MAP.default;
+}
+
+function appAccentForKey(key) {
+    return APP_ACCENTS[key] || APP_ACCENTS.default;
+}
+
+function snapshotLocation(location) {
+    if (!location) return null;
+    const { pathname, search, hash, state, key } = location;
+    return {
+        pathname: pathname || '/',
+        search: search || '',
+        hash: hash || '',
+        state: state ?? null,
+        key: key || `${pathname || '/'}${search || ''}${hash || ''}`,
+    };
+}
+
+function parseStoredLocation(storedLocation, fallbackPath) {
+    if (storedLocation && typeof storedLocation === 'object') {
+        return {
+            pathname: typeof storedLocation.pathname === 'string' ? storedLocation.pathname : '/',
+            search: typeof storedLocation.search === 'string' ? storedLocation.search : '',
+            hash: typeof storedLocation.hash === 'string' ? storedLocation.hash : '',
+            state:
+                storedLocation.state !== undefined
+                    ? storedLocation.state
+                    : null,
+            key: typeof storedLocation.key === 'string' ? storedLocation.key : null,
+        };
+    }
+    if (typeof fallbackPath === 'string' && fallbackPath.length > 0) {
+        try {
+            const url = new URL(fallbackPath, 'http://localhost');
+            return {
+                pathname: url.pathname,
+                search: url.search,
+                hash: url.hash,
+                state: null,
+                key: null,
+            };
+        } catch {
+            const normalisedPath = fallbackPath.startsWith('/') ? fallbackPath : `/${fallbackPath}`;
+            return {
+                pathname: normalisedPath.replace(/\/{2,}/g, '/'),
+                search: '',
+                hash: '',
+                state: null,
+                key: null,
+            };
+        }
+    }
+    return null;
+}
+
+function serializeRouteLocation(location, fallbackPath) {
+    if (location && typeof location === 'object') {
+        let serializedState = null;
+        if (location.state !== undefined) {
+            try {
+                serializedState = JSON.parse(JSON.stringify(location.state));
+            } catch {
+                serializedState = null;
+            }
+        }
+        return {
+            pathname: location.pathname || '/',
+            search: location.search || '',
+            hash: location.hash || '',
+            state: serializedState,
+            key: location.key || null,
+        };
+    }
+    return parseStoredLocation(null, fallbackPath);
+}
+
+function slugifyAppPath(path) {
+    if (!path) return 'home';
+    return path
+        .replace(/^[#/]+/, '')
+        .replace(/[^\w]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'home';
+}
+
+function normaliseAppTitle(windowTitle, fallbackLabel) {
+    if (!windowTitle) return fallbackLabel;
+    const cleaned = windowTitle.replace(/^Scientist Shield\s*·\s*/i, '').trim();
+    return cleaned.length > 0 ? cleaned : fallbackLabel;
+}
+
+function resolveAppRouteMeta(activeLocation, windowTitle) {
+    const pathname = activeLocation?.pathname ?? '/';
+    const search = activeLocation?.search ?? '';
+    const hash = activeLocation?.hash ?? '';
+    const fullPath = `${pathname}${search}${hash}`;
+    const config =
+        APP_ROUTE_CONFIG.find((entry) => entry.match(pathname)) ||
+        APP_ROUTE_CONFIG[APP_ROUTE_CONFIG.length - 1];
+    const slug = slugifyAppPath(fullPath);
+    const id = `${APP_WINDOW_ID_PREFIX}-${slug}`;
+    const routesTitle = normaliseAppTitle(windowTitle, config.label);
+    return {
+        id,
+        type: id,
+        routeKey: config.key,
+        label: config.label,
+        title: routesTitle,
+        fullPath,
+        iconKey: config.key in APP_ICON_MAP ? config.key : 'default',
+        accent: appAccentForKey(config.key),
+    };
+}
 
 const DEFAULT_STAGE_LAYOUT_MODE = 'balanced';
 
@@ -176,7 +378,8 @@ const DEFAULT_TODOS = [
     { id: 'todo-3', label: 'Prep upcoming webinar outline', done: false },
 ];
 
-export default function MacWindowManager({ windowTitle, renderMainContent }) {
+export default function MacWindowManager({ windowTitle, renderMainContent, activeLocation }) {
+    const navigate = useNavigate();
     const stageManagerBootstrap = useMemo(() => {
         if (typeof window === 'undefined') return null;
         try {
@@ -197,6 +400,9 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
         () => sanitizeStageGroups(stageManagerBootstrap?.groups),
         [stageManagerBootstrap]
     );
+
+    const [activeAppId, setActiveAppId] = useState(null);
+    const activeAppIdRef = useRef(null);
 
     const [stageGroups, setStageGroups] = useState(initialStageGroups);
     const [stageManagerEnabled, setStageManagerEnabled] = useState(() =>
@@ -294,9 +500,134 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
     const dragPointerFrameRef = useRef(null);
     const momentumAnimationsRef = useRef({});
 
+    const upsertAppWindow = useCallback((meta, location) => {
+        if (!meta || typeof window === 'undefined') {
+            return;
+        }
+        setWindows((wins) => {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const iconComponent = iconForAppKey(meta.iconKey);
+            const routeLocation =
+                snapshotLocation(location) || parseStoredLocation(null, meta.fullPath);
+
+            let updated = wins.map((win) => {
+                if (win.isAppWindow && win.id !== meta.id) {
+                    return { ...win, isMain: false };
+                }
+                return win;
+            });
+
+            const existingIndex = updated.findIndex((win) => win.id === meta.id);
+            if (existingIndex >= 0) {
+                const existing = updated[existingIndex];
+                updated[existingIndex] = {
+                    ...existing,
+                    title: meta.title,
+                    isMain: true,
+                    minimized: false,
+                    minimizedByUser: false,
+                    isAppWindow: true,
+                    appRoutePath: meta.fullPath,
+                    appRouteKey: meta.routeKey,
+                    appIconKey: meta.iconKey,
+                    appAccent: meta.accent,
+                    routeLocation:
+                        routeLocation || existing.routeLocation || parseStoredLocation(null, meta.fullPath),
+                    iconComponent,
+                };
+            } else {
+                const nextZ = zRef.current + 1;
+                zRef.current = nextZ;
+                const created = clampWindowToViewport(
+                    {
+                        id: meta.id,
+                        type: meta.type,
+                        title: meta.title,
+                        width: Math.min(980, viewportWidth - 80),
+                        height: Math.min(700, viewportHeight - 150),
+                        x: Math.max((viewportWidth - 900) / 2, 36),
+                        y: Math.max((viewportHeight - 640) / 2 + 20, MAC_HEADER_HEIGHT + 12),
+                        z: nextZ,
+                        minimized: false,
+                        minimizedByUser: false,
+                        isZoomed: false,
+                        snapshot: null,
+                        allowClose: true,
+                        allowMinimize: true,
+                        allowZoom: true,
+                        isMain: true,
+                        isAppWindow: true,
+                        appRoutePath: meta.fullPath,
+                        appRouteKey: meta.routeKey,
+                        appIconKey: meta.iconKey,
+                        appAccent: meta.accent,
+                        routeLocation,
+                        iconComponent,
+                    },
+                    viewportWidth,
+                    viewportHeight
+                );
+                updated = [...updated, created];
+            }
+
+            updated = updated.map((win) => {
+                if (win.id === MAIN_WINDOW_ID) {
+                    return {
+                        ...win,
+                        isMain: false,
+                        minimized: true,
+                        minimizedByUser: false,
+                        title: 'Desktop Overview',
+                    };
+                }
+                return win;
+            });
+
+            return updated;
+        });
+    }, []);
+
     useEffect(() => {
         windowsRef.current = windows;
     }, [windows]);
+
+    useEffect(() => {
+        if (!activeLocation || typeof window === 'undefined') return;
+        const meta = resolveAppRouteMeta(activeLocation, windowTitle);
+        setActiveAppId(meta.id);
+        activeAppIdRef.current = meta.id;
+        upsertAppWindow(meta, activeLocation);
+    }, [activeLocation, windowTitle, upsertAppWindow]);
+
+    const appWindowSummaries = useMemo(
+        () =>
+            windows
+                .filter((win) => win.isAppWindow)
+                .map((win) => ({
+                    id: win.id,
+                    title: win.title,
+                    routePath: win.appRoutePath,
+                    iconKey: win.appIconKey,
+                    accent: win.appAccent,
+                    minimized: Boolean(win.minimized),
+                    isActive: activeAppId === win.id,
+                })),
+        [windows, activeAppId]
+    );
+
+    const appDockEntries = useMemo(
+        () =>
+            appWindowSummaries.map((summary) => ({
+                id: summary.id,
+                type: summary.id,
+                title: summary.title,
+                status: summary.isActive ? 'open' : summary.minimized ? 'minimized' : 'staged',
+                iconComponent: iconForAppKey(summary.iconKey),
+                routePath: summary.routePath,
+            })),
+        [appWindowSummaries]
+    );
 
     useEffect(() => {
         draggingWindowRef.current = draggingWindow;
@@ -1407,20 +1738,48 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
         [bringToFront, flushResizeMutation, queueResizeMutation, scheduleLayoutMemoryCapture]
     );
 
+    const navigateToWindowRoute = useCallback(
+        (win) => {
+            if (!win) return;
+            if (win.routeLocation) {
+                navigate(
+                    {
+                        pathname: win.routeLocation.pathname || '/',
+                        search: win.routeLocation.search || '',
+                        hash: win.routeLocation.hash || '',
+                    },
+                    { state: win.routeLocation.state ?? null }
+                );
+                return;
+            }
+            if (win.appRoutePath) {
+                navigate(win.appRoutePath);
+                return;
+            }
+            navigate('/');
+        },
+        [navigate]
+    );
+
     const handleFocus = useCallback(
         (id) => {
+            const snapshot = windowsRef.current;
+            const target = snapshot.find((win) => win.id === id);
+            if (target?.isAppWindow && activeAppIdRef.current !== target.id) {
+                navigateToWindowRoute(target);
+            }
             bringToFront(id);
         },
-        [bringToFront]
+        [bringToFront, navigateToWindowRoute]
     );
 
     const handleClose = useCallback((id, options = {}) => {
         const snapshot = windowsRef.current;
         const primary = snapshot.find((win) => win.id === id);
-        if (!primary || primary.isMain) return;
+        if (!primary || (primary.isMain && !primary.isAppWindow)) return;
 
         const windowsToClose = options.altKey
-            ? snapshot.filter((win) => !win.isMain)
+            ? snapshot.filter((win) => !win.isMain || win.isAppWindow)
             : [primary];
 
         if (windowsToClose.length === 0) {
@@ -1436,16 +1795,39 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
         setClosedTypes((prev) => {
             const unique = new Set(prev);
             windowsToClose.forEach((win) => {
-                if (!win.isMain) {
+                if (!win.isMain && !win.isAppWindow) {
                     unique.add(win.type);
                 }
             });
             return Array.from(unique);
         });
 
+        const closingAppIds = windowsToClose.filter((win) => win.isAppWindow).map((win) => win.id);
+        const closingActiveApp = closingAppIds.includes(activeAppIdRef.current);
+
         setWindows((wins) => wins.filter((win) => !idsToClose.has(win.id)));
+
+        if (closingAppIds.length > 0) {
+            setTimeout(() => {
+                if (!closingActiveApp) return;
+                const remainingApps = windowsRef.current.filter(
+                    (win) => win.isAppWindow && !closingAppIds.includes(win.id)
+                );
+                if (remainingApps.length > 0) {
+                    const fallback = remainingApps[0];
+                    if (fallback) {
+                        navigateToWindowRoute(fallback);
+                    }
+                } else {
+                    setActiveAppId(null);
+                    activeAppIdRef.current = null;
+                    navigate('/');
+                }
+            }, 0);
+        }
+
         announce(announcement);
-    }, [announce]);
+    }, [announce, navigate, navigateToWindowRoute]);
 
     const handleMinimize = useCallback((id, options = {}) => {
         const snapshot = windowsRef.current;
@@ -1592,35 +1974,52 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
         },
         [focusMode]
     );
-
     const restoreWindow = useCallback(
-        (type) => {
+        (identifier) => {
             setFocusMode(false);
             setWindows((wins) =>
                 wins.map((win) =>
-                    win.type === type
+                    win.id === identifier || win.type === identifier
                         ? { ...win, minimized: false, minimizedByUser: false }
                         : win
                 )
             );
-            const match = windowsRef.current.find((win) => win.type === type);
+            const match = windowsRef.current.find(
+                (win) => win.id === identifier || win.type === identifier
+            );
             if (match) {
+                if (match.isAppWindow && activeAppIdRef.current !== match.id) {
+                    navigateToWindowRoute(match);
+                }
                 bringToFront(match.id);
             }
         },
-        [bringToFront]
+        [bringToFront, navigateToWindowRoute]
+    );
+
+    const handleDockActivate = useCallback(
+        (entry) => {
+            if (!entry) return;
+            const targetId = entry.id ?? entry.type;
+            if (!targetId) return;
+            restoreWindow(targetId);
+        },
+        [restoreWindow]
     );
 
     const handleMissionControlSelect = useCallback(
         (win) => {
             if (win.minimized) {
-                restoreWindow(win.type);
+                restoreWindow(win.id);
             } else {
+                if (win.isAppWindow && activeAppIdRef.current !== win.id) {
+                    navigateToWindowRoute(win);
+                }
                 bringToFront(win.id);
             }
             setMissionControlOpen(false);
         },
-        [bringToFront, restoreWindow]
+        [bringToFront, navigateToWindowRoute, restoreWindow]
     );
 
     const toggleFocusMode = useCallback(() => {
@@ -2704,6 +3103,152 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
 
     const renderWindowContent = useCallback(
         (win) => {
+            if (win.isAppWindow) {
+                if (win.id === activeAppId && win.appRoutePath) {
+                    return renderMainContentMemo();
+                }
+                const Icon = iconForAppKey(win.appIconKey);
+                const routeLabel = win.appRouteKey
+                    ? win.appRouteKey.replace(/[-_]/g, ' ')
+                    : 'Workspace';
+                const statusLabel = win.minimized ? 'Minimized' : 'Background';
+                if (win.routeLocation) {
+                    const locationKey =
+                        (win.routeLocation.key &&
+                            `${win.id}-${win.routeLocation.key}`) ||
+                        `${win.id}-${win.routeLocation.pathname || ''}${win.routeLocation.search || ''}${win.routeLocation.hash || ''}`;
+                    return (
+                        <div className="flex h-full flex-col overflow-hidden rounded-[26px] border border-white/40 bg-white/80 shadow-inner dark:border-white/10 dark:bg-slate-900/60">
+                            <div className="flex-1 overflow-auto">
+                                <WindowRouteRenderer
+                                    key={locationKey}
+                                    location={win.routeLocation}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 border-t border-white/40 bg-white/70 px-4 py-2 text-[0.58rem] uppercase tracking-[0.32em] text-slate-500 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-400">
+                                <span className="inline-flex items-center gap-2">
+                                    <span
+                                        className="flex h-6 w-6 items-center justify-center rounded-lg text-white shadow-inner shadow-brand-500/25"
+                                        style={{ backgroundImage: win.appAccent || APP_ACCENTS.default }}
+                                    >
+                                        {Icon ? (
+                                            <Icon className="h-4 w-4" />
+                                        ) : (
+                                            <HiOutlineSparkles className="h-4 w-4" />
+                                        )}
+                                    </span>
+                                    <span className="font-semibold uppercase tracking-[0.32em] text-slate-500 dark:text-slate-300">
+                                        {routeLabel}
+                                    </span>
+                                </span>
+                                <span className="truncate text-[0.55rem] uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
+                                    {statusLabel}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                }
+                return (
+                    <div className="flex h-full flex-col justify-between rounded-[26px] bg-gradient-to-br from-white/85 via-white/75 to-white/60 p-6 dark:from-slate-900/70 dark:via-slate-900/60 dark:to-slate-900/45">
+                        <div>
+                            <div className="flex items-start gap-4">
+                                <div
+                                    className="flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-xl shadow-brand-500/30"
+                                    style={{ backgroundImage: win.appAccent || APP_ACCENTS.default }}
+                                >
+                                    {Icon ? (
+                                        <Icon className="h-7 w-7" />
+                                    ) : (
+                                        <HiOutlineSparkles className="h-7 w-7" />
+                                    )}
+                                </div>
+                                <div>
+                                    <p className="text-xs uppercase tracking-[0.32em] text-slate-400 dark:text-slate-500">
+                                        {routeLabel}
+                                    </p>
+                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                                        {win.title}
+                                    </h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                                        {win.minimized
+                                            ? 'Currently minimized. Open it to pick up where you left off.'
+                                            : 'Another workspace is active. Activate this window to continue here.'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="mt-6 rounded-2xl border border-white/50 bg-white/60 p-4 text-sm text-slate-500 shadow-inner dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
+                                Manage open apps from the Dock or Stage Manager. Click below to focus this workspace instantly.
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap justify-end gap-3 pt-4">
+                            <button
+                                type="button"
+                                onClick={() => restoreWindow(win.id)}
+                                className="inline-flex items-center gap-2 rounded-full border border-brand-300 bg-brand-500/10 px-4 py-2 text-sm font-semibold text-brand-600 transition hover:-translate-y-0.5 hover:border-brand-400 hover:bg-brand-500/20 dark:border-brand-400/40 dark:text-brand-200 dark:hover:border-brand-300/60"
+                            >
+                                Go to Workspace
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (win.id === MAIN_WINDOW_ID && appWindowSummaries.length > 0) {
+                return (
+                    <div className="flex h-full flex-col justify-between rounded-[26px] bg-gradient-to-br from-white/85 via-white/75 to-white/60 p-6 dark:from-slate-900/70 dark:via-slate-900/60 dark:to-slate-900/45">
+                        <div>
+                            <div className="flex items-baseline justify-between gap-3">
+                                <div>
+                                    <p className="text-xs uppercase tracking-[0.32em] text-slate-400 dark:text-slate-500">
+                                        Mission Control
+                                    </p>
+                                    <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+                                        Desktop Overview
+                                    </h2>
+                                </div>
+                                <span className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.32em] text-slate-500 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300">
+                                    {appWindowSummaries.length} apps
+                                </span>
+                            </div>
+                            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                                {appWindowSummaries.map((app) => {
+                                    const Icon = iconForAppKey(app.iconKey);
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={app.id}
+                                            onClick={() => restoreWindow(app.id)}
+                                            className="group flex flex-col items-start rounded-2xl border border-white/40 bg-white/70 p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-brand-300/60 hover:shadow-xl dark:border-white/10 dark:bg-slate-900/60"
+                                        >
+                                            <span
+                                                className="flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-lg shadow-brand-500/20"
+                                                style={{ backgroundImage: app.accent || APP_ACCENTS.default }}
+                                            >
+                                                {Icon ? (
+                                                    <Icon className="h-6 w-6" />
+                                                ) : (
+                                                    <HiOutlineSparkles className="h-6 w-6" />
+                                                )}
+                                            </span>
+                                            <span className="mt-4 text-sm font-semibold text-slate-700 dark:text-slate-100">
+                                                {app.title}
+                                            </span>
+                                            <span className="text-[0.58rem] uppercase tracking-[0.32em] text-slate-400 dark:text-slate-500">
+                                                {app.isActive ? 'Active' : app.minimized ? 'Minimized' : 'On Deck'}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs uppercase tracking-[0.32em] text-slate-400 dark:text-slate-500">
+                            <span>Dock · Launch / switch apps</span>
+                            <span>Stage Manager · Organize scenes</span>
+                        </div>
+                    </div>
+                );
+            }
+
             switch (win.type) {
                 case WINDOW_TYPES.MAIN:
                     return renderMainContentMemo();
@@ -2864,7 +3409,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                     return null;
             }
         },
-        [currentTrackTime, renderMainContentMemo, scratchpadText, todos]
+        [activeAppId, appWindowSummaries, currentTrackTime, renderMainContentMemo, restoreWindow, scratchpadText, todos]
     );
 
 
@@ -2920,6 +3465,11 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
             !top || current.z > top.z ? current : top
         , null);
     }, [windows]);
+
+    const openWindowCount = useMemo(
+        () => windows.filter((win) => !win.minimized).length,
+        [windows]
+    );
 
     useEffect(() => {
         focusedWindowRef.current = focusedWindow;
@@ -3239,7 +3789,13 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-lg">
-                                                    {renderWindowIcon(win.type)}
+                                                    {win.iconComponent ? (
+                                                        <win.iconComponent className="h-5 w-5" />
+                                                    ) : (
+                                                        renderWindowIcon(win.type, 'h-5 w-5') || (
+                                                            <HiOutlineSparkles className="h-5 w-5" />
+                                                        )
+                                                    )}
                                                 </span>
                                                 <div>
                                                     <p className="text-xs uppercase tracking-[0.32em] text-white/80">
@@ -3279,7 +3835,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                                                         event.stopPropagation();
                                                         setMissionControlOpen(false);
                                                         if (win.minimized) {
-                                                            restoreWindow(win.type);
+                                                            restoreWindow(win.id);
                                                         } else {
                                                             handleMinimize(win.id);
                                                         }
@@ -3343,7 +3899,13 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                             <div className="mb-4 flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
                                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/60 text-brand-600 shadow-inner dark:bg-slate-800/70 dark:text-brand-300">
-                                        {renderWindowIcon(quickLookTarget.type)}
+                                        {quickLookTarget.iconComponent ? (
+                                            <quickLookTarget.iconComponent className="h-5 w-5" />
+                                        ) : (
+                                            renderWindowIcon(quickLookTarget.type, 'h-5 w-5') || (
+                                                <HiOutlineSparkles className="h-5 w-5" />
+                                            )
+                                        )}
                                     </span>
                                     <div>
                                         <p className="text-xs uppercase tracking-[0.32em] text-slate-400 dark:text-slate-500">Quick Look</p>
@@ -3506,12 +4068,6 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                 </AnimatePresence>
             </div>
 
-            <div className="pointer-events-none fixed inset-x-0 top-[92px] z-[44] hidden lg:flex justify-center">
-                <div className="rounded-full border border-white/40 bg-white/60 px-5 py-2 text-xs font-medium text-slate-600 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-200">
-                    {focusedWindow ? `Window Manager · ${focusedWindow.title}` : 'Window Manager · Idle'}
-                </div>
-            </div>
-
             {stageShelfActive ? (
                 <StageShelf
                     entries={stageShelfEntries}
@@ -3524,6 +4080,14 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                     }
                     stageDropTarget={stageDropTarget}
                     forceExpand={Boolean(draggingWindow)}
+                />
+            ) : null}
+
+            {appDockEntries.length > 0 ? (
+                <MacDock
+                    entries={appDockEntries}
+                    focusedId={activeAppId}
+                    onActivate={handleDockActivate}
                 />
             ) : null}
 
@@ -3577,11 +4141,15 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
                     <button
                         key={win.id}
                         type="button"
-                        onClick={() => restoreWindow(win.type)}
+                        onClick={() => restoreWindow(win.id)}
                         className="flex items-center gap-3 rounded-full border border-white/40 bg-white/70 px-4 py-2 text-sm font-medium text-slate-600 shadow-lg backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-brand-300/60 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-brand-400/40"
                     >
                         <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-brand-500/20 text-brand-600 dark:text-brand-300">
-                            {renderWindowIcon(win.type)}
+                            {win.iconComponent ? (
+                                <win.iconComponent className="h-4 w-4" />
+                            ) : (
+                                renderWindowIcon(win.type, 'h-4 w-4') || <HiOutlineSparkles className="h-4 w-4" />
+                            )}
                         </span>
                         Restore {win.title}
                     </button>
@@ -3594,6 +4162,12 @@ export default function MacWindowManager({ windowTitle, renderMainContent }) {
 MacWindowManager.propTypes = {
     windowTitle: PropTypes.string.isRequired,
     renderMainContent: PropTypes.func.isRequired,
+    activeLocation: PropTypes.shape({
+        pathname: PropTypes.string.isRequired,
+        key: PropTypes.string,
+        search: PropTypes.string,
+        hash: PropTypes.string,
+    }).isRequired,
 };
 
 function buildStagePreviewLayout(groupOrTypes) {
@@ -4019,7 +4593,17 @@ function sanitizeWindowEntry(entry, viewportWidth, viewportHeight) {
         allowMinimize: entry.allowMinimize !== false,
         allowZoom: entry.allowZoom !== false,
         isMain: Boolean(entry.isMain),
+        isAppWindow: Boolean(entry.isAppWindow),
+        appRoutePath: typeof entry.appRoutePath === 'string' ? entry.appRoutePath : null,
+        appRouteKey: typeof entry.appRouteKey === 'string' ? entry.appRouteKey : null,
+        appIconKey: typeof entry.appIconKey === 'string' ? entry.appIconKey : null,
+        appAccent: typeof entry.appAccent === 'string' ? entry.appAccent : null,
+        routeLocation: parseStoredLocation(entry.routeLocation, entry.appRoutePath),
     };
+
+    if (sanitized.isAppWindow && sanitized.appIconKey) {
+        sanitized.iconComponent = iconForAppKey(sanitized.appIconKey);
+    }
 
     if (sanitized.isZoomed) {
         return expandWindowToViewport(sanitized, viewportWidth, viewportHeight);
@@ -4472,6 +5056,12 @@ function serializeWindowEntry(win) {
         allowMinimize: win.allowMinimize,
         allowZoom: win.allowZoom,
         isMain: win.isMain,
+        isAppWindow: Boolean(win.isAppWindow),
+        appRoutePath: win.appRoutePath || null,
+        appRouteKey: win.appRouteKey || null,
+        appIconKey: win.appIconKey || null,
+        appAccent: win.appAccent || null,
+        routeLocation: serializeRouteLocation(win.routeLocation, win.appRoutePath),
     };
 }
 

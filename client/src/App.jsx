@@ -1,52 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { Spinner } from 'flowbite-react';
 import 'highlight.js/styles/atom-one-dark.css';
 
-// Import layout and route protection components statically
 import MainLayout from './components/MainLayout';
-import PrivateRoute from './components/PrivateRoute';
-import OnlyAdminPrivateRoute from './components/OnlyAdminPrivateRoute';
-
-// LAZY LOAD all page components for code-splitting
-const Home = lazy(() => import('./pages/Home'));
-const About = lazy(() => import('./pages/About'));
-const SignIn = lazy(() => import('./pages/SignIn'));
-const SignUp = lazy(() => import('./pages/SignUp'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Projects = lazy(() => import('./pages/Projects'));
-const CreatePost = lazy(() => import('./pages/CreatePost'));
-const UpdatePost = lazy(() => import('./pages/UpdatePost'));
-const PostPage = lazy(() => import('./pages/PostPage'));
-const Search = lazy(() => import('./pages/Search'));
-const Tools = lazy(() => import('./pages/Tools'));
-const NotFound = lazy(() => import('./pages/NotFound'));
-
-// NEW: Lazy load tutorial-related pages
-const Tutorials = lazy(() => import('./pages/Tutorials'));
-const SingleTutorialPage = lazy(() => import('./pages/SingleTutorialPage'));
-const CreateTutorial = lazy(() => import('./pages/CreateTutorial'));
-const UpdateTutorial = lazy(() => import('./pages/UpdateTutorial'));
-
-// NEW: Lazy load quiz-related pages and components
-const CreateQuiz = lazy(() => import('./pages/CreateQuiz'));
-const SingleQuizPage = lazy(() => import('./pages/SingleQuizPage'));
-const Quizzes = lazy(() => import('./pages/Quizzes'));
-const UpdateQuiz = lazy(() => import('./pages/UpdateQuiz'));
-
-// NEW: Lazy load the Try it Yourself page
-const TryItPage = lazy(() => import('./pages/TryItPage'));
-const CreatePage = lazy(() => import('./pages/CreatePage'));
-const UpdatePage = lazy(() => import('./pages/UpdatePage'));
-const ContentPage = lazy(() => import('./pages/ContentPage'));
-const AdminPanel = lazy(() => import('./pages/AdminPanel'));
-const ProblemSolving = lazy(() => import('./pages/ProblemSolving'));
-const SingleProblemPage = lazy(() => import('./pages/SingleProblemPage'));
-const CreateProblem = lazy(() => import('./pages/CreateProblem'));
-const UpdateProblem = lazy(() => import('./pages/UpdateProblem'));
-const AlgorithmVisualizer = lazy(() => import('./pages/AlgorithmVisualizer'));
-const CodeVisualizer = lazy(() => import('./pages/CodeVisualizer'));
-const FileManager = lazy(() => import('./pages/FileManager'));
+import { authRoutes, buildRouteElements, mainLayoutRoutes } from './routes/mainLayoutRoutes.jsx';
 
 // A fallback component to show while pages are loading
 const LoadingFallback = () => (
@@ -61,62 +19,12 @@ export default function App() {
             <Suspense fallback={<LoadingFallback />}>
                 <Routes>
                     <Route path="/" element={<MainLayout />}>
-                        <Route index element={<Home />} />
-                        <Route path="about" element={<About />} />
-                        <Route path="search" element={<Search />} />
-                        <Route path="projects" element={<Projects />} />
-                        <Route path="tools" element={<Tools />} />
-                        <Route path="post/:postSlug" element={<PostPage />} />
-
-                        {/* Public Tutorial Routes */}
-                        <Route path="tutorials" element={<Tutorials />} />
-                        <Route path="tutorials/:tutorialSlug" element={<SingleTutorialPage />} />
-                        <Route path="tutorials/:tutorialSlug/:chapterSlug" element={<SingleTutorialPage />} />
-
-                        {/* Public Quiz Routes */}
-                        <Route path="quizzes" element={<Quizzes />} />
-                        <Route path="quizzes/:quizSlug" element={<SingleQuizPage />} />
-
-                        {/* Public Problem Routes */}
-                        <Route path="problems" element={<ProblemSolving />} />
-                        <Route path="problems/:problemSlug" element={<SingleProblemPage />} />
-
-                        {/* NEW: Try It Yourself Route */}
-                        <Route path="tryit" element={<TryItPage />} />
-                        <Route path="algorithm-visualizer" element={<AlgorithmVisualizer />} />
-                        <Route path="code-visualizer" element={<CodeVisualizer />} />
-                        <Route path="file-manager" element={<FileManager />} />
-                        <Route path="content/:slug" element={<ContentPage />} />
-
-                        {/* Private Routes also use the main layout */}
-                        <Route element={<PrivateRoute />}>
-                            <Route path="dashboard" element={<Dashboard />} />
-                        </Route>
-
-                        {/* Admin Routes also use the main layout */}
-                        <Route element={<OnlyAdminPrivateRoute />}>
-                            <Route path="admin" element={<AdminPanel />} />
-                            <Route path="create-post" element={<CreatePost />} />
-                            <Route path="update-post/:postId" element={<UpdatePost />} />
-                            {/* Admin Tutorial Routes */}
-                            <Route path="create-tutorial" element={<CreateTutorial />} />
-                            <Route path="update-tutorial/:tutorialId" element={<UpdateTutorial />} />
-                            {/* Admin Quiz Routes */}
-                            <Route path="create-quiz" element={<CreateQuiz />} />
-                            <Route path="update-quiz/:quizId" element={<UpdateQuiz />} />
-                            {/* Admin Content Routes */}
-                            <Route path="create-page" element={<CreatePage />} />
-                            <Route path="update-page/:pageId" element={<UpdatePage />} />
-                            {/* Admin Problem Routes */}
-                            <Route path="create-problem" element={<CreateProblem />} />
-                            <Route path="update-problem/:problemId" element={<UpdateProblem />} />
-                        </Route>
-
-                        <Route path="*" element={<NotFound />} />
+                        {buildRouteElements(mainLayoutRoutes)}
                     </Route>
 
-                    <Route path="/sign-in" element={<SignIn />} />
-                    <Route path="/sign-up" element={<SignUp />} />
+                    {authRoutes.map((route) => (
+                        <Route key={route.path} path={route.path} element={route.element} />
+                    ))}
                 </Routes>
             </Suspense>
         </BrowserRouter>

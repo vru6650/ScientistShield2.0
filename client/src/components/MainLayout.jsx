@@ -2,7 +2,6 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import Header from './Header';
 import ScrollToTop from './ScrollToTop';
 import BottomNav from './BottomNav';
 import RouteProgressBar from './RouteProgressBar.jsx';
@@ -44,7 +43,6 @@ export default function MainLayout() {
         <>
             <ScrollToTop />
             <RouteProgressBar />
-            <Header />
             {/* Veil overlay for focus dimming */}
             {effects.veil > 0 ? (
                 <div
@@ -59,12 +57,13 @@ export default function MainLayout() {
                 id="main-content"
                 role="main"
                 tabIndex={-1}
-                className="min-h-screen pt-20 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/70"
+                className="min-h-screen pt-8 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/70"
                 style={{ filter: `brightness(${effects.brightness || 1}) contrast(${effects.contrast || 1})` }}
             >
                 <MacWindowManager
                     windowTitle={windowTitle}
                     renderMainContent={renderMainContent}
+                    activeLocation={location}
                 />
             </motion.main>
             <BottomNav />

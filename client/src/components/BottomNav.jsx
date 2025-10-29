@@ -18,20 +18,20 @@ import {
 import { toggleTheme } from '../redux/theme/themeSlice';
 
 const ICON_CONTAINER_BASE =
-    'relative flex h-16 w-16 items-center justify-center rounded-[22px] transition-all duration-300 backdrop-blur-2xl will-change-transform';
+    'relative flex h-[68px] w-[68px] items-center justify-center rounded-[1.85rem] transition-all duration-300 backdrop-blur-[30px] will-change-transform';
 const ACTIVE_CLASSES =
-    'bg-white/80 shadow-[0_26px_45px_-20px_rgba(56,189,248,0.65)] ring-2 ring-white/60 dark:bg-slate-900/70 dark:ring-slate-100/20 dark:shadow-[0_26px_45px_-24px_rgba(148,163,184,0.65)]';
+    'bg-white/30 shadow-[0_30px_48px_-26px_rgba(59,130,246,0.55)] ring-2 ring-white/65 dark:bg-slate-900/75 dark:ring-slate-100/25 dark:shadow-[0_30px_48px_-26px_rgba(30,64,175,0.55)]';
 const INACTIVE_CLASSES =
-    'bg-white/40 ring-1 ring-white/45 shadow-[0_24px_40px_-22px_rgba(15,23,42,0.55)] dark:bg-slate-900/55 dark:ring-slate-100/10 dark:shadow-[0_24px_40px_-24px_rgba(15,23,42,0.65)]';
+    'bg-white/12 ring-1 ring-white/35 shadow-[0_24px_38px_-28px_rgba(15,23,42,0.55)] hover:bg-white/18 dark:bg-slate-900/55 dark:ring-slate-100/15 dark:hover:bg-slate-900/65 dark:shadow-[0_24px_38px_-28px_rgba(15,23,42,0.65)]';
 // Stronger magnification for macOS-like feel
 const DOCK_INFLUENCE_DISTANCE = 120;
 
 // Default dock settings and storage helpers
 const DEFAULT_DOCK_SETTINGS = {
-    scale: 1.0, // overall dock scale
-    influenceDistance: 120, // magnification radius
-    magnifyBoost: 0.35, // base magnification boost
-    magnifyBoostActive: 0.45, // additional boost when item is active
+    scale: 1.05, // overall dock scale
+    influenceDistance: 140, // magnification radius
+    magnifyBoost: 0.48, // base magnification boost
+    magnifyBoostActive: 0.65, // additional boost when item is active
     stackStyle: 'grid', // 'grid' or 'fan' for Recents stack
     lockReorder: false, // when true, disable drag-reorder and removal
     magnifyEnabled: true, // macOS-like magnification toggle
@@ -271,10 +271,14 @@ export default function BottomNav() {
     const isAdmin = Boolean(currentUser?.isAdmin);
 
     // Settings / preferences
-    const [settings, setSettings] = useState(() => storage.get(LS_KEYS.settings, DEFAULT_DOCK_SETTINGS));
+    const [settings, setSettings] = useState(() => {
+        const saved = storage.get(LS_KEYS.settings);
+        if (saved && typeof saved === 'object') return { ...DEFAULT_DOCK_SETTINGS, ...saved };
+        return DEFAULT_DOCK_SETTINGS;
+    });
     const updateSettings = useCallback((patch) => {
         setSettings((prev) => {
-            const merged = { ...prev, ...patch };
+            const merged = { ...DEFAULT_DOCK_SETTINGS, ...prev, ...patch };
             storage.set(LS_KEYS.settings, merged);
             return merged;
         });
@@ -284,8 +288,12 @@ export default function BottomNav() {
     useEffect(() => {
         const applyExternal = (e) => {
             try {
-                const latest = storage.get(LS_KEYS.settings, DEFAULT_DOCK_SETTINGS);
-                setSettings(latest);
+                const latest = storage.get(LS_KEYS.settings);
+                if (latest && typeof latest === 'object') {
+                    setSettings({ ...DEFAULT_DOCK_SETTINGS, ...latest });
+                } else {
+                    setSettings(DEFAULT_DOCK_SETTINGS);
+                }
             } catch {}
         };
         window.addEventListener('dock-settings-changed', applyExternal);
@@ -498,10 +506,13 @@ export default function BottomNav() {
     const getMetrics = useCallback(
         (index, isActive) => {
             const center = iconCenters[index];
+            const baseScale = isActive ? 1.18 : 0.98;
+            const restingLift = isActive ? -16 : -4;
+
             if (hoverX === null || center == null) {
                 return {
-                    scale: isActive ? 1.35 : 1,
-                    lift: isActive ? -15 : 0,
+                    scale: baseScale,
+                    lift: restingLift,
                     proximity: 0,
                     rotate: 0,
                 };
@@ -512,19 +523,18 @@ export default function BottomNav() {
             const clamped = Math.max(0, 1 - distance / radius);
             const baseBoost = isActive ? (settings.magnifyBoostActive ?? 0.45) : (settings.magnifyBoost ?? 0.35);
             const enabledBoost = settings.magnifyEnabled ? baseBoost : 0;
-            const scaleBoost = prefersReducedMotion ? Math.min(0.15, enabledBoost) : enabledBoost;
-            const scale = (isActive ? 1.2 : 1) + clamped * scaleBoost;
-            const lift = (isActive ? -10 : 0) - clamped * (prefersReducedMotion ? 12 : 26);
-            const rotate = isVertical ? 0 : (prefersReducedMotion ? 0 : (hoverX - center) / 100);
+            const scaleBoost = prefersReducedMotion ? Math.min(0.18, enabledBoost) : enabledBoost;
+            const scale = baseScale + clamped * scaleBoost;
+            const lift = restingLift - clamped * (prefersReducedMotion ? 14 : 34);
 
             return {
                 scale,
                 lift,
                 proximity: clamped,
-                rotate,
+                rotate: 0,
             };
         },
-        [hoverX, iconCenters, settings.influenceDistance, settings.magnifyBoost, settings.magnifyBoostActive, settings.magnifyEnabled, prefersReducedMotion, isVertical]
+        [hoverX, iconCenters, settings.influenceDistance, settings.magnifyBoost, settings.magnifyBoostActive, settings.magnifyEnabled, prefersReducedMotion]
     );
 
     const handleFocus = (index) => setFocusedIndex(index);
@@ -655,12 +665,12 @@ export default function BottomNav() {
     }, [dockItems, focusedIndex, focusItemAt]);
 
     const containerPositionClass = isVertical
-        ? 'fixed left-6 top-1/2 -translate-y-1/2 z-50'
-        : 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4';
+        ? 'fixed left-6 top-1/2 -translate-y-1/2 z-50 pointer-events-none'
+        : 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-5xl px-4 pointer-events-none';
 
     const containerDecorClass = isVertical
-        ? "group relative flex flex-col items-center gap-4 overflow-visible rounded-[2.5rem] border border-white/40 bg-white/30 px-4 py-6 shadow-[0_45px_90px_-40px_rgba(14,116,144,0.55)] backdrop-blur-3xl before:absolute before:left-full before:top-1/2 before:h-[78%] before:w-12 before:-translate-y-1/2 before:rounded-[999px] before:bg-white/60 before:opacity-70 before:blur-2xl before:content-[''] after:absolute after:right-8 after:top-1/2 after:h-[70%] after:w-10 after:-translate-y-1/2 after:rounded-full after:bg-cyan-500/10 after:blur-3xl after:content-[''] dark:border-slate-100/10 dark:bg-slate-900/40 dark:before:bg-slate-200/30 dark:after:bg-slate-500/20"
-        : "group relative flex items-end gap-4 overflow-visible rounded-[2.5rem] border border-white/40 bg-white/30 px-6 py-4 shadow-[0_45px_90px_-40px_rgba(14,116,144,0.55)] backdrop-blur-3xl before:absolute before:-top-6 before:left-1/2 before:h-12 before:w-[78%] before:-translate-x-1/2 before:rounded-[999px] before:bg-white/60 before:opacity-70 before:blur-2xl before:content-[''] after:absolute after:-bottom-8 after:left-1/2 after:h-10 after:w-[70%] after:-translate-x-1/2 after:rounded-full after:bg-cyan-500/10 after:blur-3xl after:content-[''] dark:border-slate-100/10 dark:bg-slate-900/40 dark:before:bg-slate-200/30 dark:after:bg-slate-500/20";
+        ? "group pointer-events-auto relative flex flex-col items-center gap-4 overflow-visible rounded-[2.75rem] border border-white/45 bg-white/25 px-5 py-6 shadow-[0_36px_78px_-34px_rgba(15,23,42,0.55)] backdrop-blur-[36px] before:absolute before:left-full before:top-1/2 before:h-[72%] before:w-12 before:-translate-y-1/2 before:rounded-[999px] before:bg-white/70 before:opacity-80 before:blur-[32px] before:content-[''] after:absolute after:right-10 after:top-1/2 after:h-[64%] after:w-12 after:-translate-y-1/2 after:rounded-full after:bg-cyan-400/25 after:opacity-60 after:blur-[36px] after:content-[''] dark:border-slate-100/10 dark:bg-slate-900/55 dark:before:bg-slate-200/25 dark:after:bg-slate-500/25"
+        : "group pointer-events-auto relative flex items-end gap-5 overflow-visible rounded-[3rem] border border-white/45 bg-white/25 px-7 py-5 shadow-[0_30px_72px_-28px_rgba(15,23,42,0.55)] backdrop-blur-[42px] before:absolute before:left-1/2 before:-top-6 before:h-9 before:w-[78%] before:-translate-x-1/2 before:rounded-[999px] before:bg-gradient-to-b before:from-white/90 before:via-white/25 before:to-transparent before:opacity-90 before:blur-[26px] before:content-[''] after:absolute after:left-1/2 after:-bottom-10 after:h-14 after:w-[84%] after:-translate-x-1/2 after:rounded-[999px] after:bg-gradient-to-t after:from-slate-900/35 after:via-slate-900/10 after:to-transparent after:opacity-70 after:blur-[38px] after:content-[''] dark:border-slate-100/10 dark:bg-slate-900/55 dark:before:from-slate-200/60 dark:before:via-slate-200/15 dark:before:to-transparent dark:after:from-slate-900/70 dark:after:via-slate-900/35 dark:after:to-transparent";
 
     return (
         <nav className={containerPositionClass + ' flex justify-center'} aria-label="Dock navigation">
@@ -721,7 +731,7 @@ export default function BottomNav() {
                                     : proximity > 0.55 || isActive || focusedIndex === index
                     );
 
-                    const glowOpacity = Math.max(0, proximity - 0.25);
+                    const glowOpacity = Math.max(0, proximity - 0.2);
                     const baseRingOpacity = Math.max(0, proximity - 0.4);
                     const ringOpacity = (isTheme || isStageManager || isQuickAdd || isRecents)
                         ? Math.max(0.25, baseRingOpacity)
@@ -788,23 +798,23 @@ export default function BottomNav() {
                                 >
                                     <motion.span
                                         aria-hidden="true"
-                                        className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-gradient-to-br from-cyan-400/25 via-sky-400/15 to-blue-500/25 blur-xl"
+                                        className="pointer-events-none absolute inset-0 -z-10 rounded-[32px] bg-gradient-to-br from-cyan-400/25 via-sky-400/15 to-blue-500/25 blur-xl"
                                         initial={false}
                                         animate={{ opacity: glowOpacity }}
                                         transition={{ duration: 0.18 }}
                                     />
                                     <motion.span
                                         aria-hidden
-                                        className="pointer-events-none absolute inset-0 rounded-[22px] ring-4 ring-sky-300/40 dark:ring-cyan-300/30"
+                                        className="pointer-events-none absolute inset-0 rounded-[30px] ring-4 ring-sky-300/40 dark:ring-cyan-300/30"
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={pulseIndex === index ? { opacity: 1, scale: 1.06 } : { opacity: 0, scale: 0.98 }}
                                         transition={{ duration: 0.28, ease: 'easeOut' }}
                                     />
                                     <motion.span
                                         aria-hidden="true"
-                                        className="pointer-events-none absolute left-1/2 top-full z-0 mt-1 h-6 w-12 -translate-x-1/2 rounded-b-[28px] bg-gradient-to-t from-white/60 via-white/10 to-transparent opacity-70 dark:from-slate-200/30"
+                                        className="pointer-events-none absolute left-1/2 top-full z-0 mt-1.5 h-8 w-16 -translate-x-1/2 rounded-b-[32px] bg-gradient-to-t from-white/70 via-white/15 to-transparent opacity-80 dark:from-slate-200/35"
                                         initial={false}
-                                        animate={{ opacity: Math.max(0, proximity - 0.15), scaleY: 1 + proximity * 0.25 }}
+                                        animate={{ opacity: Math.max(0, proximity - 0.12), scaleY: 1 + proximity * 0.28 }}
                                         transition={{ duration: 0.2 }}
                                     />
                                     {isTheme ? (
@@ -819,9 +829,9 @@ export default function BottomNav() {
                                             ref={(el) => { focusRefs.current[index] = el; }}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${theme === 'dark' ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
-                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
-                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
-                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                                <span className="pointer-events-none absolute inset-[3px] rounded-[26px] bg-white/15 ring-1 ring-white/45 dark:bg-white/5 dark:ring-white/10" />
+                                                <span className="pointer-events-none absolute inset-x-5 top-2 h-1/3 rounded-[22px] bg-gradient-to-b from-white/85 via-white/25 to-transparent opacity-90 dark:from-white/35" />
+                                                <span className="pointer-events-none absolute inset-x-6 bottom-1.5 h-1/4 rounded-[20px] bg-gradient-to-t from-white/30 via-transparent to-transparent opacity-70 dark:from-white/10" />
                                                 <motion.img
                                                     src={item.iconSrc}
                                                     onError={(e) => {
@@ -830,7 +840,7 @@ export default function BottomNav() {
                                                         if (item.fallbackIconSrc) e.currentTarget.src = item.fallbackIconSrc;
                                                     }}
                                                     alt={iconAlt}
-                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                    className="relative h-14 w-14 select-none object-contain drop-shadow-[0_18px_28px_rgba(15,23,42,0.35)]"
                                                     initial={false}
                                                     animate={{ rotate: theme === 'dark' ? 180 : 0 }}
                                                     transition={{ type: 'spring', stiffness: 240, damping: 18 }}
@@ -846,10 +856,10 @@ export default function BottomNav() {
                                                         }}
                                                         alt=""
                                                         aria-hidden
-                                                        className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                        className="pointer-events-none absolute top-full left-1/2 h-12 w-12 -translate-x-1/2 scale-y-[-1] opacity-30"
                                                         style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
                                                         initial={false}
-                                                        animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                        animate={{ opacity: Math.max(0, proximity - 0.18) * 0.7 }}
                                                         transition={{ duration: 0.15 }}
                                                     />
                                                 )}
@@ -867,9 +877,9 @@ export default function BottomNav() {
                                             ref={(el) => { focusRefs.current[index] = el; }}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${stageManagerEnabled ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
-                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
-                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
-                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                                <span className="pointer-events-none absolute inset-[3px] rounded-[26px] bg-white/15 ring-1 ring-white/45 dark:bg-white/5 dark:ring-white/10" />
+                                                <span className="pointer-events-none absolute inset-x-5 top-2 h-1/3 rounded-[22px] bg-gradient-to-b from-white/85 via-white/25 to-transparent opacity-90 dark:from-white/35" />
+                                                <span className="pointer-events-none absolute inset-x-6 bottom-1.5 h-1/4 rounded-[20px] bg-gradient-to-t from-white/30 via-transparent to-transparent opacity-70 dark:from-white/10" />
                                                 <motion.img
                                                     src={item.iconSrc}
                                                     onError={(e) => {
@@ -878,7 +888,7 @@ export default function BottomNav() {
                                                         if (item.fallbackIconSrc) e.currentTarget.src = item.fallbackIconSrc;
                                                     }}
                                                     alt={iconAlt}
-                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                    className="relative h-14 w-14 select-none object-contain drop-shadow-[0_18px_28px_rgba(15,23,42,0.35)]"
                                                     initial={false}
                                                     animate={{ scale: stageManagerEnabled ? 1.08 : 1 }}
                                                     transition={{ duration: 0.2 }}
@@ -894,10 +904,10 @@ export default function BottomNav() {
                                                         }}
                                                         alt=""
                                                         aria-hidden
-                                                        className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                        className="pointer-events-none absolute top-full left-1/2 h-12 w-12 -translate-x-1/2 scale-y-[-1] opacity-30"
                                                         style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
                                                         initial={false}
-                                                        animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                        animate={{ opacity: Math.max(0, proximity - 0.18) * 0.7 }}
                                                         transition={{ duration: 0.15 }}
                                                     />
                                                 )}
@@ -922,9 +932,9 @@ export default function BottomNav() {
                                             ref={(el) => { focusRefs.current[index] = el; quickAddTriggerRef.current = el; }}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${isQuickAddOpen ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
-                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
-                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
-                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                                <span className="pointer-events-none absolute inset-[3px] rounded-[26px] bg-white/15 ring-1 ring-white/45 dark:bg-white/5 dark:ring-white/10" />
+                                                <span className="pointer-events-none absolute inset-x-5 top-2 h-1/3 rounded-[22px] bg-gradient-to-b from-white/85 via-white/25 to-transparent opacity-90 dark:from-white/35" />
+                                                <span className="pointer-events-none absolute inset-x-6 bottom-1.5 h-1/4 rounded-[20px] bg-gradient-to-t from-white/30 via-transparent to-transparent opacity-70 dark:from-white/10" />
                                                 <motion.img
                                                     src={item.iconSrc}
                                                     onError={(e) => {
@@ -933,7 +943,7 @@ export default function BottomNav() {
                                                         if (item.fallbackIconSrc) e.currentTarget.src = item.fallbackIconSrc;
                                                     }}
                                                     alt={iconAlt}
-                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                    className="relative h-14 w-14 select-none object-contain drop-shadow-[0_18px_28px_rgba(15,23,42,0.35)]"
                                                     initial={false}
                                                     animate={{ scale: isQuickAddOpen ? 1.08 : 1 }}
                                                     transition={{ duration: 0.2 }}
@@ -949,10 +959,10 @@ export default function BottomNav() {
                                                         }}
                                                         alt=""
                                                         aria-hidden
-                                                        className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                        className="pointer-events-none absolute top-full left-1/2 h-12 w-12 -translate-x-1/2 scale-y-[-1] opacity-30"
                                                         style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
                                                         initial={false}
-                                                        animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                        animate={{ opacity: Math.max(0, proximity - 0.18) * 0.7 }}
                                                         transition={{ duration: 0.15 }}
                                                     />
                                                 )}
@@ -977,9 +987,9 @@ export default function BottomNav() {
                                             ref={(el) => { focusRefs.current[index] = el; recentsTriggerRef.current = el; }}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${isRecentsOpen ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
-                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
-                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
-                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                                <span className="pointer-events-none absolute inset-[3px] rounded-[26px] bg-white/15 ring-1 ring-white/45 dark:bg-white/5 dark:ring-white/10" />
+                                                <span className="pointer-events-none absolute inset-x-5 top-2 h-1/3 rounded-[22px] bg-gradient-to-b from-white/85 via-white/25 to-transparent opacity-90 dark:from-white/35" />
+                                                <span className="pointer-events-none absolute inset-x-6 bottom-1.5 h-1/4 rounded-[20px] bg-gradient-to-t from-white/30 via-transparent to-transparent opacity-70 dark:from-white/10" />
                                                 <motion.svg viewBox="0 0 24 24" className="h-8 w-8 text-slate-700 dark:text-slate-200" fill="none" stroke="currentColor" strokeWidth="1.6">
                                                     <path d="M12 8v5l3 1" strokeLinecap="round" />
                                                     <path d="M4 12a8 8 0 1 0 8-8" />
@@ -1006,13 +1016,13 @@ export default function BottomNav() {
                                             ref={(el) => { focusRefs.current[index] = el; }}
                                         >
                                             <div className={`${ICON_CONTAINER_BASE} ${isActive ? ACTIVE_CLASSES : INACTIVE_CLASSES}`}>
-                                                <span className="pointer-events-none absolute inset-[2px] rounded-[20px] border border-white/40 bg-gradient-to-br from-white/40 via-white/10 to-transparent dark:border-white/10" />
-                                                <span className="pointer-events-none absolute inset-x-3 top-1.5 h-1/3 rounded-[18px] bg-gradient-to-b from-white/90 via-white/20 to-transparent opacity-80 dark:from-white/40" />
-                                                <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1/3 rounded-b-[18px] bg-gradient-to-t from-white/20 via-transparent to-transparent opacity-60 dark:from-white/5" />
+                                                <span className="pointer-events-none absolute inset-[3px] rounded-[26px] bg-white/15 ring-1 ring-white/45 dark:bg-white/5 dark:ring-white/10" />
+                                                <span className="pointer-events-none absolute inset-x-5 top-2 h-1/3 rounded-[22px] bg-gradient-to-b from-white/85 via-white/25 to-transparent opacity-90 dark:from-white/35" />
+                                                <span className="pointer-events-none absolute inset-x-6 bottom-1.5 h-1/4 rounded-[20px] bg-gradient-to-t from-white/30 via-transparent to-transparent opacity-70 dark:from-white/10" />
                                                 <motion.img
                                                     src={item.iconSrc}
                                                     alt={iconAlt}
-                                                    className="relative h-12 w-12 select-none object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.35)]"
+                                                    className="relative h-14 w-14 select-none object-contain drop-shadow-[0_18px_28px_rgba(15,23,42,0.35)]"
                                                     initial={false}
                                                     animate={{ scale: isActive ? 1.05 : 1 }}
                                                     transition={{ duration: 0.2 }}
@@ -1023,10 +1033,10 @@ export default function BottomNav() {
                                                         src={item.iconSrc}
                                                         alt=""
                                                         aria-hidden
-                                                        className="pointer-events-none absolute top-full left-1/2 h-10 w-10 -translate-x-1/2 scale-y-[-1] opacity-30"
+                                                        className="pointer-events-none absolute top-full left-1/2 h-12 w-12 -translate-x-1/2 scale-y-[-1] opacity-30"
                                                         style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)' }}
                                                         initial={false}
-                                                        animate={{ opacity: Math.max(0, proximity - 0.2) * 0.6 }}
+                                                        animate={{ opacity: Math.max(0, proximity - 0.18) * 0.7 }}
                                                         transition={{ duration: 0.15 }}
                                                     />
                                                 )}
@@ -1035,7 +1045,7 @@ export default function BottomNav() {
                                     )}
                                     <motion.span
                                         aria-hidden="true"
-                                        className="pointer-events-none absolute inset-0 rounded-[22px] ring-2 ring-sky-200/60 dark:ring-slate-400/40"
+                                        className="pointer-events-none absolute inset-0 rounded-[26px] ring-2 ring-cyan-200/45 dark:ring-slate-400/35"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: isTheme ? ringOpacity : ringOpacity }}
                                         transition={{ duration: 0.2 }}
@@ -1049,8 +1059,8 @@ export default function BottomNav() {
                                                 exit={isVertical ? { opacity: 0, x: 2 } : { opacity: 0, y: 4 }}
                                                 transition={{ duration: 0.18 }}
                                                 className={isVertical
-                                                    ? 'absolute left-[4.25rem] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-slate-900/95 px-3 py-1 text-xs font-semibold text-white shadow-lg shadow-slate-900/40 ring-1 ring-white/20 dark:bg-slate-200/95 dark:text-slate-900 dark:shadow-none'
-                                                    : 'absolute -top-10 whitespace-nowrap rounded-full bg-slate-900/95 px-3 py-1 text-xs font-semibold text-white shadow-lg shadow-slate-900/40 ring-1 ring-white/20 dark:bg-slate-200/95 dark:text-slate-900 dark:shadow-none'
+                                                    ? 'absolute left-[4.5rem] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-white/15 bg-slate-900/85 px-3 py-1 text-xs font-semibold text-white shadow-[0_18px_36px_-20px_rgba(15,23,42,0.55)] backdrop-blur-md dark:border-white/5 dark:bg-slate-200/90 dark:text-slate-900'
+                                                    : 'absolute -top-11 whitespace-nowrap rounded-full border border-white/15 bg-slate-900/85 px-3 py-1 text-xs font-semibold text-white shadow-[0_18px_36px_-20px_rgba(15,23,42,0.55)] backdrop-blur-md dark:border-white/5 dark:bg-slate-200/90 dark:text-slate-900'
                                                 }
                                             >
                                                 {label}
@@ -1061,13 +1071,13 @@ export default function BottomNav() {
                                         <motion.span
                                             layoutId={`dock-indicator-${item.key}`}
                                             className={isVertical
-                                                ? `absolute -right-2 h-1.5 w-1.5 rounded-full ${isActive ? 'bg-gradient-to-r from-cyan-400 to-blue-400 dark:from-cyan-300 dark:to-sky-400' : 'bg-slate-400/80 dark:bg-slate-500/80'}`
-                                                : `absolute -bottom-2 h-1.5 w-1.5 rounded-full ${isActive ? 'bg-gradient-to-r from-cyan-400 to-blue-400 dark:from-cyan-300 dark:to-sky-400' : 'bg-slate-400/80 dark:bg-slate-500/80'}`
+                                                ? `absolute -right-3 h-2 w-1.5 rounded-full ${isActive ? 'bg-gradient-to-b from-cyan-400 to-blue-500 dark:from-cyan-300 dark:to-sky-400' : 'bg-slate-400/80 dark:bg-slate-500/80'}`
+                                                : `absolute -bottom-3 h-1.5 w-4 rounded-full ${isActive ? 'bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-500 dark:from-cyan-300 dark:via-sky-400 dark:to-blue-400' : 'bg-slate-400/80 dark:bg-slate-500/80'}`
                                             }
-                                            initial={{ opacity: 0, scale: 0.4 }}
+                                            initial={{ opacity: 0, scale: 0.6 }}
                                             animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.4 }}
-                                            transition={{ duration: 0.2 }}
+                                            exit={{ opacity: 0, scale: 0.6 }}
+                                            transition={{ duration: 0.22 }}
                                         />
                                     ) : null}
                                     <AnimatePresence>
