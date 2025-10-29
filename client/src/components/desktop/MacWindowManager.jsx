@@ -17,6 +17,7 @@ import {
 import { STAGE_MANAGER_STATE_EVENT, STAGE_MANAGER_STORAGE_KEY, STAGE_MANAGER_TOGGLE_EVENT } from '../../constants/desktop';
 import { buildRouteElements, mainLayoutRoutes } from '../../routes/mainLayoutRoutes.jsx';
 import MacWindow from './MacWindow';
+import FloatingWorkspacePanel from './FloatingWorkspacePanel.jsx';
 import StageManagerPanel from './StageManagerPanel.jsx';
 import StageShelf from './StageShelf.jsx';
 import WindowControlHints from './WindowControlHints.jsx';
@@ -245,6 +246,12 @@ function serializeRouteLocation(location, fallbackPath) {
     return parseStoredLocation(null, fallbackPath);
 }
 
+function stageManagerShouldShowWindow(win, allowedTypes) {
+    if (win.isAppWindow) return true;
+    if (win.isMain) return true;
+    return Boolean(allowedTypes && allowedTypes.has && allowedTypes.has(win.type));
+}
+
 function slugifyAppPath(path) {
     if (!path) return 'home';
     return path
@@ -436,6 +443,9 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
     const [isCompact, setIsCompact] = useState(
         typeof window === 'undefined' ? true : window.innerWidth < 1024
     );
+    const [hasStageSidebar, setHasStageSidebar] = useState(
+        typeof window === 'undefined' ? false : window.innerWidth >= 1280
+    );
     const [missionControlOpen, setMissionControlOpen] = useState(false);
     const [focusMode, setFocusMode] = useState(false);
     const [quickLookWindowId, setQuickLookWindowId] = useState(null);
@@ -473,6 +483,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
     const [draggingWindow, setDraggingWindow] = useState(null);
     const [stageDropTarget, setStageDropTarget] = useState(null);
     const [dragPointer, setDragPointer] = useState(null);
+    const [floatingWorkspaceOpen, setFloatingWorkspaceOpen] = useState(false);
 
     const zRef = useRef(20);
     const dragRef = useRef(null);
@@ -493,6 +504,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
     const stageDropTargetRef = useRef(null);
     const stageGroupsRef = useRef(stageGroups);
     const stageShelfActiveRef = useRef(false);
+    const prevStageManagerEnabledRef = useRef(stageManagerEnabled);
     const activateStageGroupRef = useRef(null);
     const applyStageLayoutRef = useRef(null);
     const dragVelocityRef = useRef({});
@@ -519,14 +531,20 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
             });
 
             const existingIndex = updated.findIndex((win) => win.id === meta.id);
+            const openAppWindows = updated.filter(
+                (win) => win.isAppWindow && win.id !== meta.id
+            );
             if (existingIndex >= 0) {
                 const existing = updated[existingIndex];
+                const nextZ = zRef.current + 1;
+                zRef.current = nextZ;
                 updated[existingIndex] = {
                     ...existing,
                     title: meta.title,
                     isMain: true,
                     minimized: false,
                     minimizedByUser: false,
+                    z: nextZ,
                     isAppWindow: true,
                     appRoutePath: meta.fullPath,
                     appRouteKey: meta.routeKey,
@@ -539,6 +557,9 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
             } else {
                 const nextZ = zRef.current + 1;
                 zRef.current = nextZ;
+                const offsetIndex = openAppWindows.length;
+                const baseX = Math.max((viewportWidth - 900) / 2, 36) + offsetIndex * 36;
+                const baseY = Math.max((viewportHeight - 640) / 2 + 20, MAC_HEADER_HEIGHT + 12) + offsetIndex * 28;
                 const created = clampWindowToViewport(
                     {
                         id: meta.id,
@@ -546,8 +567,8 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
                         title: meta.title,
                         width: Math.min(980, viewportWidth - 80),
                         height: Math.min(700, viewportHeight - 150),
-                        x: Math.max((viewportWidth - 900) / 2, 36),
-                        y: Math.max((viewportHeight - 640) / 2 + 20, MAC_HEADER_HEIGHT + 12),
+                        x: baseX,
+                        y: baseY,
                         z: nextZ,
                         minimized: false,
                         minimizedByUser: false,
@@ -723,7 +744,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
             return null;
         }
         const dragMeta = draggingWindowRef.current;
-        if (!dragMeta || dragMeta.isMain) {
+        if (!dragMeta || dragMeta.isMain || dragMeta.isAppWindow) {
             return null;
         }
         const el = document.elementFromPoint(clientX, clientY);
@@ -771,6 +792,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
             const viewportHeight = window.innerHeight;
             const compact = viewportWidth < 1024;
             setIsCompact(compact);
+            setHasStageSidebar(viewportWidth >= 1280);
             setWindows((wins) =>
                 wins.map((win) => {
                     if (win.isZoomed) {
@@ -928,6 +950,16 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
     }, [stageManagerEnabled]);
 
     useEffect(() => {
+        const previous = prevStageManagerEnabledRef.current;
+        if (!previous && stageManagerEnabled && !hasStageSidebar && !isCompact) {
+            setFloatingWorkspaceOpen(true);
+        } else if (previous && !stageManagerEnabled) {
+            setFloatingWorkspaceOpen(false);
+        }
+        prevStageManagerEnabledRef.current = stageManagerEnabled;
+    }, [stageManagerEnabled, hasStageSidebar, isCompact]);
+
+    useEffect(() => {
         if (!stageManagerEnabled || !activeStageGroupId || focusMode) return;
         const group = stageGroups.find((item) => item.id === activeStageGroupId);
         if (!group) return;
@@ -935,7 +967,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
             const allowedTypes = new Set(group.windowTypes);
             let changed = false;
             const next = wins.map((win) => {
-                const shouldShow = win.isMain || allowedTypes.has(win.type);
+                const shouldShow = stageManagerShouldShowWindow(win, allowedTypes);
                 if (win.minimizedByUser) {
                     return win;
                 }
@@ -1339,7 +1371,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
                 return false;
             }
             const dragWindow = windowsRef.current.find((win) => win.id === windowId);
-            if (!dragWindow || dragWindow.isMain) {
+            if (!dragWindow || dragWindow.isMain || dragWindow.isAppWindow) {
                 return false;
             }
 
@@ -2319,7 +2351,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
                 setWindows((wins) => {
                     let changed = false;
                     const next = wins.map((win) => {
-                        const shouldShow = win.isMain || allowedTypes.has(win.type);
+                        const shouldShow = stageManagerShouldShowWindow(win, allowedTypes);
                         if (win.minimizedByUser) {
                             return win;
                         }
@@ -2400,6 +2432,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
             : 'Stage Manager enabled. Grouping utility windows.';
         if (stageManagerEnabled) {
             setStageManagerEnabled(false);
+            setFloatingWorkspaceOpen(false);
             const memory = stageManagerMemoryRef.current;
             stageManagerMemoryRef.current = null;
             if (memory) {
@@ -2456,12 +2489,17 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
             if (targetGroup) {
                 requestAnimationFrame(() => activateStageGroup(targetGroup, { force: true }));
             }
+            if (!hasStageSidebar && !isCompact) {
+                setFloatingWorkspaceOpen(true);
+            }
         }
         announce(announcementMessage);
     }, [
         activateStageGroup,
         activeStageGroupId,
         focusMode,
+        hasStageSidebar,
+        isCompact,
         stageGroups,
         stageManagerEnabled,
         toggleFocusMode,
@@ -3443,7 +3481,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
         }
         const allowedTypes = new Set(activeStageGroup.windowTypes);
         return windows.filter(
-            (win) => win.minimized && (win.isMain || allowedTypes.has(win.type))
+            (win) => win.minimized && stageManagerShouldShowWindow(win, allowedTypes)
         );
     }, [windows, stageManagerEnabled, activeStageGroup]);
 
@@ -3451,7 +3489,11 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
         if (minimisedWindows.length === 0) {
             return '';
         }
-        return minimisedWindows.map((win) => typeToTitle(win.type)).join(', ');
+        return minimisedWindows
+            .map((win) =>
+                win.isAppWindow ? win.title || typeToTitle(win.type) : typeToTitle(win.type)
+            )
+            .join(', ');
     }, [minimisedWindows]);
 
     const fullscreenWindowActive = useMemo(
@@ -3509,7 +3551,12 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
     }, [dragPointer]);
 
     const stageDropIndicator = useMemo(() => {
-        if (!stageDropTarget || !draggingWindow || draggingWindow.isMain) {
+        if (
+            !stageDropTarget ||
+            !draggingWindow ||
+            draggingWindow.isMain ||
+            draggingWindow.isAppWindow
+        ) {
             return null;
         }
         const windowLabel = draggingWindow.title || typeToTitle(draggingWindow.type);
@@ -3549,7 +3596,7 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
     const stageEntries = useMemo(() => {
         const allowedTypes = activeStageGroup ? new Set(activeStageGroup.windowTypes) : null;
         const activeEntries = windows
-            .filter((win) => !win.isMain)
+            .filter((win) => !win.isMain && !win.isAppWindow)
             .map((win) => ({
                 type: win.type,
                 title: win.title,
@@ -3635,6 +3682,18 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
         }
     }, [assignStageDropTarget, stageShelfActive]);
 
+    useEffect(() => {
+        if (!stageManagerEnabled) {
+            setFloatingWorkspaceOpen(false);
+        }
+    }, [stageManagerEnabled]);
+
+    useEffect(() => {
+        if (isCompact || hasStageSidebar) {
+            setFloatingWorkspaceOpen(false);
+        }
+    }, [hasStageSidebar, isCompact]);
+
     const pinnedStageGroupSummary = useMemo(
         () => stageShelfEntries.find((entry) => entry.isPinned) || null,
         [stageShelfEntries]
@@ -3696,6 +3755,14 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
         ]
     );
 
+    const closeFloatingWorkspacePanel = useCallback(() => {
+        setFloatingWorkspaceOpen(false);
+    }, []);
+
+    const toggleFloatingWorkspacePanel = useCallback(() => {
+        setFloatingWorkspaceOpen((open) => !open);
+    }, []);
+
     const quickLookTarget = useMemo(
         () =>
             quickLookWindowId
@@ -3703,6 +3770,51 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
                 : null,
         [quickLookWindowId, windows]
     );
+
+    const stagePanelProps = {
+        stageManagerEnabled,
+        pinnedStageGroupSummary,
+        stageManagerInsights,
+        onShowControlHints: handleShowControlHints,
+        onToggleStageManager: handleStageManagerToggle,
+        onOpenMissionControl: openMissionControl,
+        focusMode,
+        onToggleFocusMode: toggleFocusMode,
+        activeStageGroup,
+        activeUtilityCount,
+        pinnedStageGroupId,
+        onPinStageGroup: handlePinStageGroup,
+        stageShelfEntries,
+        editingStageGroupId,
+        editingStageGroupLabel,
+        onStageGroupLabelChange: handleStageGroupLabelInputChange,
+        onCommitRename: handleCommitStageGroupRename,
+        onCancelRename: handleCancelRenameStageGroup,
+        onStartRename: handleStartRenameStageGroup,
+        onActivateStageGroup: activateStageGroup,
+        stagePreviewAccent,
+        onDuplicateStageGroup: handleDuplicateStageGroup,
+        onDeleteStageGroup: handleDeleteStageGroup,
+        onSaveStageGroup: handleSaveStageGroup,
+        stageEntries,
+        onStageEntrySelect: handleStageEntrySelect,
+        stageEntryStatusLabel,
+        renderWindowIcon,
+        hotCorners,
+        onHotCornerToggle: handleHotCornerToggle,
+        hotCornerKeys: HOT_CORNER_KEYS,
+        hotCornerSymbols: HOT_CORNER_SYMBOLS,
+        hotCornerActionLabel,
+        formatHotCornerName,
+        hasMinimisedWindows: minimisedWindows.length > 0,
+        minimisedWindowSummary,
+        layoutOptions: stageLayoutOptions,
+        activeLayoutMode: activeStageLayoutMode,
+        hasCustomLayout: activeStageHasCustomLayout,
+        onChangeLayoutMode: handleStageLayoutModeChange,
+        onApplyLayout: handleApplyActiveStageLayout,
+        onResetLayout: handleResetActiveStageLayout,
+    };
 
     if (isCompact) {
         return (
@@ -4091,50 +4203,32 @@ export default function MacWindowManager({ windowTitle, renderMainContent, activ
                 />
             ) : null}
 
-            <StageManagerPanel
-                stageManagerEnabled={stageManagerEnabled}
-                pinnedStageGroupSummary={pinnedStageGroupSummary}
-                stageManagerInsights={stageManagerInsights}
-                onShowControlHints={handleShowControlHints}
-                onToggleStageManager={handleStageManagerToggle}
-                onOpenMissionControl={openMissionControl}
-                focusMode={focusMode}
-                onToggleFocusMode={toggleFocusMode}
-                activeStageGroup={activeStageGroup}
-                activeUtilityCount={activeUtilityCount}
-                pinnedStageGroupId={pinnedStageGroupId}
-                onPinStageGroup={handlePinStageGroup}
-                stageShelfEntries={stageShelfEntries}
-                editingStageGroupId={editingStageGroupId}
-                editingStageGroupLabel={editingStageGroupLabel}
-                onStageGroupLabelChange={handleStageGroupLabelInputChange}
-                onCommitRename={handleCommitStageGroupRename}
-                onCancelRename={handleCancelRenameStageGroup}
-                onStartRename={handleStartRenameStageGroup}
-                onActivateStageGroup={activateStageGroup}
-                stagePreviewAccent={stagePreviewAccent}
-                onDuplicateStageGroup={handleDuplicateStageGroup}
-                onDeleteStageGroup={handleDeleteStageGroup}
-                onSaveStageGroup={handleSaveStageGroup}
-                stageEntries={stageEntries}
-                onStageEntrySelect={handleStageEntrySelect}
-                stageEntryStatusLabel={stageEntryStatusLabel}
-                renderWindowIcon={renderWindowIcon}
-                hotCorners={hotCorners}
-                onHotCornerToggle={handleHotCornerToggle}
-                hotCornerKeys={HOT_CORNER_KEYS}
-                hotCornerSymbols={HOT_CORNER_SYMBOLS}
-                hotCornerActionLabel={hotCornerActionLabel}
-                formatHotCornerName={formatHotCornerName}
-                hasMinimisedWindows={minimisedWindows.length > 0}
-                minimisedWindowSummary={minimisedWindowSummary}
-                layoutOptions={stageLayoutOptions}
-                activeLayoutMode={activeStageLayoutMode}
-                hasCustomLayout={activeStageHasCustomLayout}
-                onChangeLayoutMode={handleStageLayoutModeChange}
-                onApplyLayout={handleApplyActiveStageLayout}
-                onResetLayout={handleResetActiveStageLayout}
+            {!isCompact && !hasStageSidebar ? (
+                <div className="pointer-events-auto fixed bottom-6 right-6 z-[63] flex xl:hidden">
+                    <button
+                        type="button"
+                        onClick={toggleFloatingWorkspacePanel}
+                        aria-pressed={floatingWorkspaceOpen}
+                        className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60 ${
+                            floatingWorkspaceOpen
+                                ? 'border-brand-300/70 bg-brand-500/10 text-brand-600 dark:border-brand-400/60 dark:bg-brand-500/20 dark:text-brand-200'
+                                : 'border-white/40 bg-white/70 text-slate-600 hover:border-brand-200/60 hover:text-brand-600 dark:border-white/15 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-brand-400/50 dark:hover:text-brand-200'
+                        }`}
+                    >
+                        <HiOutlineViewColumns className="h-5 w-5" />
+                        Workspace Panel
+                    </button>
+                </div>
+            ) : null}
+
+            <FloatingWorkspacePanel
+                {...stagePanelProps}
+                open={floatingWorkspaceOpen && !hasStageSidebar && !isCompact}
+                onClose={closeFloatingWorkspacePanel}
+                className="pt-12"
             />
+
+            <StageManagerPanel {...stagePanelProps} />
 
             <div className="pointer-events-auto fixed bottom-8 right-8 z-[62] hidden lg:flex flex-col items-end gap-3">
                 {minimisedWindows.map((win) => (
